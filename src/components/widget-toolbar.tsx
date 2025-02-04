@@ -9,20 +9,22 @@ import { cn } from "@/lib/utils"
 import { CraftTextWidget } from "@/components/widgets/text-widget"
 import { CraftSliderWidget } from "@/components/widgets/slider-widget"
 import { CraftQuizWidget } from "@/components/widgets/quiz-widget"
+import { CraftImageWidget } from "@/components/widgets/image-widget"
+import { CraftVideoWidget } from "@/components/widgets/video-widget"
 
 const categories = [
   {
     name: "Basics",
     widgets: [
-      { icon: Icons.text, label: "Text Box", component: <CraftTextWidget content="New Text" /> },
-      { icon: Icons.image, label: "Image", component: <div>Image Widget</div> }, // Create ImageWidget component
-      { icon: Icons.video, label: "Video", component: <div>Video Widget</div> }, // Create VideoWidget component
+      { icon: Icons.text, label: "Text Box", component: <CraftTextWidget content="New Text" textType={"body"} /> },
+      { icon: Icons.image, label: "Image", component: <CraftImageWidget /> }, // Create ImageWidget component
+      { icon: Icons.video, label: "Video", component: <CraftVideoWidget /> }, // Create VideoWidget component
     ],
   },
   {
     name: "Interactive",
     widgets: [
-      { icon: Icons.slider, label: "Slider", component: <CraftSliderWidget min={0} max={100} step={1} defaultValue={50} /> },
+      // { icon: Icons.slider, label: "Slider", component: <CraftSliderWidget min={0} max={100} step={1} defaultValue={50} /> },
       { 
         icon: Icons.quiz, 
         label: "Quiz", 
@@ -35,13 +37,13 @@ const categories = [
       { icon: Icons.simulation, label: "Simulation", component: <div>Simulation Widget</div> },
     ],
   },
-  {
-    name: "Advanced",
-    widgets: [
-      { icon: Icons.aiTutor, label: "AI Tutor", component: <div>AITutor Widget</div> },
-      { icon: Icons.progressTracker, label: "Progress Tracker", component: <div>ProgressTracker Widget</div> },
-    ],
-  },
+  // {
+  //   name: "Advanced",
+  //   widgets: [
+  //     { icon: Icons.aiTutor, label: "AI Tutor", component: <div>AITutor Widget</div> },
+  //     { icon: Icons.progressTracker, label: "Progress Tracker", component: <div>ProgressTracker Widget</div> },
+  //   ],
+  // },
 ]
 
 export function WidgetToolbar() {

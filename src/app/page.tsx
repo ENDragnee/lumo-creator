@@ -1,15 +1,16 @@
-"use client";
-import { TopNavigationBar } from "@/components/top-navigation-bar";
-import { WidgetToolbar } from "@/components/widget-toolbar";
-import { PropertiesPanel } from "@/components/properties-panel";
-import { BottomToolbar } from "@/components/bottom-toolbar";
-import { FloatingAIAssistant } from "@/components/floating-ai-assistant";
-import { Editor, Frame, Element } from "@craftjs/core";
-import { CraftTextWidget } from "@/components/widgets/text-widget";
-import { CraftSliderWidget } from "@/components/widgets/slider-widget";
-import { CraftQuizWidget } from "@/components/widgets/quiz-widget";
-
-import dynamic from "next/dynamic";
+"use client"
+import { TopNavigationBar } from "@/components/top-navigation-bar"
+import { WidgetToolbar } from "@/components/widget-toolbar"
+import { PropertiesPanel } from "@/components/properties-panel"
+import { BottomToolbar } from "@/components/bottom-toolbar"
+import { FloatingAIAssistant } from "@/components/floating-ai-assistant"
+import { Editor, Frame, Element } from "@craftjs/core"
+import { CraftTextWidget } from "@/components/widgets/text-widget"
+import { CraftSliderWidget } from "@/components/widgets/slider-widget"
+import { CraftQuizWidget } from "@/components/widgets/quiz-widget"
+import { CraftVideoWidget } from "@/components/widgets/video-widget"
+import { CraftImageWidget } from "@/components/widgets/image-widget"
+import dynamic from "next/dynamic"
 
 // Disable SSR for the Editor
 const NoSSREditor = dynamic(
@@ -48,7 +49,9 @@ export default function EducationalStudio() {
             CraftTextWidget,
             CraftQuizWidget,
             CraftSliderWidget,
-            Element,
+            CraftImageWidget,
+            CraftVideoWidget,
+            Element
           }}
           enabled={true}
         >
