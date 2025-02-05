@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { Editor, Frame } from '@craftjs/core';
 import { CraftTextWidget } from "@/components/widgets/text-widget";
-
+import { viewerResolver } from '@/types/resolver';
+import { TextViewerComponent } from '@/components/widgets/text-widget';
 
 // Component resolver definition
 const componentResolver = {
   div: ({ children, ...props }: { children: React.ReactNode; [key: string]: any }) => <div {...props}>{children}</div>,
-  CraftTextWidget: CraftTextWidget
+  ...viewerResolver,
 };
 
 // Separate child component that uses Frame

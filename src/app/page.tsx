@@ -11,7 +11,7 @@ import { CraftQuizWidget } from "@/components/widgets/quiz-widget"
 import { CraftVideoWidget } from "@/components/widgets/video-widget"
 import { CraftImageWidget } from "@/components/widgets/image-widget"
 import dynamic from "next/dynamic"
-
+import { editorResolver } from "@/types/resolver"
 // Disable SSR for the Editor
 const NoSSREditor = dynamic(
   () => import("@craftjs/core").then((mod) => mod.Editor),
@@ -45,14 +45,9 @@ export default function EducationalStudio() {
     <div className="h-screen flex flex-col bg-[#F5F5F7] font-sans">
       
         <NoSSREditor
-          resolver={{
-            CraftTextWidget,
-            CraftQuizWidget,
-            CraftSliderWidget,
-            CraftImageWidget,
-            CraftVideoWidget,
-            Element
-          }}
+          resolver={
+            editorResolver
+          }
           enabled={true}
         >
           <TopNavigationBar />
