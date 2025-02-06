@@ -4,12 +4,7 @@ import { WidgetToolbar } from "@/components/widget-toolbar"
 import { PropertiesPanel } from "@/components/properties-panel"
 import { BottomToolbar } from "@/components/bottom-toolbar"
 import { FloatingAIAssistant } from "@/components/floating-ai-assistant"
-import { Editor, Frame, Element } from "@craftjs/core"
-import { CraftTextWidget } from "@/components/widgets/text-widget"
-import { CraftSliderWidget } from "@/components/widgets/slider-widget"
-import { CraftQuizWidget } from "@/components/widgets/quiz-widget"
-import { CraftVideoWidget } from "@/components/widgets/video-widget"
-import { CraftImageWidget } from "@/components/widgets/image-widget"
+import { Frame, Element } from "@craftjs/core"
 import dynamic from "next/dynamic"
 import { editorResolver } from "@/types/resolver"
 // Disable SSR for the Editor
@@ -22,6 +17,7 @@ const NoSSREditor = dynamic(
 const CraftJSCanvas = () => {
   return (
     <div className="flex-1 overflow-hidden relative">
+      {/* <Editor></Editor> */}
       <Frame>
         <Element
           id="root"

@@ -5,6 +5,7 @@ import { useNode } from "@craftjs/core"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { DragDropFile } from "@/components/drag-drop-file"
+import { Upload, ImageIcon } from "lucide-react"
 
 interface ImageWidgetProps {
   src?: string
@@ -14,6 +15,7 @@ interface ImageWidgetProps {
 export function ImageWidget({ src: initialSrc = "", alt: initialAlt = "Image" }: ImageWidgetProps) {
   const [src, setSrc] = useState<string>(initialSrc)
   const [alt, setAlt] = useState<string>(initialAlt)
+  const [isDragging, setIsDragging] = useState(false)
 
   const {
     connectors: { connect, drag },
@@ -40,20 +42,43 @@ export function ImageWidget({ src: initialSrc = "", alt: initialAlt = "Image" }:
   )
 
   return (
-    <div ref={(ref) => { if (ref) connect(drag(ref)); }} className="relative min-w-[200px] min-h-[200px]">
-      <DragDropFile onFileDrop={handleFileDrop} accept={{ "image/*": [] }}>
-        {src ? (
-          <Image src={src || "/placeholder.svg"} alt={alt} layout="fill" objectFit="contain" />
-        ) : (
-          <p>Drag and drop an image here, or click to select a file</p>
-        )}
+    <div
+      ref={(ref) => {
+        if (ref) connect(drag(ref))
+      }}
+      className="relative min-w-[200px] min-h-[200px] rounded-lg overflow-hidden shadow-lg transition-all duration-300 ease-in-out"
+    >
+      <DragDropFile
+        onFileDrop={handleFileDrop}
+        accept={{ "image/*": [] }}
+        onDragEnter={() => setIsDragging(true)}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={() => setIsDragging(false)}
+      >
+        <div
+          className={`w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 transition-all duration-300 ease-in-out ${isDragging ? "scale-105 opacity-80" : ""}`}
+        >
+          {src ? (
+            <Image src={src || "/placeholder.svg"} alt={alt} layout="fill" objectFit="cover" className="rounded-lg" />
+          ) : (
+            <div className="text-center p-4">
+              <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <p className="mt-2 text-sm text-gray-600">Drag and drop an image here, or click to select a file</p>
+            </div>
+          )}
+          <div
+            className={`absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-300 ${isDragging ? "opacity-100" : "opacity-0"}`}
+          >
+            <Upload className="h-16 w-16 text-white animate-bounce" />
+          </div>
+        </div>
       </DragDropFile>
       <input type="file" accept="image/*" onChange={handleFileInput} className="hidden" id="image-upload" />
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         onClick={() => document.getElementById("image-upload")?.click()}
-        className="absolute bottom-2 right-2"
+        className="absolute bottom-2 right-2 bg-white bg-opacity-75 hover:bg-opacity-100 transition-all duration-300 ease-in-out"
       >
         Browse
       </Button>
