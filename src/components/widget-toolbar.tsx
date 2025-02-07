@@ -18,7 +18,7 @@ const categories = [
       {
         icon: Icons.text,
         label: "Text Box",
-        component: <CraftTextWidget content="New Text" textType={"body"} />,
+        component: <CraftTextWidget content="New Text" textType="body" width={300} height={200} />,
       },
       { icon: Icons.image, label: "Image", component: <CraftImageWidget /> }, // Create ImageWidget component
       { icon: Icons.video, label: "Video", component: <CraftVideoWidget /> }, // Create VideoWidget component

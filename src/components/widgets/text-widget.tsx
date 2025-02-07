@@ -1,27 +1,21 @@
-"use client" 
+"use client"
 import { useState, useCallback, useMemo } from "react"
 import { useNode, useEditor } from "@craftjs/core"
-import { X } from "lucide-react";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuShortcut,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu"
+import { X } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slate, Editable, withReact } from "slate-react"
-import { Editor, Transforms, createEditor, type Descendant, Element } from "slate"
+import { Editor, Transforms, createEditor, Element as SlateElement, type Descendant } from "slate"
 import { withHistory } from "slate-history"
-import { AlignLeft, AlignCenter, AlignRight, AlignJustify } from "lucide-react"
+import { AlignLeft, AlignCenter, AlignRight, AlignJustify, Bold, Italic, Underline } from "lucide-react"
+import { Resizable } from "re-resizable"
+import type React from "react" // Import React
 
 interface TextWidgetProps {
   content: string
   textType: "body" | "heading" | "subheading"
   editable?: boolean
+  width?: number
+  height?: number
 }
 
 interface CustomElement {
@@ -53,7 +47,13 @@ const deserialize = (value: string) => {
   }
 }
 
-export function TextWidget({ content: initialContent, textType: initialTextType, editable = true }: TextWidgetProps) {
+export function TextWidget({
+  content: initialContent,
+  textType: initialTextType,
+  editable = true,
+  width = 300,
+  height = 200,
+}: TextWidgetProps) {
   const editor = useMemo(() => withHistory(withReact(createEditor())), [])
   const [value, setValue] = useState<Descendant[]>(deserialize(initialContent))
 
@@ -62,21 +62,22 @@ export function TextWidget({ content: initialContent, textType: initialTextType,
     actions: { setProp },
     id,
     selected,
-    parent,
   } = useNode((node) => ({
     selected: node.events.selected,
-    content: node.data.props.content,
-    parent: node.data.parent,
-    textType: node.data.props.textType,
     id: node.id,
   }))
 
-  const { actions: { delete: deleteNode } } = useEditor();
+  const {
+    actions: { delete: deleteNode },
+  } = useEditor()
 
-  const handleDelete = useCallback((e: { stopPropagation: () => void; }) => {
-    e.stopPropagation();
-    deleteNode(id);
-  }, [deleteNode, id]);
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      deleteNode(id)
+    },
+    [deleteNode, id],
+  )
 
   const handleTextTypeChange = useCallback(
     (newTextType: TextWidgetProps["textType"]) => {
@@ -87,9 +88,7 @@ export function TextWidget({ content: initialContent, textType: initialTextType,
       } as const
 
       Transforms.setNodes(editor, { type: typeMap[newTextType] } as Partial<CustomElement>, {
-        match: (n): n is CustomElement => {
-          return Element.isElement(n) && Editor.isBlock(editor, n) && !Editor.isEditor(n)
-        },
+        match: (n) => SlateElement.isElement(n) && Editor.isBlock(editor, n),
       })
 
       setProp((props: TextWidgetProps) => {
@@ -98,6 +97,7 @@ export function TextWidget({ content: initialContent, textType: initialTextType,
     },
     [editor, setProp],
   )
+
   const renderElement = useCallback((props: any) => {
     const { element, children, attributes } = props
     const align = element.align || "left"
@@ -154,7 +154,7 @@ export function TextWidget({ content: initialContent, textType: initialTextType,
 
   const isMarkActive = (format: string) => {
     const marks = Editor.marks(editor)
-    return marks ? (marks as Record<string, any>)[format] === true : false
+    return marks ? marks[format as keyof typeof marks] === true : false
   }
 
   const handleAlignment = useCallback(
@@ -162,212 +162,132 @@ export function TextWidget({ content: initialContent, textType: initialTextType,
       Transforms.setNodes(
         editor,
         { align: alignment },
-        { match: (n) => Element.isElement(n) && Editor.isBlock(editor, n) },
+        { match: (n) => SlateElement.isElement(n) && Editor.isBlock(editor, n) },
       )
     },
     [editor],
   )
 
-  return (
-    <div
-      ref={(ref) => {
-        if (ref) connect(drag(ref))
-      }}
-      className={`relative min-w-[200px] min-h-[100px] bg-gray-100 p-1 rounded-lg ${
-        selected ? "border-2 border-blue-500" : ""
-      }`}
-    >
-      {/* Delete button */}
-      <button
-        onClick={handleDelete}
-        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-red-600"
-        aria-label="Delete widget"
-      >
-        <X className="h-4 w-4" />
-      </button>
-      
-      {editable ? (
-        <ContextMenu>
-          <ContextMenuTrigger>
-            <div className="h-full p-2 bg-white bg-opacity-30 backdrop-filter backdrop-blur-sm rounded-lg">
-              <Slate
-                editor={editor}
-                initialValue={value}
-                onChange={(newValue) => {
-                  setValue(newValue)
-                  setProp((props: { content: string }) => {
-                    props.content = serialize(newValue)
-                  })
-                }}
-              >
-                <Editable
-                  renderElement={renderElement}
-                  renderLeaf={renderLeaf}
-                  className="focus:outline-none"
-                  readOnly={!editable}
-                />
-              </Slate>
-            </div>
-          </ContextMenuTrigger>
+  const handleResize = useCallback(
+    (e: MouseEvent | TouchEvent, direction: any, ref: HTMLElement, d: { width: number; height: number }) => {
+      setProp((props: TextWidgetProps) => {
+        props.width = ref.offsetWidth
+        props.height = ref.offsetHeight
+      })
+    },
+    [setProp],
+  )
 
-          <ContextMenuContent className="w-64">
-            <ContextMenuSub>
-              <ContextMenuSubTrigger>Text Type</ContextMenuSubTrigger>
-              <ContextMenuSubContent className="w-48">
-                <ContextMenuItem onClick={() => handleTextTypeChange("body")}>
-                  Body
-                  {initialTextType === "body" && <ContextMenuShortcut>✓</ContextMenuShortcut>}
-                </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleTextTypeChange("heading")}>
-                  Heading
-                  {initialTextType === "heading" && <ContextMenuShortcut>✓</ContextMenuShortcut>}
-                </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleTextTypeChange("subheading")}>
-                  Subheading
-                  {initialTextType === "subheading" && <ContextMenuShortcut>✓</ContextMenuShortcut>}
-                </ContextMenuItem>
-              </ContextMenuSubContent>
-            </ContextMenuSub>
-            <ContextMenuSeparator />
-            <ContextMenuItem onClick={() => toggleMark("bold")}>
-              Bold <ContextMenuShortcut>⌘B</ContextMenuShortcut>
-            </ContextMenuItem>
-            <ContextMenuItem onClick={() => toggleMark("italic")}>
-              Italic <ContextMenuShortcut>⌘I</ContextMenuShortcut>
-            </ContextMenuItem>
-            <ContextMenuItem onClick={() => toggleMark("underline")}>
-              Underline <ContextMenuShortcut>⌘U</ContextMenuShortcut>
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-            <ContextMenuSub>
-              <ContextMenuSubTrigger>Alignment</ContextMenuSubTrigger>
-              <ContextMenuSubContent className="w-48">
-                <ContextMenuItem onClick={() => handleAlignment("left")}>
-                  <AlignLeft className="mr-2 h-4 w-4" />
-                  Left
-                </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleAlignment("center")}>
-                  <AlignCenter className="mr-2 h-4 w-4" />
-                  Center
-                </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleAlignment("right")}>
-                  <AlignRight className="mr-2 h-4 w-4" />
-                  Right
-                </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleAlignment("justify")}>
-                  <AlignJustify className="mr-2 h-4 w-4" />
-                  Justify
-                </ContextMenuItem>
-              </ContextMenuSubContent>
-            </ContextMenuSub>
-          </ContextMenuContent>
-        </ContextMenu>
-      ) : (
+  return (
+    <Resizable size={{ width, height }} onResizeStop={handleResize} minWidth={200} minHeight={100}>
+      <div
+        ref={(ref) => {
+          if (ref) connect(drag(ref))
+        }}
+        className={`relative bg-white p-1 rounded-lg ${
+          selected ? "border-2 border-blue-500" : "border border-gray-200"
+        }`}
+        style={{ width: "100%", height: "100%" }}
+      >
+        {selected && (
+          <button
+            onClick={handleDelete}
+            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 z-10 hover:bg-red-600"
+            aria-label="Delete widget"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+
+        {editable && selected ? (
+          <Tabs defaultValue="format" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="format">Format</TabsTrigger>
+              <TabsTrigger value="align">Align</TabsTrigger>
+              <TabsTrigger value="type">Type</TabsTrigger>
+            </TabsList>
+            <TabsContent value="format" className="flex space-x-2 py-2">
+              <button onClick={() => toggleMark("bold")} className="p-1 hover:bg-gray-100 rounded">
+                <Bold className="h-4 w-4" />
+              </button>
+              <button onClick={() => toggleMark("italic")} className="p-1 hover:bg-gray-100 rounded">
+                <Italic className="h-4 w-4" />
+              </button>
+              <button onClick={() => toggleMark("underline")} className="p-1 hover:bg-gray-100 rounded">
+                <Underline className="h-4 w-4" />
+              </button>
+            </TabsContent>
+            <TabsContent value="align" className="flex space-x-2 py-2">
+              <button onClick={() => handleAlignment("left")} className="p-1 hover:bg-gray-100 rounded">
+                <AlignLeft className="h-4 w-4" />
+              </button>
+              <button onClick={() => handleAlignment("center")} className="p-1 hover:bg-gray-100 rounded">
+                <AlignCenter className="h-4 w-4" />
+              </button>
+              <button onClick={() => handleAlignment("right")} className="p-1 hover:bg-gray-100 rounded">
+                <AlignRight className="h-4 w-4" />
+              </button>
+              <button onClick={() => handleAlignment("justify")} className="p-1 hover:bg-gray-100 rounded">
+                <AlignJustify className="h-4 w-4" />
+              </button>
+            </TabsContent>
+            <TabsContent value="type" className="flex space-x-2 py-2">
+              <button onClick={() => handleTextTypeChange("body")} className="p-1 hover:bg-gray-100 rounded text-sm">
+                Body
+              </button>
+              <button onClick={() => handleTextTypeChange("heading")} className="p-1 hover:bg-gray-100 rounded text-sm">
+                Heading
+              </button>
+              <button
+                onClick={() => handleTextTypeChange("subheading")}
+                className="p-1 hover:bg-gray-100 rounded text-sm"
+              >
+                Subheading
+              </button>
+            </TabsContent>
+          </Tabs>
+        ) : null}
+
         <div className="h-full p-2">
-          <Slate editor={editor} initialValue={value}>
+          <Slate
+            editor={editor}
+            initialValue={value}
+            onChange={(newValue) => {
+              setValue(newValue)
+              setProp((props: { content: string }) => {
+                props.content = serialize(newValue)
+              })
+            }}
+          >
             <Editable
               renderElement={renderElement}
               renderLeaf={renderLeaf}
-              className="focus:outline-none"
-              readOnly={true}
+              className="focus:outline-none h-full"
+              readOnly={!editable}
             />
           </Slate>
         </div>
-      )}
-    </div>
-  )
-}
-
-export function GTextWidget({ content: initialContent, textType: initialTextType }: TextWidgetProps) {
-  const editor = useMemo(() => withHistory(withReact(createEditor())), [])
-  const [value, setValue] = useState<Descendant[]>(deserialize(initialContent))
-  const {
-    connectors: { connect, drag },
-    actions: { setProp },
-    selected,
-  } = useNode((node) => ({
-    selected: node.events.selected,
-    content: node.data.props.content,
-    textType: node.data.props.textType,
-  }))
-
-  const renderElement = useCallback((props: any) => {
-    switch (props.element.type) {
-      case "heading":
-        return (
-          <h1 className="text-2xl font-bold mb-2" {...props.attributes}>
-            {props.children}
-          </h1>
-        )
-      case "subheading":
-        return (
-          <h2 className="text-xl font-semibold mb-2" {...props.attributes}>
-            {props.children}
-          </h2>
-        )
-      case "paragraph":
-      default:
-        return (
-          <p className="text-base mb-2" {...props.attributes}>
-            {props.children}
-          </p>
-        )
-    }
-  }, [])
-
-  const renderLeaf = useCallback((props: any) => {
-    return (
-      <span
-        {...props.attributes}
-        className={`${props.leaf.bold ? "font-bold" : ""} 
-                   ${props.leaf.italic ? "italic" : ""} 
-                   ${props.leaf.underline ? "underline" : ""}`}
-      >
-        {props.children}
-      </span>
-    )
-  }, [])
-
-  return (
-    <div
-      ref={(ref) => {
-        if (ref) connect(drag(ref))
-      }}
-      className={`relative min-w-[200px] min-h-[100px] ${selected ? "border-2 border-blue-500" : ""}`}
-    >
-      <div className="h-full p-2">
-        <Slate editor={editor} initialValue={value}>
-          <Editable
-            renderElement={renderElement}
-            renderLeaf={renderLeaf}
-            className="focus:outline-none"
-            readOnly={true}
-          />
-        </Slate>
       </div>
-    </div>
+    </Resizable>
   )
 }
-// CraftJS wrapper component
-export const CraftTextWidget = ({ content, textType }: TextWidgetProps) => {
-  return <TextWidget content={content} textType={textType} />
+
+export const CraftTextWidget = ({ content, textType, width, height }: TextWidgetProps) => {
+  return <TextWidget content={content} textType={textType} width={width} height={height} />
 }
 
-// CraftJS configuration for the component
 CraftTextWidget.craft = {
   displayName: "Rich Text Widget",
   props: {
     content: serialize(initialValue),
     textType: "body",
+    width: 300,
+    height: 200,
   },
   rules: {
-    canDrag: () => true,
+    canDrag: () => true,  
     canMoveIn: () => true,
     canMoveOut: () => true,
   },
-}
-
-export const TextViewerComponent = ({ content, textType }: TextWidgetProps) => {
-  return <GTextWidget content={content} textType={textType} />
 }
 
