@@ -1,19 +1,5 @@
 import connectDB from '@/lib/db';
-import mongoose from 'mongoose';
-
-// Define the schema
-const SerializedDataSchema = new mongoose.Schema({
-  data: String,
-  createdAt: { type: Date, default: Date.now }
-});
-
-// Check if model already exists to prevent OverwriteModelError
-let SerializedData;
-try {
-  SerializedData = mongoose.model('Content');
-} catch (error) {
-  SerializedData = mongoose.model('Content', SerializedDataSchema);
-}
+import { SerializedData } from "@/models/SerializedDataSchema";
 
 export async function POST(req) {
   try {
