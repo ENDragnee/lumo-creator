@@ -27,7 +27,7 @@ export function Toolbar() {
         <Bot className="h-4 w-4" />
         AI Tutor
       </Button>
-      <Button ref={(ref) => {connectors.create(ref!, <VideoComponent />)}} variant="ghost" className="gap-2">
+      <Button ref={(ref) => {connectors.create(ref!, <VideoComponent src="path/to/video.mp4" />)}} variant="ghost" className="gap-2">
         <Play className="h-4 w-4" />
         Video
       </Button>
