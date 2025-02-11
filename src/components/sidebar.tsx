@@ -1,28 +1,35 @@
 "use client"
 
-import { Search } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { SidebarCategory } from "./sidebar-category"
-import { basicWidgets, interactiveWidgets, advancedWidgets } from "@/lib/widgets"
+import React from "react"
+import { useEditor } from "@craftjs/core"
 
 export function Sidebar() {
+  const { selected } = useEditor((state, query) => {
+    const currentNodeId = query.getEvent("selected").last()
+    let selected
+    if (currentNodeId) {
+      selected = {
+        id: currentNodeId,
+        name: state.nodes[currentNodeId].data.name,
+        settings: state.nodes[currentNodeId].related && state.nodes[currentNodeId].related.settings,
+      }
+    }
+
+    return {
+      selected,
+    }
+  })
+
   return (
-    <div className="w-60 border-r flex flex-col">
-      <div className="p-4 border-b">
-        <div className="relative">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search widgets.." className="pl-8" />
+    <div className="w-80 bg-white border-l border-gray-200 overflow-auto">
+      {selected ? (
+        <div className="p-4">
+          <h2 className="text-lg font-semibold mb-4">{selected.name} Settings</h2>
+          {selected.settings && React.createElement(selected.settings)}
         </div>
-      </div>
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-8">
-          <SidebarCategory title="BASICS" items={basicWidgets} />
-          <SidebarCategory title="INTERACTIVE" items={interactiveWidgets} />
-          <SidebarCategory title="ADVANCED" items={advancedWidgets} />
-        </div>
-      </ScrollArea>
+      ) : (
+        <div className="p-4 text-gray-500">Select a component to edit its properties</div>
+      )}
     </div>
   )
 }
-

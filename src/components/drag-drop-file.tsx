@@ -1,36 +1,42 @@
-import type React from "react"
-import { useCallback } from "react"
-import { useDropzone } from "react-dropzone"
+"use client"
+
+import { useState } from "react"
 
 interface DragDropFileProps {
   onFileDrop: (file: File) => void
-  accept: Record<string, string[]>
-  children: React.ReactNode
+  accept?: { [key: string]: any[] }
+  children?: React.ReactNode
 }
 
 export function DragDropFile({ onFileDrop, accept, children }: DragDropFileProps) {
-  const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      if (acceptedFiles.length > 0) {
-        onFileDrop(acceptedFiles[0])
-      }
-    },
-    [onFileDrop],
-  )
+  const [highlight, setHighlight] = useState(false)
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept,
-    multiple: false,
-  })
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setHighlight(true)
+  }
+
+  const handleDragLeave = () => {
+    setHighlight(false)
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setHighlight(false)
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      onFileDrop(files[0])
+    }
+  }
 
   return (
     <div
-      {...getRootProps()}
-      className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 transition-colors"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`border-2 border-dashed rounded-lg p-4 text-center ${highlight ? "border-blue-500" : "border-gray-300"}`}
     >
-      <input {...getInputProps()} />
-      {isDragActive ? <p>Drop the file here ...</p> : children}
+      {children}
     </div>
   )
 }

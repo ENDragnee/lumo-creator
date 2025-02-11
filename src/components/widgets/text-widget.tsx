@@ -161,7 +161,7 @@ export function TextWidget({
     (alignment: "left" | "center" | "right" | "justify") => {
       Transforms.setNodes(
         editor,
-        { align: alignment },
+        { align: alignment } as Partial<CustomElement>,
         { match: (n) => SlateElement.isElement(n) && Editor.isBlock(editor, n) },
       )
     },

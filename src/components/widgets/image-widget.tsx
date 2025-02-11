@@ -51,12 +51,12 @@ export function ImageWidget({ src: initialSrc = "", alt: initialAlt = "Image" }:
       <DragDropFile
         onFileDrop={handleFileDrop}
         accept={{ "image/*": [] }}
-        onDragEnter={() => setIsDragging(true)}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={() => setIsDragging(false)}
       >
         <div
           className={`w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 transition-all duration-300 ease-in-out ${isDragging ? "scale-105 opacity-80" : ""}`}
+          onDragEnter={() => setIsDragging(true)}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={() => setIsDragging(false)}
         >
           {src ? (
             <Image src={src || "/placeholder.svg"} alt={alt} layout="fill" objectFit="cover" className="rounded-lg" />
@@ -103,4 +103,3 @@ CraftImageWidget.craft = {
     canMoveOut: () => true,
   },
 }
-

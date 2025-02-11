@@ -70,3 +70,23 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.ql-toolbar.ql-snow {
+  @apply border-border bg-background rounded-t-lg;
+}
+
+.ql-container.ql-snow {
+  @apply border-border rounded-b-lg;
+}
+
+.ql-editor {
+  @apply min-h-[150px] bg-background text-foreground;
+}
+
+.ql-snow .ql-stroke {
+  @apply stroke-foreground;
+}
+
+.ql-snow .ql-fill {
+  @apply fill-foreground;
+}

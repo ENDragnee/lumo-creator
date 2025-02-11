@@ -1,27 +1,14 @@
-import { CraftTextWidget } from "@/components/widgets/text-widget"
-import { CraftSliderWidget } from "@/components/widgets/slider-widget"
-import { CraftQuizWidget } from "@/components/widgets/quiz-widget"
-import { CraftVideoWidget } from "@/components/widgets/video-widget"
-import { CraftImageWidget } from "@/components/widgets/image-widget"
-
-import { TextViewerComponent } from '@/components/widgets/text-widget';
+import { ImageComponent } from "@/components/user/image"
+import { TextComponent } from "@/components/user/text"
+import { VideoComponent } from "@/components/user/video"
+import { QuizComponent } from "@/components/user/quiz"
 import { Element } from "@craftjs/core"
 
 
 export const editorResolver = {
-    TextComponent: CraftTextWidget,
-    SliderComponent: CraftSliderWidget,
-    QuizComponent: CraftQuizWidget,
-    VideoComponent: CraftVideoWidget,
-    ImageComponent: CraftImageWidget,
-    Element
-}
-
-export const viewerResolver = {
-    TextComponent: TextViewerComponent,
-    SliderComponent: CraftSliderWidget,
-    QuizComponent: CraftQuizWidget,
-    VideoComponent: CraftVideoWidget,
-    ImageComponent: CraftImageWidget,
+    Image: ImageComponent,
+    Text: TextComponent,
+    Video: VideoComponent,
+    Quiz: QuizComponent,
     Element
 }
