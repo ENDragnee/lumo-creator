@@ -18,7 +18,7 @@ export async function GET(request) {
 
     for (const file of files) {
       if (file.startsWith(`${userId}_`)) {
-        const thumbnailFile = `${file}_optimized.jpg`
+        const thumbnailFile = `${file}.jpg`
         const thumbnailPath = path.join(thumbnailsDir, thumbnailFile)
 
         // Check if thumbnail exists
