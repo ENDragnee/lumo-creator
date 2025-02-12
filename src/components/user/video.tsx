@@ -27,7 +27,9 @@ export function VideoComponent({ src }: VideoComponentProps) {
 
   return (
     <div
-      ref={(ref) => connect(drag(ref!))}
+      ref={(ref) => {
+        connect(drag(ref!));
+      }}
       className={`relative ${selected ? "outline outline-2 outline-blue-500" : ""}`}
     >
       <video src={src} controls className="w-full h-full" />

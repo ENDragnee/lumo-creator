@@ -11,11 +11,15 @@ export async function DELETE(request) {
   }
 
   const videoPath = path.join(process.cwd(), "public", "videos", filename)
-  const thumbnailPath = path.join(process.cwd(), "public", "thumbnails", `${filename.split(".")[0]}_optimized.jpg`)
+  // Delete both the original and optimized thumbnails
+  const originalThumbnailPath = path.join(process.cwd(), "public", "thumbnails", `${filename}.jpg`)
+  const optimizedThumbnailPath = path.join(process.cwd(), "public", "thumbnails", `${filename}_optimized.jpg`)
 
   try {
     await fs.unlink(videoPath)
-    await fs.unlink(thumbnailPath).catch(() => {}) // Ignore if thumbnail doesn't exist
+    // Try to delete both thumbnail versions
+    await fs.unlink(originalThumbnailPath).catch(() => {})
+    await fs.unlink(optimizedThumbnailPath).catch(() => {})
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -23,4 +27,3 @@ export async function DELETE(request) {
     return NextResponse.json({ success: false, message: "Error removing video and thumbnail" }, { status: 500 })
   }
 }
-
