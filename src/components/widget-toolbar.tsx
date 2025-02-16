@@ -6,12 +6,24 @@ import { SlidersHorizontal, HelpCircle, Bot, Play, ImageIcon, Type } from "lucid
 import { SliderComponent } from "@/components/user/slider"
 import { QuizComponent } from "@/components/user/quiz"
 import { AITutorComponent } from "@/components/user/ai-tutor"
-import { VideoComponent } from "@/components/user/video"
-import { ImageComponent } from "@/components/user/image"
 import { TextComponent } from "@/components/user/text"
 
-export function Toolbar() {
+interface ToolbarProps {
+  onVideoButtonClick: () => void;
+  onImageButtonClick: () => void;
+}
+
+export function Toolbar({ onVideoButtonClick, onImageButtonClick }: ToolbarProps) {
   const { connectors } = useEditor()
+
+  const handleVideoClick = () => {
+    onVideoButtonClick()
+  }
+
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    onImageButtonClick()
+  }
 
   return (
     <div className="flex h-16 items-center gap-2 border-t bg-background px-6">
@@ -27,11 +39,11 @@ export function Toolbar() {
         <Bot className="h-4 w-4" />
         AI Tutor
       </Button>
-      <Button ref={(ref) => {connectors.create(ref!, <VideoComponent src="path/to/video.mp4" />)}} variant="ghost" className="gap-2">
+      <Button onClick={handleVideoClick} variant="ghost" className="gap-2">
         <Play className="h-4 w-4" />
         Video
       </Button>
-      <Button ref={(ref) => {connectors.create(ref!, <ImageComponent />)}} variant="ghost" className="gap-2">
+      <Button onClick={handleImageClick} variant="ghost" className="gap-2">
         <ImageIcon className="h-4 w-4" />
         Image
       </Button>
@@ -42,4 +54,3 @@ export function Toolbar() {
     </div>
   )
 }
-

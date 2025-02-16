@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { writeFile, unlink } from "fs/promises"
 import path from "path"
 import sharp from "sharp"

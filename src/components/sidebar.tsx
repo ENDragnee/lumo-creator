@@ -1,15 +1,20 @@
-"use client"
-
 import React, { useState, useEffect } from "react"
 import { useEditor } from "@craftjs/core"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { VideoUploader } from "./video-uploader"
 import { VideoList } from "./video-list"
+import { ImageUploader } from "./image-uploader"
+import { ImageList } from "./image-list"
 
 interface Video {
   filename: string
   thumbnailUrl: string
+}
+
+interface Image {
+  filename: string
+  imageUrl: string
 }
 
 async function fetchUserVideos(userId: string): Promise<Video[]> {
@@ -26,7 +31,32 @@ async function removeVideo(userId: string, filename: string): Promise<boolean> {
   return data.success
 }
 
-export function Sidebar() {
+async function fetchUserImages(userId: string): Promise<Image[]> {
+  const response = await fetch(`/api/get-user-images?userId=${userId}`)
+  const data = await response.json()
+  return data.success ? data.images : []
+}
+
+async function removeImage(userId: string, filename: string): Promise<boolean> {
+  const response = await fetch(`/api/remove-image?userId=${userId}&filename=${filename}`, {
+    method: "DELETE",
+  })
+  const data = await response.json()
+  return data.success
+}
+
+interface SidebarProps {
+  isVideoSectionVisible: boolean
+  isImageSectionVisible: boolean
+}
+
+export function Sidebar({ isVideoSectionVisible: initialVideoVisible, isImageSectionVisible: initialImageVisible }: SidebarProps) {
+  const [activeSection, setActiveSection] = useState<'video' | 'image' | null>(() => {
+    if (initialVideoVisible) return 'video'
+    if (initialImageVisible) return 'image'
+    return null
+  })
+
   const { selected } = useEditor((state, query) => {
     const currentNodeId = query.getEvent("selected").last()
     let selected
@@ -45,11 +75,24 @@ export function Sidebar() {
 
   const [videos, setVideos] = useState<Video[]>([])
   const [videoLink, setVideoLink] = useState("")
+  const [images, setImages] = useState<Image[]>([])
+  const [imageLink, setImageLink] = useState("")
   const userId = "test" // Replace this with actual user ID when you implement authentication
 
   useEffect(() => {
-    fetchUserVideos(userId).then(setVideos)
-  }, [])
+    if (activeSection === 'video') {
+      fetchUserVideos(userId).then(setVideos)
+    }
+    if (activeSection === 'image') {
+      fetchUserImages(userId).then(setImages)
+    }
+  }, [activeSection])
+
+  useEffect(() => {
+    if (initialVideoVisible) setActiveSection('video')
+    else if (initialImageVisible) setActiveSection('image')
+    else setActiveSection(null)
+  }, [initialVideoVisible, initialImageVisible])
 
   const handleVideoUpload = (filename: string, thumbnailUrl: string) => {
     setVideos((prevVideos) => [...prevVideos, { filename, thumbnailUrl }])
@@ -64,40 +107,87 @@ export function Sidebar() {
     }
   }
 
-  const handleLinkUpload = () => {
+  const handleVideoLinkUpload = () => {
     if (videoLink) {
-      // Here you would typically send this link to your backend to process
-      // For now, we'll just add it to the list with a placeholder thumbnail
       setVideos((prevVideos) => [...prevVideos, { filename: videoLink, thumbnailUrl: "/placeholder-thumbnail.jpg" }])
       setVideoLink("")
     }
   }
 
+  const handleImageUpload = (filename: string, imageUrl: string) => {
+    setImages((prevImages) => [...prevImages, { filename, imageUrl }])
+  }
+
+  const handleImageRemove = async (filename: string) => {
+    const success = await removeImage(userId, filename)
+    if (success) {
+      setImages((prevImages) => prevImages.filter((image) => image.filename !== filename))
+    } else {
+      console.error("Failed to remove image")
+    }
+  }
+
+  const handleImageLinkUpload = () => {
+    if (imageLink) {
+      setImages((prevImages) => [...prevImages, { filename: imageLink, imageUrl: imageLink }])
+      setImageLink("")
+    }
+  }
+
+  if (!activeSection && !selected) {
+    return <div className="w-80 bg-white border-l border-gray-200 overflow-auto" />
+  }
+
   return (
     <div className="w-80 bg-white border-l border-gray-200 overflow-auto">
-      <div className="p-4">
-        <h2 className="text-lg font-semibold mb-4">Video Library</h2>
-        <VideoUploader onUpload={handleVideoUpload} userId={userId} />
-        <div className="mt-4">
-          <Input
-            type="text"
-            placeholder="Enter video URL"
-            value={videoLink}
-            onChange={(e) => setVideoLink(e.target.value)}
-          />
-          <Button onClick={handleLinkUpload} className="mt-2">
-            Add Video Link
-          </Button>
+      {activeSection === 'video' && (
+        <div className="p-4">
+          <h2 className="text-lg font-semibold mb-4">Video Library</h2>
+          <VideoUploader onUpload={handleVideoUpload} userId={userId} />
+          <div className="mt-4">
+            <Input
+              type="text"
+              placeholder="Enter video URL"
+              value={videoLink}
+              onChange={(e) => setVideoLink(e.target.value)}
+            />
+            <Button onClick={handleVideoLinkUpload} className="mt-2">
+              Add Video Link
+            </Button>
+          </div>
+          <VideoList videos={videos} onRemove={handleVideoRemove} />
         </div>
-        <VideoList videos={videos} onRemove={handleVideoRemove} />
-      </div>
+      )}
+      {activeSection === 'image' && (
+        <div className="p-4">
+          <h2 className="text-lg font-semibold mb-4">Image Library</h2>
+          <ImageUploader onUpload={handleImageUpload} userId={userId} />
+          <div className="mt-4">
+            <Input
+              type="text"
+              placeholder="Enter image URL"
+              value={imageLink}
+              onChange={(e) => setImageLink(e.target.value)}
+            />
+            <Button onClick={handleImageLinkUpload} className="mt-2">
+              Add Image Link
+            </Button>
+          </div>
+          <ImageList images={images} onRemove={handleImageRemove} />
+        </div>
+      )}
       {selected && selected.name === "Video" && (
         <div className="p-4 border-t">
           <h2 className="text-lg font-semibold mb-4">Video Settings</h2>
           {selected.settings && React.createElement(selected.settings)}
         </div>
       )}
+      {selected && selected.name === "Image" && (
+        <div className="p-4 border-t">
+          <h2 className="text-lg font-semibold mb-4">Image Settings</h2>
+          {selected.settings && React.createElement(selected.settings)}
+        </div>
+      )}
     </div>
   )
 }
-
