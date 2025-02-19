@@ -13,6 +13,7 @@ import { QuizComponent } from "@/components/user/quiz"
 import { SliderComponent } from "@/components/user/slider"
 import { AITutorComponent } from "@/components/user/ai-tutor"
 import { useEditorStore } from "@/lib/editor-store"
+import { CursorModeProvider } from "@/contexts/CursorModeContext"
 
 export default function TemplateEditor() {
   const { enabled } = useEditorStore()
@@ -28,29 +29,38 @@ export default function TemplateEditor() {
   }
 
   return (
-    <Editor
-      resolver={{
-        Canvas,
-        Image: ImageComponent,
-        Text: TextComponent,
-        Video: VideoComponent,
-        Quiz: QuizComponent,
-        Slider: SliderComponent,
-        AITutor: AITutorComponent,
-      }}
-      enabled={enabled}
-    >
-      <div className="flex h-screen flex-col bg-background">
-        <Navbar />
-        <div className="flex flex-1 overflow-hidden">
-          <Sidebar isVideoSectionVisible={isVideoSectionVisible} isImageSectionVisible={isImageSectionVisible} />
-          <Frame>
-            <Element is={Canvas} canvas>
-            </Element>
-          </Frame>
+    <CursorModeProvider>
+      <Editor
+        resolver={{
+          Canvas,
+          Image: ImageComponent,
+          Text: TextComponent,
+          Video: VideoComponent,
+          Quiz: QuizComponent,
+          Slider: SliderComponent,
+          AITutor: AITutorComponent,
+        }}
+        enabled={enabled}
+      >
+        <div className="flex h-screen flex-col bg-background">
+          <Navbar />
+          <div className="flex flex-1 overflow-hidden">
+            <Sidebar 
+              isVideoSectionVisible={isVideoSectionVisible} 
+              isImageSectionVisible={isImageSectionVisible} 
+            />
+            <Frame>
+              <Element is={Canvas} canvas>
+                {/* Canvas children */}
+              </Element>
+            </Frame>
+          </div>
+          <Toolbar 
+            onVideoButtonClick={handleVideoButtonClick} 
+            onImageButtonClick={handleImageButtonClick} 
+          />
         </div>
-        <Toolbar onVideoButtonClick={handleVideoButtonClick} onImageButtonClick={handleImageButtonClick} />
-      </div>
-    </Editor>
+      </Editor>
+    </CursorModeProvider>
   )
 }

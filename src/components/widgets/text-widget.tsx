@@ -6,9 +6,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slate, Editable, withReact } from "slate-react"
 import { Editor, Transforms, createEditor, Element as SlateElement, type Descendant } from "slate"
 import { withHistory } from "slate-history"
-import { AlignLeft, AlignCenter, AlignRight, AlignJustify, Bold, Italic, Underline } from "lucide-react"
-import { Resizable } from "re-resizable"
-import type React from "react" // Import React
+import {
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Bold,
+  Italic,
+  Underline,
+} from "lucide-react"
+import { ResizableElement } from "@/components/Resizer"
+import type React from "react"
 
 interface TextWidgetProps {
   content: string
@@ -62,9 +70,13 @@ export function TextWidget({
     actions: { setProp },
     id,
     selected,
+    width: nodeWidth,
+    height: nodeHeight,
   } = useNode((node) => ({
     selected: node.events.selected,
     id: node.id,
+    width: node.data.props.width,
+    height: node.data.props.height,
   }))
 
   const {
@@ -87,9 +99,13 @@ export function TextWidget({
         subheading: "subheading",
       } as const
 
-      Transforms.setNodes(editor, { type: typeMap[newTextType] } as Partial<CustomElement>, {
-        match: (n) => SlateElement.isElement(n) && Editor.isBlock(editor, n),
-      })
+      Transforms.setNodes(
+        editor,
+        { type: typeMap[newTextType] } as Partial<CustomElement>,
+        {
+          match: (n) => SlateElement.isElement(n) && Editor.isBlock(editor, n),
+        },
+      )
 
       setProp((props: TextWidgetProps) => {
         props.textType = newTextType
@@ -131,9 +147,9 @@ export function TextWidget({
     return (
       <span
         {...attributes}
-        className={`${leaf.bold ? "font-bold" : ""} 
-                   ${leaf.italic ? "italic" : ""} 
-                   ${leaf.underline ? "underline" : ""}`}
+        className={`${leaf.bold ? "font-bold" : ""} ${leaf.italic ? "italic" : ""} ${
+          leaf.underline ? "underline" : ""
+        }`}
       >
         {children}
       </span>
@@ -168,18 +184,9 @@ export function TextWidget({
     [editor],
   )
 
-  const handleResize = useCallback(
-    (e: MouseEvent | TouchEvent, direction: any, ref: HTMLElement, d: { width: number; height: number }) => {
-      setProp((props: TextWidgetProps) => {
-        props.width = ref.offsetWidth
-        props.height = ref.offsetHeight
-      })
-    },
-    [setProp],
-  )
-
   return (
-    <Resizable size={{ width, height }} onResizeStop={handleResize} minWidth={200} minHeight={100}>
+    // Pass the current width/height into ResizableElement.
+    <ResizableElement width={nodeWidth || width} height={nodeHeight || height}>
       <div
         ref={(ref) => {
           if (ref) connect(drag(ref))
@@ -187,6 +194,7 @@ export function TextWidget({
         className={`relative bg-white p-1 rounded-lg ${
           selected ? "border-2 border-blue-500" : "border border-gray-200"
         }`}
+        // Use 100% so the inner container fills the resizable container.
         style={{ width: "100%", height: "100%" }}
       >
         {selected && (
@@ -199,7 +207,7 @@ export function TextWidget({
           </button>
         )}
 
-        {editable && selected ? (
+        {editable && selected && (
           <Tabs defaultValue="format" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="format">Format</TabsTrigger>
@@ -207,35 +215,62 @@ export function TextWidget({
               <TabsTrigger value="type">Type</TabsTrigger>
             </TabsList>
             <TabsContent value="format" className="flex space-x-2 py-2">
-              <button onClick={() => toggleMark("bold")} className="p-1 hover:bg-gray-100 rounded">
+              <button
+                onClick={() => toggleMark("bold")}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
                 <Bold className="h-4 w-4" />
               </button>
-              <button onClick={() => toggleMark("italic")} className="p-1 hover:bg-gray-100 rounded">
+              <button
+                onClick={() => toggleMark("italic")}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
                 <Italic className="h-4 w-4" />
               </button>
-              <button onClick={() => toggleMark("underline")} className="p-1 hover:bg-gray-100 rounded">
+              <button
+                onClick={() => toggleMark("underline")}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
                 <Underline className="h-4 w-4" />
               </button>
             </TabsContent>
             <TabsContent value="align" className="flex space-x-2 py-2">
-              <button onClick={() => handleAlignment("left")} className="p-1 hover:bg-gray-100 rounded">
+              <button
+                onClick={() => handleAlignment("left")}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
                 <AlignLeft className="h-4 w-4" />
               </button>
-              <button onClick={() => handleAlignment("center")} className="p-1 hover:bg-gray-100 rounded">
+              <button
+                onClick={() => handleAlignment("center")}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
                 <AlignCenter className="h-4 w-4" />
               </button>
-              <button onClick={() => handleAlignment("right")} className="p-1 hover:bg-gray-100 rounded">
+              <button
+                onClick={() => handleAlignment("right")}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
                 <AlignRight className="h-4 w-4" />
               </button>
-              <button onClick={() => handleAlignment("justify")} className="p-1 hover:bg-gray-100 rounded">
+              <button
+                onClick={() => handleAlignment("justify")}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
                 <AlignJustify className="h-4 w-4" />
               </button>
             </TabsContent>
             <TabsContent value="type" className="flex space-x-2 py-2">
-              <button onClick={() => handleTextTypeChange("body")} className="p-1 hover:bg-gray-100 rounded text-sm">
+              <button
+                onClick={() => handleTextTypeChange("body")}
+                className="p-1 hover:bg-gray-100 rounded text-sm"
+              >
                 Body
               </button>
-              <button onClick={() => handleTextTypeChange("heading")} className="p-1 hover:bg-gray-100 rounded text-sm">
+              <button
+                onClick={() => handleTextTypeChange("heading")}
+                className="p-1 hover:bg-gray-100 rounded text-sm"
+              >
                 Heading
               </button>
               <button
@@ -246,7 +281,7 @@ export function TextWidget({
               </button>
             </TabsContent>
           </Tabs>
-        ) : null}
+        )}
 
         <div className="h-full p-2">
           <Slate
@@ -268,11 +303,16 @@ export function TextWidget({
           </Slate>
         </div>
       </div>
-    </Resizable>
+    </ResizableElement>
   )
 }
 
-export const CraftTextWidget = ({ content, textType, width, height }: TextWidgetProps) => {
+export const CraftTextWidget = ({
+  content,
+  textType,
+  width,
+  height,
+}: TextWidgetProps) => {
   return <TextWidget content={content} textType={textType} width={width} height={height} />
 }
 
@@ -285,9 +325,8 @@ CraftTextWidget.craft = {
     height: 200,
   },
   rules: {
-    canDrag: () => true,  
+    canDrag: () => true,
     canMoveIn: () => true,
     canMoveOut: () => true,
   },
 }
-

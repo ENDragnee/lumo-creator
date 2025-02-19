@@ -1,3 +1,5 @@
+"use client"
+
 import type React from "react"
 import { useNode } from "@craftjs/core"
 
@@ -33,4 +35,3 @@ Canvas.craft = {
     canMoveIn: () => true,
   },
 }
-

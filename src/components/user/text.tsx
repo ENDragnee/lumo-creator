@@ -1,4 +1,3 @@
-// components/user/text.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -6,6 +5,7 @@ import { useNode } from "@craftjs/core";
 import { ResizeHandle } from "@/components/resize-handle";
 import dynamic from "next/dynamic";
 import { useHistoryStore } from "@/lib/history-store";
+import { ResizableElement } from "@/components/Resizer";
 
 const QuillWrapper = dynamic(
   () => import("@/components/user/quill-wrapper").then((mod) => mod.QuillWrapper),
@@ -38,25 +38,27 @@ export function TextComponent({ content }: { content: string }) {
   };
 
   return (
-    <div
-      ref={(ref) => { connect(drag(ref!)); }}
-      className={`relative ${selected ? "outline outline-2 outline-blue-500" : ""}`}
-    >
-      {selected ? (
-        <QuillWrapper
-          value={value}
-          onChange={handleChange}
-          ref={quillRef}
-          nodeId={id}
-        />
-      ) : (
-        <div
-          className="ql-editor"
-          dangerouslySetInnerHTML={{ __html: value }}
-        />
-      )}
-      {selected && <ResizeHandle />}
-    </div>
+    <ResizableElement>
+      <div
+        ref={(ref) => {
+          connect(drag(ref!));
+        }}
+        className={`relative ${selected ? "outline outline-2 outline-blue-500" : ""}`}
+        style={{ width: "100%", height: "100%" }}  // This style makes the inner container fill the resizable
+      >
+        {selected ? (
+          <QuillWrapper
+            value={value}
+            onChange={handleChange}
+            ref={quillRef}
+            nodeId={id}
+          />
+        ) : (
+          <div className="ql-editor" dangerouslySetInnerHTML={{ __html: value }} />
+        )}
+        {selected && <ResizeHandle />}
+      </div>
+    </ResizableElement>
   );
 }
 
