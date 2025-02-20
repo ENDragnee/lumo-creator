@@ -1,58 +1,71 @@
-import { NextResponse } from "next/server"
-import { writeFile, unlink } from "fs/promises"
-import path from "path"
-import sharp from "sharp"
-import ffmpeg from "fluent-ffmpeg"
+import { NextResponse } from "next/server";
+import { writeFile, unlink } from "fs/promises";
+import path from "path";
+import sharp from "sharp";
+import ffmpeg from "fluent-ffmpeg";
+import { mkdir } from "fs/promises";
 
 export async function POST(request) {
-  const data = await request.formData()
-  const file = data.get("file")
-  const userId = data.get("userId")
+  const data = await request.formData();
+  const file = data.get("file");
+  const userId = data.get("userId");
 
   if (!file) {
-    return NextResponse.json({ success: false, message: "No file uploaded" }, { status: 400 })
+    return NextResponse.json(
+      { success: false, message: "No file uploaded" },
+      { status: 400 }
+    );
   }
 
-  const bytes = await file.arrayBuffer()
-  const buffer = Buffer.from(bytes)
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+  const filename = `${userId}_${file.name}`;
 
-  const filename = `${userId}_${file.name}`
-  const filepath = path.join(process.cwd(), "public", "videos", filename)
-  const tempThumbnailPath = path.join(process.cwd(), "public", "thumbnails", `${filename}_temp.jpg`)
-  const finalThumbnailPath = path.join(process.cwd(), "public", "thumbnails", `${filename}.jpg`)
+  // Create the target directories
+  const videoDir = path.join(process.cwd(), "public", "LumoCreators", String(userId), "videos");
+  await mkdir(videoDir, { recursive: true });
+  const filepath = path.join(videoDir, filename);
+
+  const thumbnailDir = path.join(process.cwd(), "public", "LumoCreators", String(userId), "thumbnails");
+  await mkdir(thumbnailDir, { recursive: true });
+  const tempThumbnailPath = path.join(thumbnailDir, `${filename}_temp.jpg`);
+  const finalThumbnailPath = path.join(thumbnailDir, `${filename}.jpg`);
 
   try {
-    await writeFile(filepath, buffer)
+    await writeFile(filepath, buffer);
 
-    // Generate temporary thumbnail
+    // Generate a temporary thumbnail using ffmpeg.
     await new Promise((resolve, reject) => {
       ffmpeg(filepath)
         .screenshots({
           timestamps: ["00:00:01"],
           filename: `${filename}_temp.jpg`,
-          folder: path.join(process.cwd(), "public", "thumbnails"),
+          folder: thumbnailDir,
           size: "320x240",
         })
         .on("end", resolve)
-        .on("error", reject)
-    })
+        .on("error", reject);
+    });
 
-    // Optimize thumbnail and save as final version
+    // Optimize the temporary thumbnail and save as the final version.
     await sharp(tempThumbnailPath)
       .resize(320, 240, { fit: "cover" })
       .jpeg({ quality: 80 })
-      .toFile(finalThumbnailPath)
+      .toFile(finalThumbnailPath);
 
-    // Remove temporary thumbnail
-    await unlink(tempThumbnailPath).catch(() => {})
+    // Remove the temporary thumbnail.
+    await unlink(tempThumbnailPath).catch(() => {});
 
     return NextResponse.json({
       success: true,
       filename,
-      thumbnailUrl: `/thumbnails/${filename}.jpg`,
-    })
+      thumbnailUrl: `/LumoCreators/${userId}/thumbnails/${filename}.jpg`,
+    });
   } catch (error) {
-    console.error("Error saving file or generating thumbnail:", error)
-    return NextResponse.json({ success: false, message: "Error processing video" }, { status: 500 })
+    console.error("Error saving file or generating thumbnail:", error);
+    return NextResponse.json(
+      { success: false, message: "Error processing video" },
+      { status: 500 }
+    );
   }
 }

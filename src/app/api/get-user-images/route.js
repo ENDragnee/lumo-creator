@@ -9,7 +9,7 @@ export async function GET(request) {
     return NextResponse.json({ success: false, message: "User ID is required" }, { status: 400 })
   }
 
-  const imagesDir = path.join(process.cwd(), "public", "images")
+  const imagesDir = path.join(process.cwd(), "public", "LumoCreators", String(userId), "images")
 
   try {
     const files = await fs.readdir(imagesDir)
@@ -17,7 +17,7 @@ export async function GET(request) {
       .filter((file) => file.startsWith(`${userId}_`))
       .map((file) => ({
         filename: file,
-        imageUrl: `/images/${file}`,
+        imageUrl: `/LumoCreators/${userId}/images/${file}`,
       }))
 
     return NextResponse.json({ success: true, images: userImages })

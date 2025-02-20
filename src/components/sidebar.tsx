@@ -1,146 +1,185 @@
-import React, { useState, useEffect } from "react"
-import { useEditor } from "@craftjs/core"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { VideoUploader } from "./video-uploader"
-import { VideoList } from "./video-list"
-import { ImageUploader } from "./image-uploader"
-import { ImageList } from "./image-list"
+import React, { useState, useEffect } from "react";
+import { useEditor } from "@craftjs/core";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { VideoUploader } from "./video-uploader";
+import { VideoList } from "./video-list";
+import { ImageUploader } from "./image-uploader";
+import { ImageList } from "./image-list";
+import { useSession } from "next-auth/react";
+
+// Define an interface for a user with an id property.
+interface ExtendedUser {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+}
 
 interface Video {
-  filename: string
-  thumbnailUrl: string
+  filename: string;
+  thumbnailUrl: string;
 }
 
 interface Image {
-  filename: string
-  imageUrl: string
+  filename: string;
+  imageUrl: string;
 }
 
 async function fetchUserVideos(userId: string): Promise<Video[]> {
-  const response = await fetch(`/api/get-user-videos?userId=${userId}`)
-  const data = await response.json()
-  return data.success ? data.videos : []
+  const response = await fetch(`/api/get-user-videos?userId=${userId}`);
+  const data = await response.json();
+  return data.success ? data.videos : [];
 }
 
 async function removeVideo(userId: string, filename: string): Promise<boolean> {
-  const response = await fetch(`/api/remove-video?userId=${userId}&filename=${filename}`, {
-    method: "DELETE",
-  })
-  const data = await response.json()
-  return data.success
+  const response = await fetch(
+    `/api/remove-video?userId=${userId}&filename=${filename}`,
+    { method: "DELETE" }
+  );
+  const data = await response.json();
+  return data.success;
 }
 
 async function fetchUserImages(userId: string): Promise<Image[]> {
-  const response = await fetch(`/api/get-user-images?userId=${userId}`)
-  const data = await response.json()
-  return data.success ? data.images : []
+  const response = await fetch(`/api/get-user-images?userId=${userId}`);
+  const data = await response.json();
+  return data.success ? data.images : [];
 }
 
 async function removeImage(userId: string, filename: string): Promise<boolean> {
-  const response = await fetch(`/api/remove-image?userId=${userId}&filename=${filename}`, {
-    method: "DELETE",
-  })
-  const data = await response.json()
-  return data.success
+  const response = await fetch(
+    `/api/remove-image?userId=${userId}&filename=${filename}`,
+    { method: "DELETE" }
+  );
+  const data = await response.json();
+  return data.success;
 }
 
 interface SidebarProps {
-  isVideoSectionVisible: boolean
-  isImageSectionVisible: boolean
+  isVideoSectionVisible: boolean;
+  isImageSectionVisible: boolean;
 }
 
-export function Sidebar({ isVideoSectionVisible: initialVideoVisible, isImageSectionVisible: initialImageVisible }: SidebarProps) {
-  const [activeSection, setActiveSection] = useState<'video' | 'image' | null>(() => {
-    if (initialVideoVisible) return 'video'
-    if (initialImageVisible) return 'image'
-    return null
-  })
+export function Sidebar({
+  isVideoSectionVisible: initialVideoVisible,
+  isImageSectionVisible: initialImageVisible,
+}: SidebarProps) {
+  const { data: session, status } = useSession();
+
+  const [activeSection, setActiveSection] = useState<
+    "video" | "image" | null
+  >(() => {
+    if (initialVideoVisible) return "video";
+    if (initialImageVisible) return "image";
+    return null;
+  });
 
   const { selected } = useEditor((state, query) => {
-    const currentNodeId = query.getEvent("selected").last()
-    let selected
+    const currentNodeId = query.getEvent("selected").last();
+    let selected;
     if (currentNodeId) {
       selected = {
         id: currentNodeId,
         name: state.nodes[currentNodeId].data.name,
-        settings: state.nodes[currentNodeId].related && state.nodes[currentNodeId].related.settings,
-      }
+        settings:
+          state.nodes[currentNodeId].related &&
+          state.nodes[currentNodeId].related.settings,
+      };
     }
+    return { selected };
+  });
 
-    return {
-      selected,
-    }
-  })
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [videoLink, setVideoLink] = useState("");
+  const [images, setImages] = useState<Image[]>([]);
+  const [imageLink, setImageLink] = useState("");
 
-  const [videos, setVideos] = useState<Video[]>([])
-  const [videoLink, setVideoLink] = useState("")
-  const [images, setImages] = useState<Image[]>([])
-  const [imageLink, setImageLink] = useState("")
-  const userId = "test" // Replace this with actual user ID when you implement authentication
-
-  useEffect(() => {
-    if (activeSection === 'video') {
-      fetchUserVideos(userId).then(setVideos)
-    }
-    if (activeSection === 'image') {
-      fetchUserImages(userId).then(setImages)
-    }
-  }, [activeSection])
+  // Cast session.user to ExtendedUser to access the id property.
+  const userId = (session?.user as ExtendedUser)?.id || "test";
 
   useEffect(() => {
-    if (initialVideoVisible) setActiveSection('video')
-    else if (initialImageVisible) setActiveSection('image')
-    else setActiveSection(null)
-  }, [initialVideoVisible, initialImageVisible])
+    if (activeSection === "video" && userId) {
+      fetchUserVideos(userId).then(setVideos);
+    }
+    if (activeSection === "image" && userId) {
+      fetchUserImages(userId).then(setImages);
+    }
+  }, [activeSection, userId]);
+
+  useEffect(() => {
+    if (initialVideoVisible) setActiveSection("video");
+    else if (initialImageVisible) setActiveSection("image");
+    else setActiveSection(null);
+  }, [initialVideoVisible, initialImageVisible]);
 
   const handleVideoUpload = (filename: string, thumbnailUrl: string) => {
-    setVideos((prevVideos) => [...prevVideos, { filename, thumbnailUrl }])
-  }
+    setVideos((prevVideos) => [...prevVideos, { filename, thumbnailUrl }]);
+  };
 
   const handleVideoRemove = async (filename: string) => {
-    const success = await removeVideo(userId, filename)
+    const success = await removeVideo(userId, filename);
     if (success) {
-      setVideos((prevVideos) => prevVideos.filter((video) => video.filename !== filename))
+      setVideos((prevVideos) =>
+        prevVideos.filter((video) => video.filename !== filename)
+      );
     } else {
-      console.error("Failed to remove video and thumbnail")
+      console.error("Failed to remove video and thumbnail");
     }
-  }
+  };
 
   const handleVideoLinkUpload = () => {
     if (videoLink) {
-      setVideos((prevVideos) => [...prevVideos, { filename: videoLink, thumbnailUrl: "/placeholder-thumbnail.jpg" }])
-      setVideoLink("")
+      setVideos((prevVideos) => [
+        ...prevVideos,
+        { filename: videoLink, thumbnailUrl: "/placeholder-thumbnail.jpg" },
+      ]);
+      setVideoLink("");
     }
-  }
+  };
 
   const handleImageUpload = (filename: string, imageUrl: string) => {
-    setImages((prevImages) => [...prevImages, { filename, imageUrl }])
-  }
+    setImages((prevImages) => [...prevImages, { filename, imageUrl }]);
+  };
 
   const handleImageRemove = async (filename: string) => {
-    const success = await removeImage(userId, filename)
+    const success = await removeImage(userId, filename);
     if (success) {
-      setImages((prevImages) => prevImages.filter((image) => image.filename !== filename))
+      setImages((prevImages) =>
+        prevImages.filter((image) => image.filename !== filename)
+      );
     } else {
-      console.error("Failed to remove image")
+      console.error("Failed to remove image");
     }
-  }
+  };
 
   const handleImageLinkUpload = () => {
     if (imageLink) {
-      setImages((prevImages) => [...prevImages, { filename: imageLink, imageUrl: imageLink }])
-      setImageLink("")
+      setImages((prevImages) => [
+        ...prevImages,
+        { filename: imageLink, imageUrl: imageLink },
+      ]);
+      setImageLink("");
     }
+  };
+
+  if (status === "loading") {
+    return <div>Loading...</div>;
+  }
+
+  if (!session) {
+    return <div>Please sign in to view your media library.</div>;
   }
 
   if (!activeSection && !selected) {
-    return <div className="w-80 bg-white border-l border-gray-200 overflow-auto" />
+    return (
+      <div className="w-80 bg-white border-l border-gray-200 overflow-auto" />
+    );
   }
 
   return (
     <div className="w-80 bg-white border-l border-gray-200 overflow-auto">
-      {activeSection === 'video' && (
+      {activeSection === "video" && (
         <div className="p-4">
           <h2 className="text-lg font-semibold mb-4">Video Library</h2>
           <VideoUploader onUpload={handleVideoUpload} userId={userId} />
@@ -158,7 +197,7 @@ export function Sidebar({ isVideoSectionVisible: initialVideoVisible, isImageSec
           <VideoList videos={videos} onRemove={handleVideoRemove} />
         </div>
       )}
-      {activeSection === 'image' && (
+      {activeSection === "image" && (
         <div className="p-4">
           <h2 className="text-lg font-semibold mb-4">Image Library</h2>
           <ImageUploader onUpload={handleImageUpload} userId={userId} />
@@ -189,5 +228,5 @@ export function Sidebar({ isVideoSectionVisible: initialVideoVisible, isImageSec
         </div>
       )}
     </div>
-  )
+  );
 }

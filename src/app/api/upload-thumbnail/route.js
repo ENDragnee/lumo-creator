@@ -19,8 +19,8 @@ export async function POST(request) {
   const buffer = Buffer.from(bytes);
   const filename = `${userId}_${file.name}`;
 
-  // Create the target directory: /public/LumoCreators/<UserID>/images
-  const targetDir = path.join(process.cwd(), "public", "LumoCreators", String(userId), "images");
+  // Create the target directory: /public/LumoCreators/<UserID>/thumbnails
+  const targetDir = path.join(process.cwd(), "public", "LumoCreators", String(userId), "thumbnails");
   await mkdir(targetDir, { recursive: true });
   const filepath = path.join(targetDir, filename);
 
@@ -33,7 +33,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       filename,
-      imageUrl: `/LumoCreators/${userId}/images/${filename}`,
+      imageUrl: `/LumoCreators/${userId}/thumbnails/${filename}`,
     });
   } catch (error) {
     console.error("Error saving file:", error);
