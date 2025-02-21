@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { useEditor } from "@craftjs/core";
 import { Button } from "@/components/ui/button";
 import { 
-  SlidersHorizontal, HelpCircle, Bot, Play, ImageIcon, Type, Move, Edit, MoveHorizontal 
+  SlidersHorizontal, HelpCircle, Bot, Play, ImageIcon, Type, Move, Edit, MoveHorizontal, Monitor
 } from "lucide-react";
 import { SliderComponent } from "@/components/user/slider";
 import { QuizComponent } from "@/components/user/quiz";
@@ -15,9 +15,10 @@ import { useCursorMode, CursorMode } from "@/contexts/CursorModeContext";
 interface ToolbarProps {
   onVideoButtonClick: () => void;
   onImageButtonClick: () => void;
+  onSimulationButtonClick: () => void;
 }
 
-export function Toolbar({ onVideoButtonClick, onImageButtonClick }: ToolbarProps) {
+export function Toolbar({ onVideoButtonClick, onImageButtonClick, onSimulationButtonClick }: ToolbarProps) {
   const { connectors } = useEditor();
   const { cursorMode, setCursorMode } = useCursorMode();
 
@@ -42,6 +43,10 @@ export function Toolbar({ onVideoButtonClick, onImageButtonClick }: ToolbarProps
   const handleImageClick = (e: React.MouseEvent) => {
     e.preventDefault();
     onImageButtonClick();
+  };
+
+  const handleSimulationClick = () => {
+    onSimulationButtonClick();
   };
 
   return (
@@ -86,9 +91,9 @@ export function Toolbar({ onVideoButtonClick, onImageButtonClick }: ToolbarProps
           <HelpCircle className="h-4 w-4" />
           Quiz
         </Button>
-        <Button ref={(ref) => { connectors.create(ref!, <AITutorComponent />); }} variant="ghost" className="gap-2">
-          <Bot className="h-4 w-4" />
-          AI Tutor
+        <Button onClick={handleSimulationClick} variant="ghost" className="gap-2">
+          <Monitor className="h-4 w-4" />
+          Simulation
         </Button>
         <Button onClick={handleVideoClick} variant="ghost" className="gap-2">
           <Play className="h-4 w-4" />

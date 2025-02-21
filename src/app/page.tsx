@@ -9,6 +9,7 @@ import { Toolbar } from "@/components/widget-toolbar"
 import { ImageComponent } from "@/components/user/image"
 import { TextComponent } from "@/components/user/text"
 import { VideoComponent } from "@/components/user/video"
+import { SimulationComponent } from "@/components/user/simulation"
 import { QuizComponent } from "@/components/user/quiz"
 import { SliderComponent } from "@/components/user/slider"
 import { AITutorComponent } from "@/components/user/ai-tutor"
@@ -19,6 +20,7 @@ export default function TemplateEditor() {
   const { enabled } = useEditorStore()
   const [isVideoSectionVisible, setIsVideoSectionVisible] = useState(false)
   const [isImageSectionVisible, setIsImageSectionVisible] = useState(false)
+  const [isSimulationSectionVisible, setIsSimulationSectionVisible] = useState(false)
 
   const handleVideoButtonClick = () => {
     setIsVideoSectionVisible((prev) => !prev)
@@ -26,6 +28,10 @@ export default function TemplateEditor() {
 
   const handleImageButtonClick = () => {
     setIsImageSectionVisible((prev) => !prev)
+  }
+
+  const handleSimulationButtonClick = () => {
+    setIsSimulationSectionVisible((prev) => !prev)
   }
 
   return (
@@ -36,6 +42,7 @@ export default function TemplateEditor() {
           Image: ImageComponent,
           Text: TextComponent,
           Video: VideoComponent,
+          Simulation: SimulationComponent,
           Quiz: QuizComponent,
           Slider: SliderComponent,
           AITutor: AITutorComponent,
@@ -48,6 +55,7 @@ export default function TemplateEditor() {
             <Sidebar 
               isVideoSectionVisible={isVideoSectionVisible} 
               isImageSectionVisible={isImageSectionVisible} 
+              isSimulationSectionVisible={isSimulationSectionVisible}
             />
             <Frame>
               <Element is={Canvas} canvas>
@@ -58,6 +66,7 @@ export default function TemplateEditor() {
           <Toolbar 
             onVideoButtonClick={handleVideoButtonClick} 
             onImageButtonClick={handleImageButtonClick} 
+            onSimulationButtonClick={handleSimulationButtonClick}
           />
         </div>
       </Editor>
