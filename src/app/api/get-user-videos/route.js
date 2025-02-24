@@ -9,8 +9,8 @@ export async function GET(request) {
     return NextResponse.json({ success: false, message: "User ID is required" }, { status: 400 })
   }
 
-  const videosDir = path.join(process.cwd(), "public", "videos")
-  const thumbnailsDir = path.join(process.cwd(), "public", "thumbnails")
+  const videosDir = path.join(process.cwd(), "public", "LumoCreators", String(userId), "videos")
+  const thumbnailsDir = path.join(process.cwd(), "public", "LumoCreators", String(userId), "videos" ,"thumbnails")
 
   try {
     const files = await fs.readdir(videosDir)

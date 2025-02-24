@@ -7,6 +7,10 @@ import { ResizableElement } from "@/components/Resizer";
 export interface ImageProps {
   src?: string
   alt?: string
+  x?: Number,
+  y?: Number,
+  width: Number,
+  height: number,
 }
 
 interface CustomImageComponent extends React.FC<ImageProps> {
@@ -18,7 +22,7 @@ interface CustomImageComponent extends React.FC<ImageProps> {
   };
 }
 
-export const ImageComponent: CustomImageComponent = ({ src = "/placeholder.svg", alt = "" }) => {
+export const ImageComponent: CustomImageComponent = ({ src = "/placeholder.svg", alt = ""}, x = 0, y = 0, width = "auto", height = "auto") => {
   const {
     connectors: { connect, drag },
     selected,
@@ -30,8 +34,14 @@ export const ImageComponent: CustomImageComponent = ({ src = "/placeholder.svg",
   return (
     <ResizableElement>
       <div
-        ref={(ref) => {connect(drag(ref!))}}
-        className={`relative ${selected ? "outline outline-2 outline-blue-500" : ""}`}
+        ref={(ref) => { connect(drag(ref!)); }}
+        className={`absolute ${selected ? "outline outline-2 outline-blue-500" : ""}`}
+        style={{
+          left: x,
+          top: y,
+          width,
+          height,
+        }}
       >
         <img src={src || "/placeholder.svg"} alt={alt} className="h-full w-full object-contain" draggable={false} />
         {selected && (
@@ -50,6 +60,10 @@ ImageComponent.craft = {
   props: {
     src: "/placeholder.svg",
     alt: "",
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 150,
   },
   rules: {
     canDrag: true,

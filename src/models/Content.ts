@@ -10,6 +10,7 @@ export interface IContent extends Document {
   data: string;
   createdAt: Date;
   createdBy: Types.ObjectId;
+  isBook: boolean;
   tags: string[];
   institution?: string;
   subject?: string;
@@ -18,6 +19,8 @@ export interface IContent extends Document {
     shares: number;
     completions: number;
   };
+  isDraft: boolean;
+  isTrash: boolean;
 }
 
 const ContentSchema = new mongoose.Schema<IContent>({
@@ -38,6 +41,10 @@ const ContentSchema = new mongoose.Schema<IContent>({
     type: mongoose.Schema.Types.ObjectId,
     required: true
   },
+  isBook: {
+    type: mongoose.Schema.Types.Boolean,
+    default: false
+  },
   tags: {
     type: [String],
     default: []
@@ -48,7 +55,9 @@ const ContentSchema = new mongoose.Schema<IContent>({
     saves: { type: Number, default: 0 },
     shares: { type: Number, default: 0 },
     completions: { type: Number, default: 0 }
-  }
+  },
+  isDraft: { type: Boolean, default: true },
+  isTrash: { type: Boolean, default: false },
 });
 
 const Content: Model<IContent> = 

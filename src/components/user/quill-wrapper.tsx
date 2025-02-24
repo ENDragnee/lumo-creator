@@ -92,7 +92,7 @@ export const QuillWrapper = forwardRef(({
 
   return (
     <div className="bg-background">
-      <div ref={editorRef} className="h-[150px]" />
+      <div ref={editorRef} className="h-full" />
     </div>
   );
 });

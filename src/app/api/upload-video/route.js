@@ -26,7 +26,7 @@ export async function POST(request) {
   await mkdir(videoDir, { recursive: true });
   const filepath = path.join(videoDir, filename);
 
-  const thumbnailDir = path.join(process.cwd(), "public", "LumoCreators", String(userId), "thumbnails");
+  const thumbnailDir = path.join(process.cwd(), "public", "LumoCreators", String(userId), "videos" ,"thumbnails");
   await mkdir(thumbnailDir, { recursive: true });
   const tempThumbnailPath = path.join(thumbnailDir, `${filename}_temp.jpg`);
   const finalThumbnailPath = path.join(thumbnailDir, `${filename}.jpg`);

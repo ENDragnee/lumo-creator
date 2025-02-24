@@ -203,7 +203,7 @@ export function Sidebar({
 
   if (!activeSection && !selected) {
     return (
-      <div className="w-80 bg-white border-l border-gray-200 overflow-auto" />
+      <div className="w-80 border-l overflow-auto" />
     );
   }
 

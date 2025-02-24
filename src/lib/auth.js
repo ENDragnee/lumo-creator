@@ -32,7 +32,8 @@ export const authOptions = {
           const Response = {
             id: user._id,
             name: user.name,
-            email: user.email,  
+            userTag: user.userTag,
+            email: user.email,
           };
           return {
             ...Response,

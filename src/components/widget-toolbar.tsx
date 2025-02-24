@@ -8,9 +8,9 @@ import {
 } from "lucide-react";
 import { SliderComponent } from "@/components/user/slider";
 import { QuizComponent } from "@/components/user/quiz";
-import { AITutorComponent } from "@/components/user/ai-tutor";
 import { TextComponent } from "@/components/user/text";
 import { useCursorMode, CursorMode } from "@/contexts/CursorModeContext";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface ToolbarProps {
   onVideoButtonClick: () => void;
@@ -52,6 +52,7 @@ export function Toolbar({ onVideoButtonClick, onImageButtonClick, onSimulationBu
   return (
     <div className="flex justify-center p-2 relative bottom-0 bg-transparent left-0 right-0">
       <div className="flex h-12 items-center gap-1 rounded-full bg-transparent border shadow-sm px-4 mx-auto">
+        <ThemeToggle/>
         {/* Cursor Mode Buttons */}
         <Button
           variant={cursorMode === "resize" ? "default" : "ghost"}

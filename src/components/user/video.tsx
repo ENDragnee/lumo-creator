@@ -11,7 +11,7 @@ interface VideoComponentProps {
   src: string
 }
 
-export function VideoComponent({ src }: VideoComponentProps) {
+export function VideoComponent({ src }: VideoComponentProps, x = 0, y = 0, width = "auto", height = "auto") {
   const {
     connectors: { connect, drag },
     id,
@@ -31,10 +31,14 @@ export function VideoComponent({ src }: VideoComponentProps) {
     <ResizableElement>
 
       <div
-        ref={(ref) => {
-          connect(drag(ref!));
+        ref={(ref) => { connect(drag(ref!)); }}
+        className={`absolute ${selected ? "outline outline-2 outline-blue-500" : ""}`}
+        style={{
+          left: x,
+          top: y,
+          width,
+          height,
         }}
-        className={`relative ${selected ? "outline outline-2 outline-blue-500" : ""}`}
       >
         <video src={src} controls className="w-full h-full" />
         {selected && (
@@ -54,6 +58,10 @@ VideoComponent.craft = {
   displayName: "Video",
   props: {
     src: "",
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 150,
   },
   rules: {
     canDrag: () => true,

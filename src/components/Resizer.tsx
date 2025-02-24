@@ -20,20 +20,20 @@ export const ResizableElement: React.FC<ResizableElementProps> = ({
     actions,
     width: nodeWidth,
     height: nodeHeight,
+    x: nodeX,
+    y: nodeY,
   } = useNode((node) => ({
     width: node.data.props.width,
     height: node.data.props.height,
+    x: node.data.props.x ?? 50, // fallback default if not set
+    y: node.data.props.y ?? 50,
   }));
 
   return (
     <Rnd
+      // Use controlled props for size and position
       size={{ width: nodeWidth || width, height: nodeHeight || height }}
-      default={{
-        x: 50,
-        y: 50,
-        width: nodeWidth || width,
-        height: nodeHeight || height,
-      }}
+      position={{ x: nodeX, y: nodeY }}
       onResizeStop={(e, direction, ref, delta, position) => {
         actions.setProp((props: any) => {
           props.width = ref.offsetWidth;
@@ -62,7 +62,7 @@ export const ResizableElement: React.FC<ResizableElementProps> = ({
           connect(drag(ref));
         }
       }}
-      style={{ border: "1px dashed #ddd", padding: "8px", background: "#fff" }}
+      style={{ border: "1px dashed #ddd", padding: "8px", background: "#fff00" }}
     >
       {children}
     </Rnd>

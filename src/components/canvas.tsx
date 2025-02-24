@@ -11,7 +11,7 @@ interface CanvasComponent extends React.FC<{ children?: React.ReactNode }> {
   };
 }
 
-export const Canvas: CanvasComponent = ({ children }) => {
+export const renderCanvas: CanvasComponent = ({ children }) => {
   const {
     connectors: { connect, drag },
   } = useNode()
@@ -23,7 +23,7 @@ export const Canvas: CanvasComponent = ({ children }) => {
       ref={(ref) => {
         connect(drag(ref!))
       }}
-      className="relative flex-1 overflow-auto p-4"
+      className="relative flex-1 overflow-y-auto overflow-x-hidden p-4"
     >
       <div
         className={`relative m-8 min-h-[calc(100%-4rem)] rounded-lg ${
@@ -43,7 +43,9 @@ export const Canvas: CanvasComponent = ({ children }) => {
   )
 }
 
-Canvas.craft = {
+renderCanvas.displayName = "renderCanvas"; // Explicitly set the display name
+
+renderCanvas.craft = {
   rules: {
     canMoveIn: () => true,
   },

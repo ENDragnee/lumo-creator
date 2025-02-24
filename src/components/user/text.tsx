@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useNode, useEditor } from "@craftjs/core"; // added useEditor
-import { ResizeHandle } from "@/components/resize-handle";
 import dynamic from "next/dynamic";
 import { useHistoryStore } from "@/lib/history-store";
 import { ResizableElement } from "@/components/Resizer";
@@ -19,8 +18,21 @@ const QuillWrapper = dynamic(
     ),
   }
 );
-
-export function TextComponent({ content }: { content: string }) {
+export function TextComponent({
+  content,
+  x = 0,
+  y = 0,
+  width = "auto",
+  height = "auto",
+  alignment = "left",
+}: {
+  content: string;
+  x?: number;
+  y?: number;
+  width?: string;
+  height?: string;
+  alignment?: "left" | "center" | "right" | "justify";
+}) {
   const {
     connectors: { connect, drag },
     selected,
@@ -30,9 +42,7 @@ export function TextComponent({ content }: { content: string }) {
     selected: node.events.selected,
   }));
 
-  // Use useEditor to get access to global actions, such as delete.
   const { actions: editorActions } = useEditor();
-
   const [value, setValue] = useState(content);
   const quillRef = useRef<any>(null);
   const { pushState } = useHistoryStore();
@@ -53,8 +63,13 @@ export function TextComponent({ content }: { content: string }) {
         ref={(ref) => {
           connect(drag(ref!));
         }}
-        className={`relative ${selected ? "outline outline-2 outline-blue-500" : ""}`}
-        style={{ width: "100%", height: "100%" }}  // Ensures the inner container fills the resizable
+        // Remove absolute positioning and inline left/top, let ResizableElement manage it
+        className={selected ? "outline outline-2 outline-blue-500" : ""}
+        style={{
+          width: "100%",
+          height: "100%",
+          textAlign: alignment,
+        }}
       >
         {selected ? (
           <>
@@ -76,7 +91,6 @@ export function TextComponent({ content }: { content: string }) {
         ) : (
           <div className="ql-editor" dangerouslySetInnerHTML={{ __html: value }} />
         )}
-        {selected && <ResizeHandle />}
       </div>
     </ResizableElement>
   );
@@ -86,5 +100,10 @@ TextComponent.craft = {
   displayName: "Text",
   props: {
     content: "Hello World",
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 100,
+    alignment: "left",
   },
 };
