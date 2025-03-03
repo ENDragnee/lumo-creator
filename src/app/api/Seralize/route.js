@@ -1,5 +1,5 @@
 import connectDB from '@/lib/db';
-import SerializedData  from "@/models/SerializedDataSchema";
+import Content  from "@/models/Content";
 
 export async function POST(req) {
   try {

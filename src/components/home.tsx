@@ -51,7 +51,6 @@ interface BookDetails {
 
 export default function DriveHome() {
     const { data: session } = useSession();
-    const [isDark, setIsDark] = useState(false);
     const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
     const [items, setItems] = useState<DriveItem[]>([]);
     const [selectedBook, setSelectedBook] = useState<BookDetails | null>(null);
@@ -221,7 +220,7 @@ export default function DriveHome() {
           >
             <td className="p-3 flex items-center gap-2">
               <Image
-                src={`/placeholder.svg?folder=${item.type === "book"}`}
+                src={`${item.thumbnail}`}
                 alt="File icon"
                 width={20}
                 height={20}
@@ -348,6 +347,7 @@ export default function DriveHome() {
           <div className="space-y-1">
             <Button
               className={`w-32 shadow-sm rounded-full py-6`}
+              onClick={() => router.push("/create")}
             >
               <Plus className="h-5 w-5 mr-2" />
               New

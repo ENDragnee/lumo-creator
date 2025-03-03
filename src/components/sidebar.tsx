@@ -274,6 +274,12 @@ export function Sidebar({
           {selected.settings && React.createElement(selected.settings)}
         </div>
       )}
+      {selected && selected.name === "Text" && (
+        <div className="p-4 border-t">
+          <h2 className="text-lg font-semibold mb-4">Text Settings</h2>
+          {selected.settings && React.createElement(selected.settings)}
+        </div>
+      )}
     </div>
   );
 }

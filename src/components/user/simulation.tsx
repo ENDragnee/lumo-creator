@@ -8,7 +8,7 @@ interface SimulationProps {
   src: string;
 }
 
-export const SimulationComponent = ({ src }: SimulationProps) => {
+export const SimulationComponent = ({ src }: SimulationProps,  x = 0, y = 0, width = "auto", height = "auto") => {
   const {
     connectors: { connect, drag },
     selected,
@@ -36,7 +36,12 @@ export const SimulationComponent = ({ src }: SimulationProps) => {
             }
           }}
           className="absolute inset-0 z-10 cursor-move"
-          style={{ background: "transparent" }}
+          style={{ 
+            background: "transparent",           
+            left: x,
+            top: y,
+            width,
+            height, }}
         />
         {selected && (
           <Button

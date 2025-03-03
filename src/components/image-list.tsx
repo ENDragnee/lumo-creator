@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 interface ImageItem {
   filename: string
   imageUrl: string
+  
 }
 
 interface ImageListProps {
@@ -28,7 +29,7 @@ export function ImageList({ images, onRemove }: ImageListProps) {
             <div
               ref={(ref) => {
                 if (ref) {
-                  connectors.create(ref, <ImageComponent src={image.imageUrl || "/placeholder.svg"} />)
+                  connectors.create(ref, <ImageComponent src={image.imageUrl || "/placeholder.svg"} width={160} height={120} />)
                 }
               }}
               className="cursor-move"

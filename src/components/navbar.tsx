@@ -13,10 +13,7 @@ export function Navbar() {
     canRedo: query.history.canRedo(),
   }));
   const { enabled, setEnabled } = useEditorStore();
-
-  // This function receives the modal's content data,
-  // combines it with the editor's serialized data, and then saves.
-  // Within Navbar component
+  
   const saveContent = async (modalData: {
     title: string;
     thumbnail: string;

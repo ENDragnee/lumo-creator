@@ -1,10 +1,10 @@
 import React from 'react'
-import Signup from '@/components/signup'
+import DriveHome from "@/components/home"
 
 const page = () => {
   return (
     <div>
-        <Signup/>
+      <DriveHome />
     </div>
   )
 }

@@ -1,23 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useNode, useEditor } from "@craftjs/core"; // added useEditor
-import dynamic from "next/dynamic";
+import { useNode, useEditor } from "@craftjs/core";
 import { useHistoryStore } from "@/lib/history-store";
 import { ResizableElement } from "@/components/Resizer";
-import { Button } from "@/components/ui/button"; // import Button
-import { Trash2 } from "lucide-react"; // import Trash2 icon
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import { TextSettings } from "@/components/TextSettings";
 
-
-const QuillWrapper = dynamic(
-  () => import("@/components/user/quill-wrapper").then((mod) => mod.QuillWrapper),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-[150px] border rounded-md p-2">Loading editor...</div>
-    ),
-  }
-);
 export function TextComponent({
   content,
   x = 0,
@@ -25,6 +15,7 @@ export function TextComponent({
   width = "auto",
   height = "auto",
   alignment = "left",
+  fontSize = "16px",
 }: {
   content: string;
   x?: number;
@@ -32,6 +23,7 @@ export function TextComponent({
   width?: string;
   height?: string;
   alignment?: "left" | "center" | "right" | "justify";
+  fontSize?: string;
 }) {
   const {
     connectors: { connect, drag },
@@ -44,13 +36,27 @@ export function TextComponent({
 
   const { actions: editorActions } = useEditor();
   const [value, setValue] = useState(content);
-  const quillRef = useRef<any>(null);
   const { pushState } = useHistoryStore();
+  const editableRef = useRef<HTMLDivElement>(null);
 
-  const handleChange = (content: string) => {
-    setValue(content);
-    setProp((props: any) => (props.content = content));
-    pushState(id, content);
+  // Update state from the contentEditable element
+  const refreshContent = () => {
+    if (editableRef.current) {
+      const newContent = editableRef.current.innerHTML;
+      setValue(newContent);
+      setProp((props: any) => (props.content = newContent));
+      pushState(id, newContent);
+    }
+  };
+
+  const handleChange = (newContent: string) => {
+    setValue(newContent);
+    setProp((props: any) => (props.content = newContent));
+    pushState(id, newContent);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    setTimeout(refreshContent, 0);
   };
 
   const handleRemove = () => {
@@ -63,21 +69,26 @@ export function TextComponent({
         ref={(ref) => {
           connect(drag(ref!));
         }}
-        // Remove absolute positioning and inline left/top, let ResizableElement manage it
-        className={selected ? "outline outline-2 outline-blue-500" : ""}
+        className={selected ? "outline outline-2 outline-blue-500 relative" : "relative"}
         style={{
           width: "100%",
           height: "100%",
           textAlign: alignment,
+          fontSize: fontSize,
         }}
       >
         {selected ? (
           <>
-            <QuillWrapper
-              value={value}
-              onChange={handleChange}
-              ref={quillRef}
-              nodeId={id}
+            <div
+              ref={editableRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={(e) =>
+                handleChange((e.target as HTMLElement).innerHTML)
+              }
+              onKeyDown={handleKeyDown}
+              className="w-full h-full p-2 border rounded-md"
+              dangerouslySetInnerHTML={{ __html: value }}
             />
             <Button
               variant="destructive"
@@ -89,7 +100,7 @@ export function TextComponent({
             </Button>
           </>
         ) : (
-          <div className="ql-editor" dangerouslySetInnerHTML={{ __html: value }} />
+          <div dangerouslySetInnerHTML={{ __html: value }} />
         )}
       </div>
     </ResizableElement>
@@ -105,5 +116,9 @@ TextComponent.craft = {
     width: 200,
     height: 100,
     alignment: "left",
+    fontSize: "16px",
+  },
+  related: {
+    settings: TextSettings,
   },
 };

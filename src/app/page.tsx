@@ -1,10 +1,10 @@
 import React from 'react'
-import DriveHome from "@/components/home"
+import Loading from '@/components/loading'
 
 const page = () => {
   return (
     <div>
-      <DriveHome />
+      <Loading/>
     </div>
   )
 }
