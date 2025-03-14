@@ -9,13 +9,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { EditItemModal } from "@/components/EditItemModal"
 import { ThemeToggle } from "@/components/theme-toggle";
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ContentModal } from "@/components/ContentModal";
+import { BookModal } from "@/components/BookModal";
+import { DropdownMenuContent, DropdownMenuItem, DropdownMenu, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface DriveItem {
   _id: string;
@@ -43,6 +39,8 @@ export default function DriveHome() {
   const [selectedItem, setSelectedItem] = useState<DriveItem | null>(null);
   const [sortBy, setSortBy] = useState<"title" | "modified">("title");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [showContentModal, setShowContentModal] = useState(false);
+  const [showBookModal, setShowBookModal] = useState(false);
 
   const sortedItems = [...items].sort((a, b) => {
     if (sortBy === "title") {
@@ -208,6 +206,34 @@ export default function DriveHome() {
     }
   };
 
+  // Common handler to create new Content or Book using the unified API
+  const handleCreateNewItem = async (data: any) => {
+    try {
+      const response = await fetch("/api/drive", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      if (response.ok) {
+        const newItem = await response.json();
+        const formattedItem: DriveItem = {
+          _id: newItem._id,
+          type: data.type,
+          title: newItem.title,
+          thumbnail: newItem.thumbnail,
+          modified: new Date(newItem.createdAt).toLocaleDateString(),
+        };
+        setItems([...items, formattedItem]);
+      } else {
+        console.error("Failed to create item");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   // Updated GridView with separate clickable preview and action bar
   const GridView = () => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4 rounded-lg">
@@ -268,7 +294,7 @@ export default function DriveHome() {
         </tr>
       </thead>
       <tbody>
-        {items.map((item) => (
+        {sortedItems.map((item) => (
           <tr key={item._id} className="group hover:bg-gray-100 dark:hover:bg-slate-700">
             <td className="p-3 flex items-center gap-2 cursor-pointer dark:text-gray-200" onClick={() => handleItemClick(item)}>
               <Image src={item.thumbnail} alt="File icon" width={20} height={20} />
@@ -380,10 +406,22 @@ export default function DriveHome() {
         {/* Sidebar */}
         <aside className="w-44 p-3 h-auto bg-gray-200 dark:bg-slate-800 rounded-xl mt-4">
           <div className="space-y-1 flex flex-col">
-            <Button className="w-24 self-center justify-center shadow-md rounded-full py-6 hover:bg-gray-300 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:text-white hover:scale-110" onClick={() => router.push("/create")}>
-              <Plus className="h-5 w-5 mr-2" />
-              New
-            </Button>
+          <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="w-24 self-center justify-center shadow-md rounded-full py-6 hover:bg-gray-300 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:text-white hover:scale-110">
+                  <Plus className="h-5 w-5 mr-2" />
+                  New
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-gray-200 dark:bg-slate-800 rounded-lg shadow-md border-gray-200 dark:border-slate-700">
+                <DropdownMenuItem className="hover:bg-gray-300 hover:scale-105" onClick={() => setShowContentModal(true)}>
+                  New Content
+                </DropdownMenuItem>
+                <DropdownMenuItem  className="hover:bg-gray-300 hover:scale-105" onClick={() => setShowBookModal(true)}>
+                  New Book
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <div className="mt-4">
               <Button variant="ghost" className="w-full justify-start gap-2 hover:bg-gray-300 dark:hover:bg-slate-700 dark:text-gray-200 hover:scale-105" onClick={() => router.push("/home")}>
@@ -424,7 +462,7 @@ export default function DriveHome() {
             <div>
               <div className="bg-gray-100 dark:bg-slate-800 rounded-lg flex flex-col p-4 mb-4">
                 <div className="flex items-center gap-4">
-                  <p className="text-xl font-normal dark:text-gray-200">
+                  <p className="text-xl font-normal dark:text-gray-200 text-center">
                     Welcome back to your Project's, <span>{session?.user?.name}</span>!
                   </p>
                   <div className="ml-auto flex items-center gap-2 rounded-full p-1 bg-white dark:bg-slate-700">
@@ -447,14 +485,14 @@ export default function DriveHome() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 mb-4">
+                <div className="flex gap-2 mb-4 ">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center gap-1">
                       Sort By <ChevronDown className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent>
+                  <DropdownMenuContent className="bg-gray-100 dark:bg-slate-800 rounded-lg shadow-md border-gray-200 dark:border-slate-700">
                     <DropdownMenuItem onClick={() => { setSortBy("title"); setSortOrder(sortOrder === "asc" ? "desc" : "asc"); }}>
                       Title {sortBy === "title" && (sortOrder === "asc" ? "↑" : "↓")}
                     </DropdownMenuItem>
@@ -477,6 +515,17 @@ export default function DriveHome() {
         onOpenChange={setIsEditModalOpen}
         item={selectedItem}
         onSave={handleSaveItem}
+      />
+      
+      <ContentModal
+        open={showContentModal}
+        onOpenChange={setShowContentModal}
+        onSave={handleCreateNewItem}
+      />
+      <BookModal
+        open={showBookModal}
+        onOpenChange={setShowBookModal}
+        onSave={handleCreateNewItem}
       />
     </div>
   );

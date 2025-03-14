@@ -1,4 +1,4 @@
-// components/ContentModal.tsx
+// components/BookModal.tsx
 "use client";
 import React, { useState } from "react";
 import {
@@ -13,43 +13,40 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-interface ContentModalProps {
+interface BookModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (data: any) => void;
 }
 
-export const ContentModal: React.FC<ContentModalProps> = ({
+export const BookModal: React.FC<BookModalProps> = ({
   open,
   onOpenChange,
   onSave,
 }) => {
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [thumbnail, setThumbnail] = useState("");
-  const [dataContent, setDataContent] = useState("");
   const [tags, setTags] = useState("");
-  const [institution, setInstitution] = useState("");
-  const [subject, setSubject] = useState("");
+  const [genre, setGenre] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const tagArray = tags.split(",").map((tag) => tag.trim()).filter(Boolean);
     onSave({
-      type: "content",
+      type: "book",
       title,
+      description,
       thumbnail,
-      data: dataContent,
       tags: tagArray,
-      institution,
-      subject,
+      genre,
     });
     // Optionally clear fields here
     setTitle("");
+    setDescription("");
     setThumbnail("");
-    setDataContent("");
     setTags("");
-    setInstitution("");
-    setSubject("");
+    setGenre("");
     onOpenChange(false);
   };
 
@@ -57,9 +54,9 @@ export const ContentModal: React.FC<ContentModalProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-gray-300 p-4 rounded flex flex-col">
         <DialogHeader>
-          <DialogTitle>New Content</DialogTitle>
+          <DialogTitle>New Book</DialogTitle>
           <DialogDescription>
-            Enter the details for your new content.
+            Enter the details for your new book.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -70,16 +67,15 @@ export const ContentModal: React.FC<ContentModalProps> = ({
               onChange={(e) => setTitle(e.target.value)}
               required
             />
+            <Textarea
+              placeholder="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
             <Input
               placeholder="Thumbnail URL"
               value={thumbnail}
               onChange={(e) => setThumbnail(e.target.value)}
-              required
-            />
-            <Textarea
-              placeholder="Data"
-              value={dataContent}
-              onChange={(e) => setDataContent(e.target.value)}
               required
             />
             <Input
@@ -88,18 +84,13 @@ export const ContentModal: React.FC<ContentModalProps> = ({
               onChange={(e) => setTags(e.target.value)}
             />
             <Input
-              placeholder="Institution"
-              value={institution}
-              onChange={(e) => setInstitution(e.target.value)}
-            />
-            <Input
-              placeholder="Subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Genre"
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
             />
           </div>
           <DialogFooter>
-            <Button type="submit">Create Content</Button>
+            <Button type="submit">Create Book</Button>
           </DialogFooter>
         </form>
       </DialogContent>

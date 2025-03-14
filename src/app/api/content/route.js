@@ -1,56 +1,74 @@
-import connectDB from "@/lib/db"
-import Content from "@/models/Content"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+// app/api/drive/route.ts
+import { NextResponse } from "next/server";
+import connectDB from "@/lib/db";
+import Content from "@/models/Content";
+import Book from "@/models/Book";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export async function POST(req) {
-  try {
-    await connectDB()
+  await connectDB();
 
-    const session = await getServerSession(authOptions)
-    if (!session || !session.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      })
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { type, ...data } = await req.json();
+
+  if (type === "content") {
+    const { title, thumbnail, data: contentData, tags, institution, subject } = data;
+    if (!title || !thumbnail || !contentData) {
+      return NextResponse.json(
+        { error: "Title, thumbnail, and data are required for content" },
+        { status: 400 }
+      );
     }
-
-    const { title, thumbnail, data, tags, institution, subject } = await req.json()
-
-    if (!title || !thumbnail || !data) {
-      return new Response(
-        JSON.stringify({ error: "Title, thumbnail, and data are required" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
-      )
+    try {
+      const newContent = new Content({
+        title,
+        thumbnail,
+        data: contentData,
+        tags: tags || [],
+        institution,
+        subject,
+        createdBy: session.user.id,
+      });
+      await newContent.save();
+      return NextResponse.json(newContent, { status: 201 });
+    } catch (error) {
+      console.error(error);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
-
-    const newContent = new Content({
-      title,
-      thumbnail,
-      data,
-      tags: tags || [],
-      institution,
-      subject,
-      createdBy: session.user.id,
-    })
-
-    await newContent.save()
-
-    return new Response(JSON.stringify(newContent), {
-      status: 201,
-      headers: { "Content-Type": "application/json" },
-    })
-  } catch (error) {
-    console.error(error)
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    })
+  } else if (type === "book") {
+    const { title, description, thumbnail, tags, genre } = data;
+    if (!title || !thumbnail) {
+      return NextResponse.json(
+        { error: "Title and thumbnail are required for a book" },
+        { status: 400 }
+      );
+    }
+    try {
+      const newBook = new Book({
+        title,
+        description,
+        thumbnail,
+        contents: [], // start with an empty list
+        tags: tags || [],
+        genre,
+        createdBy: session.user.id,
+      });
+      await newBook.save();
+      return NextResponse.json(newBook, { status: 201 });
+    } catch (error) {
+      console.error(error);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+  } else {
+    return NextResponse.json({ error: "Invalid type" }, { status: 400 });
   }
 }
+
 
 export async function PUT(req) {
   try {
