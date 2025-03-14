@@ -9,6 +9,7 @@ export interface IContent extends Document {
   rating?: number;
   data: string;
   createdAt: Date;
+  lastModifiedAt?: Date;
   createdBy: Types.ObjectId;
   isBook: boolean;
   tags: string[];
@@ -34,6 +35,10 @@ const ContentSchema = new mongoose.Schema<IContent>({
     required: true
   },
   createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  lastModifiedAt: {
     type: Date,
     default: Date.now
   },

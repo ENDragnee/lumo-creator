@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useNode, useEditor } from "@craftjs/core";
 import { useHistoryStore } from "@/lib/history-store";
 import { ResizableElement } from "@/components/Resizer";
@@ -35,30 +35,17 @@ export function TextComponent({
   }));
 
   const { actions: editorActions } = useEditor();
-  const [value, setValue] = useState(content);
   const { pushState } = useHistoryStore();
-  const editableRef = useRef<HTMLDivElement>(null);
-
-  // Update state from the contentEditable element
-  const refreshContent = () => {
-    if (editableRef.current) {
-      const newContent = editableRef.current.innerHTML;
-      setValue(newContent);
-      setProp((props: any) => (props.content = newContent));
-      pushState(id, newContent);
+  const textRef = useRef<HTMLDivElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [localContent, setLocalContent] = useState(content);
+  
+  useEffect(() => {
+    if (!isEditing) {
+      setLocalContent(content);
     }
-  };
-
-  const handleChange = (newContent: string) => {
-    setValue(newContent);
-    setProp((props: any) => (props.content = newContent));
-    pushState(id, newContent);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    setTimeout(refreshContent, 0);
-  };
-
+  }, [content, isEditing]);
+  
   const handleRemove = () => {
     editorActions.delete(id);
   };
@@ -70,37 +57,37 @@ export function TextComponent({
           connect(drag(ref!));
         }}
         className={selected ? "outline outline-2 outline-blue-500 relative" : "relative"}
-        style={{
-          width: "100%",
-          height: "100%",
-          textAlign: alignment,
-          fontSize: fontSize,
-        }}
+        style={{ width: "100%", height: "100%", textAlign: alignment, fontSize: fontSize }}
       >
         {selected ? (
           <>
             <div
-              ref={editableRef}
+              ref={textRef}
               contentEditable
               suppressContentEditableWarning
-              onInput={(e) =>
-                handleChange((e.target as HTMLElement).innerHTML)
-              }
-              onKeyDown={handleKeyDown}
+              onFocus={() => setIsEditing(true)}
+              onBlur={() => {
+                setIsEditing(false);
+                if (textRef.current) {
+                  const newContent = textRef.current.innerHTML;
+                  setLocalContent(newContent);
+                  setProp((props: any) => (props.content = newContent));
+                }
+              }}
+              onInput={(e) => {
+                const newContent = (e.target as HTMLElement).innerHTML;
+                setLocalContent(newContent);
+                setProp((props: any) => (props.content = newContent));
+                pushState(id, newContent);
+              }}
               className="w-full h-full p-2 border rounded-md"
-              dangerouslySetInnerHTML={{ __html: value }}
             />
-            <Button
-              variant="destructive"
-              size="icon"
-              className="absolute top-2 right-2"
-              onClick={handleRemove}
-            >
+            <Button variant="destructive" size="icon" className="absolute top-2 right-2" onClick={handleRemove}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </>
         ) : (
-          <div dangerouslySetInnerHTML={{ __html: value }} />
+          <div dangerouslySetInnerHTML={{ __html: localContent }} />
         )}
       </div>
     </ResizableElement>

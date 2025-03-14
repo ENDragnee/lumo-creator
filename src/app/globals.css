@@ -253,35 +253,23 @@ input[type="number"] {
   }
 }
 
-
-/* --------------------------------------- */
-/* Custom Toolbar Accent & Hover Styles    */
-/* --------------------------------------- */
-
-/* For Light theme using data-theme attribute */
-[data-theme="light"] .text-toolbar-accent {
-  color: #2563eb; /* Blue-600 */
+h1 {
+  font-size: 2em;    /* Larger size relative to parent */
+  font-weight: bold; /* Bold weight */
 }
-[data-theme="light"] .hover\:text-toolbar-accent-hover:hover {
-  color: #1d4ed8; /* Blue-700 on hover */
+h2 {
+  font-size: 1.5em;
+  font-weight: bold;
 }
-
-/* For Dark theme (arc-dark) using data-theme attribute */
-[data-theme="arc-dark"] .text-toolbar-accent {
-  color: #60a5fa; /* Light blue-400 */
-}
-[data-theme="arc-dark"] .hover\:text-toolbar-accent-hover:hover {
-  color: #3b82f6; /* Blue-500 on hover */
+h3 {
+  font-size: 1.17em;
+  font-weight: bold;
 }
 
-/* Optional: Background hover effects (if desired) */
-[data-theme="light"] .hover\:bg-toolbar-accent-hover:hover {
-  background-color: #ebf4ff; /* Light blue background for light theme */
+/* Ensure the container doesn’t restrict header styles */
+.text-component {
+  font-size: inherit; /* Let headers scale naturally */
 }
-[data-theme="arc-dark"] .hover\:bg-toolbar-accent-hover:hover {
-  background-color: #1e3a8a; /* Dark blue background for dark theme */
-}
-
 /* --------------------------------------- */
 /* Slide In Animation */
 /* --------------------------------------- */

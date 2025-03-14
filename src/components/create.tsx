@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Editor, Frame, Element, useEditor } from "@craftjs/core"
 import { Sidebar } from "@/components/sidebar"
 import { renderCanvas } from "@/components/canvas"
@@ -17,21 +17,20 @@ import { useEditorStore } from "@/lib/editor-store"
 import { CursorModeProvider } from "@/contexts/CursorModeContext"
 import { useSearchParams } from "next/navigation";
 
-function DeserializeContent({ contentData }: { contentData: any }) {
-  const { actions } = useEditor();
+interface DebounceCallback {
+  (...args: any[]): void;
+}
 
-  useEffect(() => {
-    if (contentData && actions) {
-      try {
-        console.log(contentData);
-        actions.deserialize(contentData);
-      } catch (error) {
-        console.error("Error during deserialization:", error);
-      }
+function useDebounce(callback: DebounceCallback, delay: number): (...args: any[]) => void {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  return useCallback((...args: any[]) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
     }
-  }, [contentData, actions]);
-
-  return null;
+    timeoutRef.current = setTimeout(() => {
+      callback(...args);
+    }, delay);
+  }, [callback, delay]);
 }
 
 export default function TemplateEditor() {
@@ -63,6 +62,33 @@ export default function TemplateEditor() {
     }
   }, [contentId]);
 
+  // Function to send PUT request
+  interface SaveContentParams {
+    contentId: string;
+    data: string;
+  }
+
+  const saveContent = async (json: string): Promise<void> => {
+    if (!contentId) return;
+    try {
+      const response = await fetch("/api/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contentId, data: json } as SaveContentParams),
+      });
+      if (!response.ok) {
+        console.error("Failed to update content");
+      } else {
+        console.log("Content updated successfully");
+      }
+    } catch (error) {
+      console.error("Error updating content:", error);
+    }
+  };
+
+  // Debounce the save function (2-second delay)
+  const debouncedSave = useDebounce(saveContent, 2000)
+
   const handleVideoButtonClick = () => {
     setIsVideoSectionVisible((prev) => !prev)
   }
@@ -73,6 +99,38 @@ export default function TemplateEditor() {
 
   const handleSimulationButtonClick = () => {
     setIsSimulationSectionVisible((prev) => !prev)
+  }
+
+  // Define this component inside the parent component
+  function DeserializeContent({ contentData }: { contentData: any }) {
+    const { actions } = useEditor();
+
+    useEffect(() => {
+      if (contentData && actions) {
+        try {
+          console.log(contentData);
+          actions.deserialize(contentData);
+        } catch (error) {
+          console.error("Error during deserialization:", error);
+        }
+      }
+    }, [contentData, actions]);
+
+    return null;
+  }
+
+  // EditorDataHandler handles saving content (replaces the direct useEditor call)
+  function EditorDataHandler() {
+    const { json } = useEditor((state, query) => ({ json: query.serialize() }));
+    
+    // Trigger debounced save when json changes and contentId is present
+    useEffect(() => {
+      if (contentId) {
+        debouncedSave(json);
+      }
+    }, [json]);
+    
+    return null;
   }
 
   return (
@@ -90,7 +148,10 @@ export default function TemplateEditor() {
         }}
         enabled={enabled}
       >
+        {/* These components now properly use useEditor within the Editor context */}
         <DeserializeContent contentData={contentData} />
+        <EditorDataHandler />
+        
         <div className="flex h-screen flex-col bg-background">
           <Navbar />
           <div className="flex flex-1 overflow-hidden">

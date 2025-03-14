@@ -2,29 +2,12 @@
 
 import { useSession, signOut } from "next-auth/react";
 import React, { useEffect, useState } from "react";
-import {
-  Search,
-  Grid,
-  List,
-  Plus,
-  Home,
-  Users,
-  Clock,
-  Star,
-  Trash2,
-  Database,
-  ChevronDown,
-  Share,
-  Download,
-  Edit,
-  Info,
-  Moon,
-  Sun,
-} from "lucide-react";
+import { Search, Grid, List, Plus, Home, Users, Clock, Star, Trash2, Database, ChevronDown, Share, Download, Edit, Info, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { EditItemModal } from "@/components/EditItemModal"
 import { ThemeToggle } from "@/components/theme-toggle";
 
 import {
@@ -50,23 +33,73 @@ interface BookDetails {
 }
 
 export default function DriveHome() {
-    const { data: session } = useSession();
-    const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
-    const [items, setItems] = useState<DriveItem[]>([]);
-    const [selectedBook, setSelectedBook] = useState<BookDetails | null>(null);
-    const [loading, setLoading] = useState(false);
-    const router = useRouter();
+  const { data: session } = useSession();
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [items, setItems] = useState<DriveItem[]>([]);
+  const [selectedBook, setSelectedBook] = useState<BookDetails | null>(null);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<DriveItem | null>(null);
+  const [sortBy, setSortBy] = useState<"title" | "modified">("title");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  const sortedItems = [...items].sort((a, b) => {
+    if (sortBy === "title") {
+      return sortOrder === "asc" ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title);
+    } else if (sortBy === "modified") {
+      return sortOrder === "asc"
+        ? new Date(a.modified || "").getTime() - new Date(b.modified || "").getTime()
+        : new Date(b.modified || "").getTime() - new Date(a.modified || "").getTime();
+    }
+    return 0;
+  });
+
+  const handleEditItem = async (item: DriveItem) => {
+    setSelectedItem(item);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveItem = async (id: string, type: "book" | "content", data: any) => {
+    try {
+      const response = await fetch(`/api/drive`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id, type, data }),
+      });
+
+      if (response.ok) {
+        if (selectedBook && type === "content") {
+          setSelectedBook({
+            ...selectedBook,
+            contents: selectedBook.contents.map((content) =>
+              content._id === id ? { ...content, ...data } : content
+            ),
+          });
+        } else {
+          setItems(items.map((item) =>
+            item._id === id ? { ...item, ...data } : item
+          ));
+        }
+      } else {
+        console.error("Failed to update item");
+      }
+    } catch (error) {
+      console.error("Error updating item:", error);
+    }
+  };
+
   const fetchContentDetails = async (contentId: string) => {
     setLoading(true);
     try {
       const res = await fetch(`/api/drive?contentId=${contentId}`);
       const data = await res.json();
-      console.log(data);
       if (data.error) {
         console.error("Error fetching content:", data.error);
         return;
       }
-      // Navigate to the creator page with the contentId as a query parameter.
       router.push(`/create?contentId=${contentId}`);
     } catch (error) {
       console.error("Failed to fetch content details:", error);
@@ -74,15 +107,45 @@ export default function DriveHome() {
       setLoading(false);
     }
   };
-  
 
-  // Fetch root drive items (both books and standalone contents)
+  const handleDeleteItem = async (item: DriveItem) => {
+    if (confirm(`Are you sure you want to delete "${item.title}"?`)) {
+      try {
+        const response = await fetch(`/api/drive`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: item._id,
+            type: item.type,
+          }),
+        });
+
+        if (response.ok) {
+          if (selectedBook && item.type === "content") {
+            setSelectedBook({
+              ...selectedBook,
+              contents: selectedBook.contents.filter((content) => content._id !== item._id),
+            });
+          } else {
+            setItems(items.filter((i) => i._id !== item._id));
+          }
+        } else {
+          console.error("Failed to delete item");
+        }
+      } catch (error) {
+        console.error("Error deleting item:", error);
+      }
+    }
+  };
+
+  // Fetch drive items and book details
   const fetchDriveItems = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/drive");
       const data = await res.json();
-      // data: { books: [...], contents: [...] }
       const books: DriveItem[] = data.books.map((book: any) => ({
         _id: book._id,
         type: "book",
@@ -105,13 +168,11 @@ export default function DriveHome() {
     }
   };
 
-  // Fetch details of a book (populated with its contents)
   const fetchBookDetails = async (bookId: string) => {
     setLoading(true);
     try {
       const res = await fetch(`/api/drive?bookId=${bookId}`);
       const data = await res.json();
-      // data: { book: { ... } }
       const bookData = data.book;
       const bookDetails: BookDetails = {
         _id: bookData._id,
@@ -143,112 +204,106 @@ export default function DriveHome() {
     if (item.type === "book") {
       fetchBookDetails(item._id);
     } else {
-      // For a content file, fetch the content details and navigate to the creator page.
       fetchContentDetails(item._id);
     }
   };
-  
+
+  // Updated GridView with separate clickable preview and action bar
   const GridView = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4">
-      {items.map((item) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4 rounded-lg">
+      {sortedItems.map((item) => (
         <div
           key={item._id}
-          onClick={() => handleItemClick(item)}
-          className={`group relative cursor-pointer aspect-square rounded-lg`}
+          className="flex flex-col shadow hover:shadow-md transition duration-200 hover:bg-gray-300 dark:hover:bg-slate-700 rounded-xl bg-white dark:bg-slate-800"
         >
-          {/* Star Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+          {/* Clickable preview area */}
+          <div
+            className="flex-1 p-4 cursor-pointer flex flex-col items-center justify-center"
+            onClick={() => handleItemClick(item)}
           >
-            <Star className="h-4 w-4" />
-          </Button>
-
-          {/* Edit Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-2 left-2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-
-          {/* File Preview */}
-          <div className="absolute inset-0 flex items-center justify-center p-8">
             <Image
-              src={`${item.thumbnail}`}
+              src={item.thumbnail}
               alt="File preview"
-              width={100}
-              height={100}
-              className="w-full h-full object-contain opacity-50"
+              width={120}
+              height={120}
+              className="w-full h-full object-contain opacity-100 rounded-xl"
             />
+            <h3 className="mt-2 text-sm font-medium text-center truncate w-full dark:text-gray-200">{item.title}</h3>
+            {item.modified && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.modified}</p>}
           </div>
 
-          {/* File Info */}
-          <div className={`absolute bottom-0 left-0 right-0 p-3 `}>
-            <h3 className="text-sm font-medium truncate">{item.title}</h3>
-            {item.modified && <p className="text-xs opacity-75 mt-0.5">{item.modified}</p>}
+          {/* Action Bar */}
+          <div className="flex justify-between border-t border-gray-200 dark:border-slate-600 p-2 bg-gray-50 dark:bg-slate-700 rounded-b-xl">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleEditItem(item)}
+              className="p-1 hover:scale-125 dark:text-gray-300 dark:hover:text-indigo-300"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDeleteItem(item)}
+              className="p-1 hover:scale-125"
+            >
+              <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
+            </Button>
           </div>
         </div>
       ))}
     </div>
   );
 
+  // ListView remains unchanged
   const ListView = () => (
     <table className="w-full">
       <thead>
-        <tr className={`border-b`}>
-          <th className={`text-left p-3 text-sm font-medium`}>
-            Name
-          </th>
-          <th className={`text-left p-3 text-sm font-medium`}>
-            Type
-          </th>
-          <th className={`text-left p-3 text-sm font-medium`}>
-            Last modified
-          </th>
+        <tr className="border-b dark:border-slate-600">
+          <th className="text-left p-3 text-sm font-medium dark:text-gray-300">Name</th>
+          <th className="text-left p-3 text-sm font-medium dark:text-gray-300">Type</th>
+          <th className="text-left p-3 text-sm font-medium dark:text-gray-300">Last modified</th>
           <th className="w-10"></th>
         </tr>
       </thead>
       <tbody>
         {items.map((item) => (
-          <tr
-            key={item._id}
-            onClick={() => handleItemClick(item)}
-            className={`group cursor-pointer`}
-          >
-            <td className="p-3 flex items-center gap-2">
-              <Image
-                src={`${item.thumbnail}`}
-                alt="File icon"
-                width={20}
-                height={20}
-              />
+          <tr key={item._id} className="group hover:bg-gray-100 dark:hover:bg-slate-700">
+            <td className="p-3 flex items-center gap-2 cursor-pointer dark:text-gray-200" onClick={() => handleItemClick(item)}>
+              <Image src={item.thumbnail} alt="File icon" width={20} height={20} />
               <span>{item.title}</span>
             </td>
-            <td className="p-3">{item.type === "book" ? "Folder" : "File"}</td>
-            <td className={`p-3`}>{item.modified}</td>
+            <td className="p-3 cursor-pointer dark:text-gray-300" onClick={() => handleItemClick(item)}>
+              {item.type === "book" ? "Folder" : "File"}
+            </td>
+            <td className="p-3 cursor-pointer dark:text-gray-300" onClick={() => handleItemClick(item)}>
+              {item.modified}
+            </td>
             <td className="p-3">
               <div className="invisible group-hover:visible">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
+                    <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 dark:text-gray-300 dark:hover:bg-slate-600">
                       <ChevronDown className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem>
+                  <DropdownMenuContent className="dark:bg-slate-800 dark:border-slate-700">
+                    <DropdownMenuItem className="dark:text-gray-200 dark:hover:bg-slate-700">
                       <Share className="h-4 w-4 mr-2" />
                       Share
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem className="dark:text-gray-200 dark:hover:bg-slate-700">
                       <Download className="h-4 w-4 mr-2" />
                       Download
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditItem(item); }} className="dark:text-gray-200 dark:hover:bg-slate-700">
                       <Edit className="h-4 w-4 mr-2" />
-                      Rename
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteItem(item); }} className="text-red-500 dark:text-red-400 dark:hover:bg-slate-700">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -261,79 +316,59 @@ export default function DriveHome() {
   );
 
   return (
-    <div className={`min-h-screen`}>
+    <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-200">
       {/* Top Navigation */}
-      <header
-        className={`h-16 px-4 flex items-center justify-between gap-4 border-b`}
-      >
+      <header className="h-16 px-4 flex items-center justify-between gap-4 bg-gray-200 dark:bg-slate-800 rounded-xl">
         <div className="flex items-center gap-2">
           <Image src="/ascii.png" alt="Lumo Creator" width={40} height={40} className="w-10" />
-          <span className={`text-lg`}>Lumo Creator</span>
+          <span className="text-lg dark:text-gray-200">Lumo Creator</span>
         </div>
 
         <div className="flex-1 max-w-3xl">
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-            <Input
-              type="search"
-              placeholder="Search in Lumo Creator"
-              className={`w-full pl-10 h-12 rounded-lg`}
-            />
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <Input type="search" placeholder="Search in Lumo Creator" className="w-full pl-10 h-12 rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-200 dark:placeholder-gray-400 mt-1" />
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-
-          {/* Updated User Profile Dropdown */}
+        <div className="flex items-center gap-2 bg-gray-200 dark:bg-slate-800 rounded-xl">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button variant="ghost" size="icon" className="rounded-full hover:bg-gray-300 dark:hover:bg-slate-700">
                 {session?.user?.image ? (
-                  <Image
-                    src={session.user.image}
-                    alt="Profile"
-                    width={32}
-                    height={32}
-                    className="rounded-full"
-                  />
+                  <Image src={session.user.image} alt="Profile" width={32} height={32} className="rounded-full" />
                 ) : (
-                  <div className="w-8 h-8 flex items-center justify-center rounded-full">
-                    <span className="text-sm font-medium text-gray-700">
+                  <div className="w-10 h-10 flex items-center justify-center rounded-full hover:scale-105 bg-gray-300 dark:bg-slate-700">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : "U"}
                     </span>
                   </div>
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <div className="p-4 border-b">
-                <div className="flex items-center gap-3">
+            <DropdownMenuContent className="bg-gray-100 dark:bg-slate-800 rounded-lg shadow-md border-gray-200 dark:border-slate-700">
+              <div className="p-4">
+                <div className="flex flex-col items-center justify-center gap-3">
                   {session?.user?.image ? (
-                    <Image
-                      src={session.user.image}
-                      alt="Profile"
-                      width={40}
-                      height={40}
-                      className="rounded-full"
-                    />
+                    <Image src={session.user.image} alt="Profile" width={40} height={40} className="rounded-full bg-gray-300 dark:bg-slate-700" />
                   ) : (
-                    <div className="w-10 h-10 flex items-center justify-center rounded-full">
-                      <span className="text-lg font-medium text-gray-700">
+                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-300 dark:bg-slate-700">
+                      <span className="text-lg font-medium text-gray-700 dark:text-gray-300">
                         {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : "U"}
                       </span>
                     </div>
                   )}
                   <div>
-                    <p className="font-medium">{session?.user?.name}</p>
-                    <p className="text-xs text-gray-500">{session?.user?.email}</p>
+                    <p className="font-medium dark:text-gray-200">{session?.user?.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{session?.user?.email}</p>
                   </div>
-                    <ThemeToggle />
+                  <ThemeToggle />
                 </div>
               </div>
-              <DropdownMenuItem onClick={() => { /* Navigate to settings page */ }}>
+              <DropdownMenuItem className="hover:scale-105 dark:text-gray-200 dark:hover:bg-slate-700" onClick={() => { /* Navigate to settings page */ }}>
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => signOut({ callbackUrl: "https://lumo.aasciihub.com/" })}>
+              <DropdownMenuItem className="hover:scale-105 dark:text-gray-200 dark:hover:bg-slate-700" onClick={() => signOut({ callbackUrl: "https://lumo.aasciihub.com/" })}>
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -341,40 +376,29 @@ export default function DriveHome() {
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex justify-center gap-2">
         {/* Sidebar */}
-        <aside className={`w-60 p-3 h-[calc(100vh-4rem)]`}>
-          <div className="space-y-1">
-            <Button
-              className={`w-32 shadow-sm rounded-full py-6`}
-              onClick={() => router.push("/create")}
-            >
+        <aside className="w-44 p-3 h-auto bg-gray-200 dark:bg-slate-800 rounded-xl mt-4">
+          <div className="space-y-1 flex flex-col">
+            <Button className="w-24 self-center justify-center shadow-md rounded-full py-6 hover:bg-gray-300 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:text-white hover:scale-110" onClick={() => router.push("/create")}>
               <Plus className="h-5 w-5 mr-2" />
               New
             </Button>
 
             <div className="mt-4">
-              <Button variant="ghost" className={`w-full justify-start gap-2`}>
+              <Button variant="ghost" className="w-full justify-start gap-2 hover:bg-gray-300 dark:hover:bg-slate-700 dark:text-gray-200 hover:scale-105" onClick={() => router.push("/home")}>
                 <Home className="h-5 w-5" />
                 Home
               </Button>
-              <Button variant="ghost" className={`w-full justify-start gap-2`}>
+              <Button variant="ghost" className="w-full justify-start gap-2 hover:bg-gray-300 dark:hover:bg-slate-700 dark:text-gray-200 hover:scale-105">
                 <Database className="h-5 w-5" />
-                My Project
+                My Books
               </Button>
-              <Button variant="ghost" className={`w-full justify-start gap-2`}>
-                <Users className="h-5 w-5" />
-                Shared with me
-              </Button>
-              <Button variant="ghost" className={`w-full justify-start gap-2`}>
+              <Button variant="ghost" className="w-full justify-start gap-2 hover:bg-gray-300 dark:hover:bg-slate-700 dark:text-gray-200 hover:scale-105">
                 <Clock className="h-5 w-5" />
                 Recent
               </Button>
-              <Button variant="ghost" className={`w-full justify-start gap-2`}>
-                <Star className="h-5 w-5" />
-                Starred
-              </Button>
-              <Button variant="ghost" className={`w-full justify-start gap-2`}>
+              <Button variant="ghost" className="w-full justify-start gap-2 hover:bg-gray-300 dark:hover:bg-slate-700 dark:text-gray-200 hover:scale-105">
                 <Trash2 className="h-5 w-5" />
                 Trash
               </Button>
@@ -383,76 +407,77 @@ export default function DriveHome() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-4">
+        <main className="flex-1 p-4 rounded-2xl dark:bg-slate-800">
           {selectedBook ? (
             <div>
-              <Button variant="ghost" onClick={() => setSelectedBook(null)} className="mb-4">
+              <Button variant="ghost" onClick={() => setSelectedBook(null)} className="mb-4 dark:text-gray-200 dark:hover:bg-slate-800">
                 ← Back
               </Button>
-              <h2 className="text-2xl mb-4">{selectedBook.title}</h2>
+              <h2 className="text-2xl mb-4 dark:text-gray-200">{selectedBook.title}</h2>
               {selectedBook.contents.length > 0 ? (
-                <div>
-                  {viewMode === "list" ? <ListView /> : <GridView />}
-                </div>
+                <div>{viewMode === "list" ? <ListView /> : <GridView />}</div>
               ) : (
-                <p>No contents in this book.</p>
+                <p className="dark:text-gray-300">No contents in this book.</p>
               )}
             </div>
           ) : (
             <div>
-              <div className="flex items-center gap-4 mb-4">
-                <Button
-                  variant="ghost"
-                  className={`font-normal text-xl pl-0 hover:bg-transparent`}
-                >
-                  My Project
-                  <ChevronDown className="h-5 w-5 ml-1" />
-                </Button>
-
-                <div className={`ml-auto flex items-center gap-2 rounded-full p-1`}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`rounded-full h-8 w-8 ${viewMode === "list"}`}
-                    onClick={() => setViewMode("list")}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`rounded-full h-8 w-8 ${viewMode === "grid"}`}
-                    onClick={() => setViewMode("grid")}
-                  >
-                    <Grid className="h-4 w-4" />
-                  </Button>
+              <div className="bg-gray-100 dark:bg-slate-800 rounded-lg flex flex-col p-4 mb-4">
+                <div className="flex items-center gap-4">
+                  <p className="text-xl font-normal dark:text-gray-200">
+                    Welcome back to your Project's, <span>{session?.user?.name}</span>!
+                  </p>
+                  <div className="ml-auto flex items-center gap-2 rounded-full p-1 bg-white dark:bg-slate-700">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-full h-8 w-8 dark:text-gray-300 dark:hover:text-indigo-300"
+                      onClick={() => setViewMode("list")}
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-full h-8 w-8 dark:text-gray-300 dark:hover:text-indigo-300"
+                      onClick={() => setViewMode("grid")}
+                    >
+                      <Grid className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Info className={`h-5 w-5}`} />
-                </Button>
-              </div>
 
-              <div className="flex gap-2 mb-4">
-                <Button variant="outline">
-                  Tag
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                </Button>
-                <Button variant="outline">
-                  People
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                </Button>
-                <Button variant="outline">
-                  Modified
-                  <ChevronDown className="h-4 w-4 ml-2" />
-                </Button>
+                <div className="flex gap-2 mb-4">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-1">
+                      Sort By <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => { setSortBy("title"); setSortOrder(sortOrder === "asc" ? "desc" : "asc"); }}>
+                      Title {sortBy === "title" && (sortOrder === "asc" ? "↑" : "↓")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setSortBy("modified"); setSortOrder(sortOrder === "asc" ? "desc" : "asc"); }}>
+                      Last Modified {sortBy === "modified" && (sortOrder === "asc" ? "↑" : "↓")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                </div>
               </div>
-              <div>
-                {loading ? <p>Loading...</p> : viewMode === "list" ? <ListView /> : <GridView />}
+              <div className="bg-gray-100 dark:bg-slate-800 h-screen rounded-lg m-4 p-4">
+                {loading ? <p className="dark:text-gray-300">Loading...</p> : viewMode === "list" ? <ListView /> : <GridView />}
               </div>
             </div>
           )}
         </main>
       </div>
+      <EditItemModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        item={selectedItem}
+        onSave={handleSaveItem}
+      />
     </div>
   );
 }
