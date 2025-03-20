@@ -6,6 +6,76 @@ import connectDB from "@/lib/db";
 import Content from "@/models/Content";
 import Book from "@/models/Book";
 
+export async function POST(req) {
+  try {
+    await connectDB();
+
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    
+    const userId = session.user.id;
+    const data = await req.json();
+    
+    if (!data.type) {
+      return NextResponse.json({ error: "Type is required" }, { status: 400 });
+    }
+
+    if (data.type === "content") {
+      // Create new content
+      if (!data.title || !data.thumbnail) {
+        return NextResponse.json({ error: "Title and thumbnail are required" }, { status: 400 });
+      }
+      
+      const newContent = new Content({
+        title: data.title,
+        thumbnail: data.thumbnail,
+        tags: data.tags || [],
+        institution: data.institution,
+        subject: data.subject,
+        createdBy: userId,
+        data: data.data || "{}", // Assuming empty content initially
+        lastModifiedAt: new Date(),
+        isDraft: true
+      });
+      
+      await newContent.save();
+      return NextResponse.json({ 
+        success: true, 
+        content: newContent 
+      }, { status: 201 });
+      
+    } else if (data.type === "book") {
+      // Create new book
+      if (!data.title) {
+        return NextResponse.json({ error: "Title is required" }, { status: 400 });
+      }
+      
+      const newBook = new Book({
+        title: data.title,
+        thumbnail: data.thumbnail,
+        contents: [],
+        createdBy: userId,
+        createdAt: new Date(),
+        lastModifiedAt: new Date()
+      });
+      
+      await newBook.save();
+      return NextResponse.json({ 
+        success: true, 
+        book: newBook 
+      }, { status: 201 });
+      
+    } else {
+      return NextResponse.json({ error: "Invalid item type" }, { status: 400 });
+    }
+  } catch (error) {
+    console.error("Error creating item:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
 // In /api/drive/route.ts
 export async function GET(req) {
   try {

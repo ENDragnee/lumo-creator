@@ -32,7 +32,7 @@ const ContentSchema = new mongoose.Schema<IContent>({
   rating: Number,
   data: {
     type: String,
-    required: true
+    required: false
   },
   createdAt: {
     type: Date,

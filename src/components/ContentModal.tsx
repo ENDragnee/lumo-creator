@@ -26,7 +26,6 @@ export const ContentModal: React.FC<ContentModalProps> = ({
 }) => {
   const [title, setTitle] = useState("");
   const [thumbnail, setThumbnail] = useState("");
-  const [dataContent, setDataContent] = useState("");
   const [tags, setTags] = useState("");
   const [institution, setInstitution] = useState("");
   const [subject, setSubject] = useState("");
@@ -38,7 +37,6 @@ export const ContentModal: React.FC<ContentModalProps> = ({
       type: "content",
       title,
       thumbnail,
-      data: dataContent,
       tags: tagArray,
       institution,
       subject,
@@ -46,7 +44,6 @@ export const ContentModal: React.FC<ContentModalProps> = ({
     // Optionally clear fields here
     setTitle("");
     setThumbnail("");
-    setDataContent("");
     setTags("");
     setInstitution("");
     setSubject("");
@@ -74,12 +71,6 @@ export const ContentModal: React.FC<ContentModalProps> = ({
               placeholder="Thumbnail URL"
               value={thumbnail}
               onChange={(e) => setThumbnail(e.target.value)}
-              required
-            />
-            <Textarea
-              placeholder="Data"
-              value={dataContent}
-              onChange={(e) => setDataContent(e.target.value)}
               required
             />
             <Input
