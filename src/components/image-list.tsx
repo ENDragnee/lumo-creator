@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button"
 interface ImageItem {
   filename: string
   imageUrl: string
-  
+  isLink?: boolean
 }
 
 interface ImageListProps {
   images: ImageItem[]
-  onRemove: (filename: string) => void
+  onRemove: (filename: string, isLink?: boolean) => void
 }
 
 export function ImageList({ images, onRemove }: ImageListProps) {
@@ -49,14 +49,18 @@ export function ImageList({ images, onRemove }: ImageListProps) {
               variant="destructive"
               size="icon"
               className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => onRemove(image.filename)}
+              onClick={() => onRemove(image.filename, image.isLink)}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
+            {image.isLink && (
+              <div className="absolute bottom-1 left-1 bg-blue-500 text-white text-xs px-1 rounded">
+                Link
+              </div>
+            )}
           </div>
         ))}
       </div>
     </div>
   )
 }
-

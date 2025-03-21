@@ -1,3 +1,4 @@
+// ResizableElement.tsx
 import React from "react";
 import { Rnd } from "react-rnd";
 import { useNode } from "@craftjs/core";
@@ -25,13 +26,12 @@ export const ResizableElement: React.FC<ResizableElementProps> = ({
   } = useNode((node) => ({
     width: node.data.props.width,
     height: node.data.props.height,
-    x: node.data.props.x ?? 50, // fallback default if not set
+    x: node.data.props.x ?? 50,
     y: node.data.props.y ?? 50,
   }));
 
   return (
     <Rnd
-      // Use controlled props for size and position
       size={{ width: nodeWidth || width, height: nodeHeight || height }}
       position={{ x: nodeX, y: nodeY }}
       onResizeStop={(e, direction, ref, delta, position) => {
@@ -57,14 +57,26 @@ export const ResizableElement: React.FC<ResizableElementProps> = ({
         topLeft: cursorMode === "resize",
       }}
       disableDragging={cursorMode !== "drag"}
+      bounds="parent"
       innerRef={(ref: HTMLDivElement | null) => {
         if (ref) {
           connect(drag(ref));
         }
       }}
-      style={{ border: "1px dashed #ddd", padding: "8px", background: "#fff00" }}
+      style={{ 
+        border: "1px dashed #ddd",
+        background: "transparent",
+        overflow: "visible" // Allow handles to be visible
+      }}
     >
-      {children}
+      {/* Add wrapper div with full size */}
+      <div style={{ 
+        width: "100%",
+        height: "100%",
+        position: "relative"
+      }}>
+        {children}
+      </div>
     </Rnd>
   );
 };
