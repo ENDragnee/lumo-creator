@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { EditItemModal } from "@/components/EditItemModal"
+import { EditItemModal } from "@/components/EditItemModal";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ContentModal } from "@/components/ContentModal";
 import { BookModal } from "@/components/BookModal";
@@ -15,6 +15,7 @@ import { DropdownMenuContent, DropdownMenuItem, DropdownMenu, DropdownMenuTrigge
 
 interface DriveItem {
   _id: string;
+  data: string;
   type: "book" | "content";
   title: string;
   thumbnail: string;
@@ -42,13 +43,16 @@ export default function DriveHome() {
   const [showContentModal, setShowContentModal] = useState(false);
   const [showBookModal, setShowBookModal] = useState(false);
 
+  // Updated sorting function to handle undefined title and modified fields
   const sortedItems = [...items].sort((a, b) => {
     if (sortBy === "title") {
-      return sortOrder === "asc" ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title);
+      const titleA = a.title || "";
+      const titleB = b.title || "";
+      return sortOrder === "asc" ? titleA.localeCompare(titleB) : titleB.localeCompare(titleA);
     } else if (sortBy === "modified") {
-      return sortOrder === "asc"
-        ? new Date(a.modified || "").getTime() - new Date(b.modified || "").getTime()
-        : new Date(b.modified || "").getTime() - new Date(a.modified || "").getTime();
+      const modifiedA = a.modified ? new Date(a.modified).getTime() : 0;
+      const modifiedB = b.modified ? new Date(b.modified).getTime() : 0;
+      return sortOrder === "asc" ? modifiedA - modifiedB : modifiedB - modifiedA;
     }
     return 0;
   });
@@ -106,8 +110,9 @@ export default function DriveHome() {
     }
   };
 
+  // Updated delete handler to display 'Untitled' if title is undefined
   const handleDeleteItem = async (item: DriveItem) => {
-    if (confirm(`Are you sure you want to delete "${item.title}"?`)) {
+    if (confirm(`Are you sure you want to delete "${item.title || 'Untitled'}"?`)) {
       try {
         const response = await fetch(`/api/drive`, {
           method: "DELETE",
@@ -150,6 +155,7 @@ export default function DriveHome() {
         title: book.title,
         thumbnail: book.thumbnail,
         modified: new Date(book.createdAt).toLocaleDateString(),
+        data: "",
       }));
       const contents: DriveItem[] = data.contents.map((content: any) => ({
         _id: content._id,
@@ -157,6 +163,7 @@ export default function DriveHome() {
         title: content.title,
         thumbnail: content.thumbnail,
         modified: new Date(content.createdAt).toLocaleDateString(),
+        data: "",
       }));
       setItems([...books, ...contents]);
     } catch (error) {
@@ -182,6 +189,7 @@ export default function DriveHome() {
           title: content.title,
           thumbnail: content.thumbnail,
           modified: new Date(content.createdAt).toLocaleDateString(),
+          data: "",
         })),
       };
       setSelectedBook(bookDetails);
@@ -206,8 +214,12 @@ export default function DriveHome() {
     }
   };
 
-  // Common handler to create new Content or Book using the unified API
+  // Updated handler to validate title before creating new items
   const handleCreateNewItem = async (data: any) => {
+    if (!data.title) {
+      console.error("Title is required for new items");
+      return;
+    }
     try {
       const response = await fetch("/api/drive", {
         method: "POST",
@@ -224,6 +236,7 @@ export default function DriveHome() {
           title: newItem.title,
           thumbnail: newItem.thumbnail,
           modified: new Date(newItem.createdAt).toLocaleDateString(),
+          data: "",
         };
         setItems([...items, formattedItem]);
       } else {
@@ -234,7 +247,7 @@ export default function DriveHome() {
     }
   };
 
-  // Updated GridView with separate clickable preview and action bar
+  // Updated GridView to display 'Untitled' for undefined titles
   const GridView = () => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4 rounded-lg">
       {sortedItems.map((item) => (
@@ -242,7 +255,6 @@ export default function DriveHome() {
           key={item._id}
           className="flex flex-col shadow hover:shadow-md transition duration-200 hover:bg-gray-300 dark:hover:bg-slate-700 rounded-xl bg-white dark:bg-slate-800"
         >
-          {/* Clickable preview area */}
           <div
             className="flex-1 p-4 cursor-pointer flex flex-col items-center justify-center"
             onClick={() => handleItemClick(item)}
@@ -254,11 +266,11 @@ export default function DriveHome() {
               height={120}
               className="w-full h-full object-contain opacity-100 rounded-xl"
             />
-            <h3 className="mt-2 text-sm font-medium text-center truncate w-full dark:text-gray-200">{item.title}</h3>
+            <h3 className="mt-2 text-sm font-medium text-center truncate w-full dark:text-gray-200">
+              {item.title || 'Untitled'}
+            </h3>
             {item.modified && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.modified}</p>}
           </div>
-
-          {/* Action Bar */}
           <div className="flex justify-between border-t border-gray-200 dark:border-slate-600 p-2 bg-gray-50 dark:bg-slate-700 rounded-b-xl">
             <Button
               variant="ghost"
@@ -282,7 +294,7 @@ export default function DriveHome() {
     </div>
   );
 
-  // ListView remains unchanged
+  // Updated ListView to display 'Untitled' for undefined titles
   const ListView = () => (
     <table className="w-full">
       <thead>
@@ -298,7 +310,7 @@ export default function DriveHome() {
           <tr key={item._id} className="group hover:bg-gray-100 dark:hover:bg-slate-700">
             <td className="p-3 flex items-center gap-2 cursor-pointer dark:text-gray-200" onClick={() => handleItemClick(item)}>
               <Image src={item.thumbnail} alt="File icon" width={20} height={20} />
-              <span>{item.title}</span>
+              <span>{item.title || 'Untitled'}</span>
             </td>
             <td className="p-3 cursor-pointer dark:text-gray-300" onClick={() => handleItemClick(item)}>
               {item.type === "book" ? "Folder" : "File"}
@@ -349,14 +361,12 @@ export default function DriveHome() {
           <Image src="/ascii.png" alt="Lumo Creator" width={40} height={40} className="w-10" />
           <span className="text-lg dark:text-gray-200">Lumo Creator</span>
         </div>
-
         <div className="flex-1 max-w-3xl">
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 dark:text-gray-500" />
             <Input type="search" placeholder="Search in Lumo Creator" className="w-full pl-10 h-12 rounded-lg border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-200 dark:placeholder-gray-400 mt-1" />
           </div>
         </div>
-
         <div className="flex items-center gap-2 bg-gray-200 dark:bg-slate-800 rounded-xl">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -406,7 +416,7 @@ export default function DriveHome() {
         {/* Sidebar */}
         <aside className="w-44 p-3 h-auto bg-gray-200 dark:bg-slate-800 rounded-xl mt-4">
           <div className="space-y-1 flex flex-col">
-          <DropdownMenu>
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="w-24 self-center justify-center shadow-md rounded-full py-6 hover:bg-gray-300 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:text-white hover:scale-110">
                   <Plus className="h-5 w-5 mr-2" />
@@ -417,12 +427,11 @@ export default function DriveHome() {
                 <DropdownMenuItem className="hover:bg-gray-300 hover:scale-105" onClick={() => setShowContentModal(true)}>
                   New Content
                 </DropdownMenuItem>
-                <DropdownMenuItem  className="hover:bg-gray-300 hover:scale-105" onClick={() => setShowBookModal(true)}>
+                <DropdownMenuItem className="hover:bg-gray-300 hover:scale-105" onClick={() => setShowBookModal(true)}>
                   New Book
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
             <div className="mt-4">
               <Button variant="ghost" className="w-full justify-start gap-2 hover:bg-gray-300 dark:hover:bg-slate-700 dark:text-gray-200 hover:scale-105" onClick={() => router.push("/home")}>
                 <Home className="h-5 w-5" />
@@ -451,7 +460,8 @@ export default function DriveHome() {
               <Button variant="ghost" onClick={() => setSelectedBook(null)} className="mb-4 dark:text-gray-200 dark:hover:bg-slate-800">
                 ← Back
               </Button>
-              <h2 className="text-2xl mb-4 dark:text-gray-200">{selectedBook.title}</h2>
+              {/* Updated book title rendering */}
+              <h2 className="text-2xl mb-4 dark:text-gray-200">{selectedBook.title || 'Untitled'}</h2>
               {selectedBook.contents.length > 0 ? (
                 <div>{viewMode === "list" ? <ListView /> : <GridView />}</div>
               ) : (
@@ -484,23 +494,22 @@ export default function DriveHome() {
                     </Button>
                   </div>
                 </div>
-
-                <div className="flex gap-2 mb-4 ">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center gap-1">
-                      Sort By <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-gray-100 dark:bg-slate-800 rounded-lg shadow-md border-gray-200 dark:border-slate-700">
-                    <DropdownMenuItem onClick={() => { setSortBy("title"); setSortOrder(sortOrder === "asc" ? "desc" : "asc"); }}>
-                      Title {sortBy === "title" && (sortOrder === "asc" ? "↑" : "↓")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setSortBy("modified"); setSortOrder(sortOrder === "asc" ? "desc" : "asc"); }}>
-                      Last Modified {sortBy === "modified" && (sortOrder === "asc" ? "↑" : "↓")}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex gap-2 mb-4">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="flex items-center gap-1">
+                        Sort By <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-gray-100 dark:bg-slate-800 rounded-lg shadow-md border-gray-200 dark:border-slate-700">
+                      <DropdownMenuItem onClick={() => { setSortBy("title"); setSortOrder(sortOrder === "asc" ? "desc" : "asc"); }}>
+                        Title {sortBy === "title" && (sortOrder === "asc" ? "↑" : "↓")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setSortBy("modified"); setSortOrder(sortOrder === "asc" ? "desc" : "asc"); }}>
+                        Last Modified {sortBy === "modified" && (sortOrder === "asc" ? "↑" : "↓")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
               <div className="bg-gray-100 dark:bg-slate-800 h-screen rounded-lg m-4 p-4">
@@ -516,7 +525,6 @@ export default function DriveHome() {
         item={selectedItem}
         onSave={handleSaveItem}
       />
-      
       <ContentModal
         open={showContentModal}
         onOpenChange={setShowContentModal}

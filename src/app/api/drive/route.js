@@ -35,7 +35,7 @@ export async function POST(req) {
         institution: data.institution,
         subject: data.subject,
         createdBy: userId,
-        data: data.data || "{}", // Assuming empty content initially
+        data: data.data || "", // Assuming empty content initially
         lastModifiedAt: new Date(),
         isDraft: true
       });
