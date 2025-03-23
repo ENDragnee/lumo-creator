@@ -29,13 +29,13 @@ export function ImageList({ images, onRemove }: ImageListProps) {
             <div
               ref={(ref) => {
                 if (ref) {
-                  connectors.create(ref, <ImageComponent src={image.imageUrl || "/placeholder.svg"} width={160} height={120} />)
+                  connectors.create(ref, <ImageComponent src={`https://lumo-creator.aasciihub.com/public/${image.imageUrl}` || "/placeholder.svg"} width={160} height={120} />)
                 }
               }}
               className="cursor-move"
             >
               <Image
-                src={image.imageUrl || "/placeholder.svg"}
+                src={`https://lumo-creator.aasciihub.com/public/${image.imageUrl}` || "/placeholder.svg"}
                 alt={`Image ${image.filename}`}
                 width={160}
                 height={120}

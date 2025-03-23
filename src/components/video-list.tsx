@@ -33,13 +33,13 @@ export function VideoList({ videos, onRemove }: VideoListProps) {
               <div
                 ref={(ref) => {
                   if (ref) {
-                    connectors.create(ref, <VideoComponent src={videoSrc} />)
+                    connectors.create(ref, <VideoComponent src={`https://lumo-creator.aasciihub.com/public/${videoSrc}`} />)
                   }
                 }}
                 className="cursor-move"
               >
                 <Image
-                  src={video.thumbnailUrl || "/placeholder.svg"}
+                  src={`https://lumo-creator.aasciihub.com/public/${video.thumbnailUrl}` || "/placeholder.svg"}
                   alt={`Thumbnail for ${video.filename}`}
                   width={160}
                   height={120}

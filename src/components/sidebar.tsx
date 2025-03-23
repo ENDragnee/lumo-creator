@@ -220,17 +220,6 @@ export function Sidebar({ activeTool }: SidebarProps) {
             <div className="p-4">
               <h2 className="text-lg font-semibold mb-4">Image Library</h2>
               <ImageUploader onUpload={handleImageUpload} userId={userId} />
-              <div className="mt-4">
-                <Input
-                  type="text"
-                  placeholder="Enter image URL"
-                  value={imageLink}
-                  onChange={(e) => setImageLink(e.target.value)}
-                />
-                <Button onClick={handleImageLinkUpload} className="mt-2">
-                  Add Image Link
-                </Button>
-              </div>
               <ImageList images={images} onRemove={handleImageRemove} />
             </div>
           );
