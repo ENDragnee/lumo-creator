@@ -59,7 +59,13 @@ export function Navbar() {
     <header className="flex h-14 items-center gap-4 border-b bg-background px-6">
       <div className="flex items-center gap-2">
         {/* Show ContentModal only if no contentId (new content) */}
-        {!contentId && <ContentModal onSave={saveContent} />}
+        {!contentId && (
+          <ContentModal 
+            onSave={saveContent} 
+            open={true} 
+            onOpenChange={(isOpen) => console.log("Modal open state:", isOpen)} 
+          />
+        )}
         <Button variant="ghost" size="icon" onClick={handleUndo} disabled={!canUndo}>
           <Undo2 className="h-4 w-4" />
         </Button>

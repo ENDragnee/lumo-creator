@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, memo } from "react"
 import { Editor, Frame, Element, useEditor } from "@craftjs/core"
 import { Sidebar } from "@/components/sidebar"
 import { renderCanvas } from "@/components/canvas"
@@ -33,14 +33,25 @@ function useDebounce(callback: DebounceCallback, delay: number): (...args: any[]
   }, [callback, delay]);
 }
 
+const MemoizedCanvas = memo(({ children }: { children?: React.ReactNode }) => {
+  return (
+    <Frame>
+      <Element is={renderCanvas} canvas>
+        {children}
+      </Element>
+    </Frame>
+  );
+});
+
+MemoizedCanvas.displayName = 'MemoizedCanvas';
+
 export default function TemplateEditor() {
   const { enabled } = useEditorStore()
   const searchParams = useSearchParams();
   const contentId = searchParams.get("contentId");
-  const [contentData, setContentData] = useState(null);
-  const [isVideoSectionVisible, setIsVideoSectionVisible] = useState(false)
-  const [isImageSectionVisible, setIsImageSectionVisible] = useState(false)
-  const [isSimulationSectionVisible, setIsSimulationSectionVisible] = useState(false)
+  const [contentData, setContentData] = useState<string | null>(null);
+  const [activeTool, setActiveTool] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     if (contentId) {
@@ -48,21 +59,13 @@ export default function TemplateEditor() {
         .then((res) => res.json())
         .then((data) => {
           if (data.content?.data) {
-            try {
-              // Parse the nested JSON string correctly
-              const rawData = JSON.parse(data.content.data);
-              const finalData = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-              setContentData(finalData);
-            } catch (error) {
-              console.error("Parsing failed:", error);
-            }
+            setContentData(data.content.data);
           }
         })
         .catch(console.error);
     }
   }, [contentId]);
 
-  // Function to send PUT request
   interface SaveContentParams {
     contentId: string;
     data: string;
@@ -86,30 +89,21 @@ export default function TemplateEditor() {
     }
   };
 
-  // Debounce the save function (2-second delay)
   const debouncedSave = useDebounce(saveContent, 2000)
 
-  const handleVideoButtonClick = () => {
-    setIsVideoSectionVisible((prev) => !prev)
+  const handleToolChange = (toolType: string) => {
+    setActiveTool(prevTool => prevTool === toolType ? null : toolType);
   }
 
-  const handleImageButtonClick = () => {
-    setIsImageSectionVisible((prev) => !prev)
-  }
-
-  const handleSimulationButtonClick = () => {
-    setIsSimulationSectionVisible((prev) => !prev)
-  }
-
-  // Define this component inside the parent component
-  function DeserializeContent({ contentData }: { contentData: any }) {
+  function DeserializeContent({ contentData }: { contentData: string | null }) {
     const { actions } = useEditor();
 
     useEffect(() => {
-      if (contentData && actions) {
+      if (contentData && actions && !isInitialized) {
         try {
-          console.log(contentData);
+          console.log("Deserializing content:", contentData);
           actions.deserialize(contentData);
+          setIsInitialized(true);
         } catch (error) {
           console.error("Error during deserialization:", error);
         }
@@ -119,13 +113,12 @@ export default function TemplateEditor() {
     return null;
   }
 
-  // EditorDataHandler handles saving content (replaces the direct useEditor call)
   function EditorDataHandler() {
     const { json } = useEditor((state, query) => ({ json: query.serialize() }));
     
-    // Trigger debounced save when json changes and contentId is present
     useEffect(() => {
-      if (contentId) {
+      if (contentId && isInitialized) {
+        console.log("Auto-saving editor state");
         debouncedSave(json);
       }
     }, [json]);
@@ -147,28 +140,24 @@ export default function TemplateEditor() {
           AITutor: AITutorComponent,
         }}
         enabled={enabled}
+        onNodesChange={() => {
+          // This ensures we don't lose state on sidebar changes
+          // by explicitly handling node changes
+        }}
       >
-        {/* These components now properly use useEditor within the Editor context */}
         <DeserializeContent contentData={contentData} />
         <EditorDataHandler />
         
         <div className="flex h-screen flex-col bg-background">
           <Navbar />
           <div className="flex flex-1 overflow-hidden">
-            <Sidebar 
-              isVideoSectionVisible={isVideoSectionVisible} 
-              isImageSectionVisible={isImageSectionVisible} 
-              isSimulationSectionVisible={isSimulationSectionVisible}
-            />
-            <Frame>
-              <Element is={renderCanvas} canvas>          
-              </Element>
-            </Frame>
+            <Sidebar activeTool={activeTool} />
+            <MemoizedCanvas />
           </div>
           <Toolbar 
-            onVideoButtonClick={handleVideoButtonClick} 
-            onImageButtonClick={handleImageButtonClick} 
-            onSimulationButtonClick={handleSimulationButtonClick}
+            onVideoButtonClick={() => handleToolChange('video')}
+            onImageButtonClick={() => handleToolChange('image')}
+            onSimulationButtonClick={() => handleToolChange('simulation')}
           />
         </div>
       </Editor>

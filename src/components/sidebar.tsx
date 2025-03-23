@@ -6,10 +6,10 @@ import { VideoUploader } from "./video-uploader";
 import { VideoList } from "./video-list";
 import { ImageUploader } from "./image-uploader";
 import { ImageList } from "./image-list";
-import { SimulationList } from "./simulation-list"; // New import for simulation list
+import { SimulationList } from "./simulation-list";
 import { useSession } from "next-auth/react";
 
-// Define an interface for a user with an id property.
+// Define interfaces
 interface ExtendedUser {
   id: string;
   name?: string | null;
@@ -27,7 +27,15 @@ interface Image {
   imageUrl: string;
 }
 
-// These functions remain unchanged for video and image.
+interface Simulation {
+  url: string;
+}
+
+interface SidebarProps {
+  activeTool: string | null;
+}
+
+// API functions (unchanged)
 async function fetchUserVideos(userId: string): Promise<Video[]> {
   const response = await fetch(`/api/get-user-videos?userId=${userId}`);
   const data = await response.json();
@@ -58,32 +66,8 @@ async function removeImage(userId: string, filename: string): Promise<boolean> {
   return data.success;
 }
 
-// New interface for simulation items.
-interface Simulation {
-  url: string;
-}
-
-interface SidebarProps {
-  isVideoSectionVisible: boolean;
-  isImageSectionVisible: boolean;
-  isSimulationSectionVisible: boolean;
-}
-
-export function Sidebar({
-  isVideoSectionVisible: initialVideoVisible,
-  isImageSectionVisible: initialImageVisible,
-  isSimulationSectionVisible: initialSimulationVisible,
-}: SidebarProps) {
+export function Sidebar({ activeTool }: SidebarProps) {
   const { data: session, status } = useSession();
-
-  const [activeSection, setActiveSection] = useState<
-    "video" | "image" | "simulation" | null
-  >(() => {
-    if (initialVideoVisible) return "video";
-    if (initialImageVisible) return "image";
-    if (initialSimulationVisible) return "simulation";
-    return null;
-  });
 
   const { selected } = useEditor((state, query) => {
     const currentNodeId = query.getEvent("selected").last();
@@ -100,36 +84,26 @@ export function Sidebar({
     return { selected };
   });
 
-  // States for videos and images.
+  // States
   const [videos, setVideos] = useState<Video[]>([]);
   const [videoLink, setVideoLink] = useState("");
   const [images, setImages] = useState<Image[]>([]);
   const [imageLink, setImageLink] = useState("");
-
-  // New states for simulations.
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [simulationLink, setSimulationLink] = useState("");
 
-  // Cast session.user to ExtendedUser to access the id property.
   const userId = (session?.user as ExtendedUser)?.id || "test";
 
   useEffect(() => {
-    if (activeSection === "video" && userId) {
+    if (activeTool === "video" && userId) {
       fetchUserVideos(userId).then(setVideos);
     }
-    if (activeSection === "image" && userId) {
+    if (activeTool === "image" && userId) {
       fetchUserImages(userId).then(setImages);
     }
-  }, [activeSection, userId]);
+  }, [activeTool, userId]);
 
-  useEffect(() => {
-    if (initialVideoVisible) setActiveSection("video");
-    else if (initialImageVisible) setActiveSection("image");
-    else if (initialSimulationVisible) setActiveSection("simulation");
-    else setActiveSection(null);
-  }, [initialVideoVisible, initialImageVisible, initialSimulationVisible]);
-
-  // Handlers for video.
+  // Handlers (unchanged)
   const handleVideoUpload = (filename: string, thumbnailUrl: string) => {
     setVideos((prevVideos) => [...prevVideos, { filename, thumbnailUrl }]);
   };
@@ -155,7 +129,6 @@ export function Sidebar({
     }
   };
 
-  // Handlers for image.
   const handleImageUpload = (filename: string, imageUrl: string) => {
     setImages((prevImages) => [...prevImages, { filename, imageUrl }]);
   };
@@ -181,7 +154,6 @@ export function Sidebar({
     }
   };
 
-  // Handlers for simulation.
   const handleSimulationLinkUpload = () => {
     if (simulationLink) {
       setSimulations((prev) => [...prev, { url: simulationLink }]);
@@ -201,85 +173,108 @@ export function Sidebar({
     return <div>Please sign in to view your media library.</div>;
   }
 
-  if (!activeSection && !selected) {
-    return (
-      <div className="w-80 border-l overflow-auto" />
-    );
-  }
+  const renderDefaultSidebar = () => (
+    <div className="p-4">
+      <h2 className="text-lg font-semibold mb-4">Editor Tools</h2>
+      <p className="text-sm text-gray-600 mb-4">
+        Select an element on the canvas to edit its properties, or choose a tool
+        from the toolbar below to add content.
+      </p>
+      <div className="mt-4 p-3 bg-blue-50 rounded-md">
+        <h3 className="font-medium text-blue-700">Tips:</h3>
+        <ul className="mt-2 text-sm text-blue-600 space-y-2">
+          <li>• Click on any element to edit its properties</li>
+          <li>• Use the toolbar to add new elements</li>
+          <li>• Drag elements to reposition them</li>
+        </ul>
+      </div>
+    </div>
+  );
+
+  // Updated renderSidebarContent function
+  const renderSidebarContent = () => {
+    // Prioritize activeTool first
+    if (activeTool) {
+      switch (activeTool) {
+        case "video":
+          return (
+            <div className="p-4">
+              <h2 className="text-lg font-semibold mb-4">Video Library</h2>
+              <VideoUploader onUpload={handleVideoUpload} userId={userId} />
+              <div className="mt-4">
+                <Input
+                  type="text"
+                  placeholder="Enter video URL"
+                  value={videoLink}
+                  onChange={(e) => setVideoLink(e.target.value)}
+                />
+                <Button onClick={handleVideoLinkUpload} className="mt-2">
+                  Add Video Link
+                </Button>
+              </div>
+              <VideoList videos={videos} onRemove={handleVideoRemove} />
+            </div>
+          );
+        case "image":
+          return (
+            <div className="p-4">
+              <h2 className="text-lg font-semibold mb-4">Image Library</h2>
+              <ImageUploader onUpload={handleImageUpload} userId={userId} />
+              <div className="mt-4">
+                <Input
+                  type="text"
+                  placeholder="Enter image URL"
+                  value={imageLink}
+                  onChange={(e) => setImageLink(e.target.value)}
+                />
+                <Button onClick={handleImageLinkUpload} className="mt-2">
+                  Add Image Link
+                </Button>
+              </div>
+              <ImageList images={images} onRemove={handleImageRemove} />
+            </div>
+          );
+        case "simulation":
+          return (
+            <div className="p-4">
+              <h2 className="text-lg font-semibold mb-4">Simulation Library</h2>
+              <div className="mt-4">
+                <Input
+                  type="text"
+                  placeholder="Enter simulation URL"
+                  value={simulationLink}
+                  onChange={(e) => setSimulationLink(e.target.value)}
+                />
+                <Button onClick={handleSimulationLinkUpload} className="mt-2">
+                  Add Simulation Link
+                </Button>
+              </div>
+              <SimulationList
+                simulations={simulations}
+                onRemove={handleSimulationRemove}
+              />
+            </div>
+          );
+        default:
+          return renderDefaultSidebar();
+      }
+    } else if (selected) {
+      // Show component settings only if no tool is active
+      return (
+        <div className="p-4">
+          <h2 className="text-lg font-semibold mb-4">{selected.name} Settings</h2>
+          {selected.settings && React.createElement(selected.settings)}
+        </div>
+      );
+    } else {
+      // Default sidebar when neither tool nor component is active
+      return renderDefaultSidebar();
+    }
+  };
 
   return (
     <div className="w-80 bg-zinc-50 border-l rounded-lg border-gray-200 overflow-auto">
-      {activeSection === "video" && (
-        <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Video Library</h2>
-          <VideoUploader onUpload={handleVideoUpload} userId={userId} />
-          <div className="mt-4">
-            <Input
-              type="text"
-              placeholder="Enter video URL"
-              value={videoLink}
-              onChange={(e) => setVideoLink(e.target.value)}
-            />
-            <Button onClick={handleVideoLinkUpload} className="mt-2">
-              Add Video Link
-            </Button>
-          </div>
-          <VideoList videos={videos} onRemove={handleVideoRemove} />
-        </div>
-      )}
-      {activeSection === "image" && (
-        <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Image Library</h2>
-          <ImageUploader onUpload={handleImageUpload} userId={userId} />
-          <div className="mt-4">
-            <Input
-              type="text"
-              placeholder="Enter image URL"
-              value={imageLink}
-              onChange={(e) => setImageLink(e.target.value)}
-            />
-            <Button onClick={handleImageLinkUpload} className="mt-2">
-              Add Image Link
-            </Button>
-          </div>
-          <ImageList images={images} onRemove={handleImageRemove} />
-        </div>
-      )}
-      {activeSection === "simulation" && (
-        <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Simulation Library</h2>
-          <div className="mt-4">
-            <Input
-              type="text"
-              placeholder="Enter simulation URL"
-              value={simulationLink}
-              onChange={(e) => setSimulationLink(e.target.value)}
-            />
-            <Button onClick={handleSimulationLinkUpload} className="mt-2">
-              Add Simulation Link
-            </Button>
-          </div>
-          <SimulationList simulations={simulations} onRemove={handleSimulationRemove} />
-        </div>
-      )}
-      {selected && selected.name === "Video" && (
-        <div className="p-4 border-t">
-          <h2 className="text-lg font-semibold mb-4">Video Settings</h2>
-          {selected.settings && React.createElement(selected.settings)}
-        </div>
-      )}
-      {selected && selected.name === "Image" && (
-        <div className="p-4 border-t">
-          <h2 className="text-lg font-semibold mb-4">Image Settings</h2>
-          {selected.settings && React.createElement(selected.settings)}
-        </div>
-      )}
-      {selected && selected.name === "Text" && (
-        <div className="p-4 border-t">
-          <h2 className="text-lg font-semibold mb-4">Text Settings</h2>
-          {selected.settings && React.createElement(selected.settings)}
-        </div>
-      )}
+      {renderSidebarContent()}
     </div>
   );
 }
