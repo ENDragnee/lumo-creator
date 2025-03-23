@@ -529,6 +529,7 @@ export default function DriveHome() {
         open={showContentModal}
         onOpenChange={setShowContentModal}
         onSave={handleCreateNewItem}
+        userId={(session?.user as { id?: string })?.id || ""}
       />
       <BookModal
         open={showBookModal}

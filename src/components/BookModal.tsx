@@ -1,4 +1,3 @@
-// components/BookModal.tsx
 "use client";
 import React, { useState } from "react";
 import {
@@ -26,7 +25,6 @@ export const BookModal: React.FC<BookModalProps> = ({
 }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [thumbnail, setThumbnail] = useState("");
   const [tags, setTags] = useState("");
   const [genre, setGenre] = useState("");
 
@@ -37,14 +35,14 @@ export const BookModal: React.FC<BookModalProps> = ({
       type: "book",
       title,
       description,
-      thumbnail,
+      // Instead of a thumbnail URL, we now pass a fixed folder icon URL or identifier.
+      thumbnail: "/icons/folder.svg", // Adjust this path based on your public folder or icon component
       tags: tagArray,
       genre,
     });
     // Optionally clear fields here
     setTitle("");
     setDescription("");
-    setThumbnail("");
     setTags("");
     setGenre("");
     onOpenChange(false);
@@ -72,12 +70,19 @@ export const BookModal: React.FC<BookModalProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
-            <Input
-              placeholder="Thumbnail URL"
-              value={thumbnail}
-              onChange={(e) => setThumbnail(e.target.value)}
-              required
-            />
+            {/* Render a folder icon instead of a thumbnail input */}
+            <div className="flex items-center space-x-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7a2 2 0 012-2h3.5a1 1 0 01.707.293l1.414 1.414a1 1 0 00.707.293H19a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+              </svg>
+              <span className="text-gray-600">Folder Icon</span>
+            </div>
             <Input
               placeholder="Tags (comma separated)"
               value={tags}

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import path from "path";
 import sharp from "sharp";
 import { mkdir } from "fs/promises";
+import Media from "@/models/Media";
+import mongoose from "mongoose";
 
 export async function POST(request) {
   const data = await request.formData();
@@ -29,6 +31,14 @@ export async function POST(request) {
       .resize(800, 600, { fit: "inside", withoutEnlargement: true })
       .jpeg({ quality: 80 })
       .toFile(filepath);
+
+      await Media.create({
+        uploadedBy: new mongoose.Types.ObjectId(userId),
+        mediaType: "image",
+        filename,
+        url: `/LumoCreators/${userId}/images/${filename}`,
+      });
+  
 
     return NextResponse.json({
       success: true,
