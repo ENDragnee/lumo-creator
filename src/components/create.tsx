@@ -51,7 +51,7 @@ export default function TemplateEditor() {
   const contentId = searchParams.get("contentId");
   const [contentData, setContentData] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const deserializedRef = useRef(false);
 
   useEffect(() => {
     if (contentId) {
@@ -72,7 +72,11 @@ export default function TemplateEditor() {
   }
 
   const saveContent = async (json: string): Promise<void> => {
-    if (!contentId) return;
+    console.log("saveContent called with JSON:", json); // Debugging
+    if (!contentId) {
+      console.warn("No contentId provided, skipping save.");
+      return;
+    }
     try {
       const response = await fetch("/api/content", {
         method: "PUT",
@@ -89,7 +93,13 @@ export default function TemplateEditor() {
     }
   };
 
-  const debouncedSave = useDebounce(saveContent, 2000)
+  const debouncedSave = useCallback(
+    useDebounce((json: string) => {
+      console.log("debouncedSave called with JSON:", json); // Debugging
+      saveContent(json);
+    }, 2000),
+    [contentId] // Add contentId as a dependency to recreate the function when it changes
+  );
 
   const handleToolChange = (toolType: string) => {
     setActiveTool(prevTool => prevTool === toolType ? null : toolType);
@@ -99,11 +109,11 @@ export default function TemplateEditor() {
     const { actions } = useEditor();
 
     useEffect(() => {
-      if (contentData && actions && !isInitialized) {
+      if (contentData && actions && !deserializedRef.current) {
         try {
           console.log("Deserializing content:", contentData);
           actions.deserialize(contentData);
-          setIsInitialized(true);
+          deserializedRef.current = true;
         } catch (error) {
           console.error("Error during deserialization:", error);
         }
@@ -115,14 +125,19 @@ export default function TemplateEditor() {
 
   function EditorDataHandler() {
     const { json } = useEditor((state, query) => ({ json: query.serialize() }));
-    
+
     useEffect(() => {
-      if (contentId && isInitialized) {
+      console.log("Editor JSON updated:", json); // Debugging JSON updates
+      
+      // Only save if we have a contentId and deserialization has completed
+      if (contentId && deserializedRef.current) {
         console.log("Auto-saving editor state");
         debouncedSave(json);
+      } else {
+        console.log("Autosave conditions not met - contentId:", contentId, "deserialized:", deserializedRef.current);
       }
-    }, [json]);
-    
+    }, [json, contentId, debouncedSave]); 
+
     return null;
   }
 

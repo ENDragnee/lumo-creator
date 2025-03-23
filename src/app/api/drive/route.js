@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth"; // adjust path as needed
 import connectDB from "@/lib/db";
 import Content from "@/models/Content";
 import Book from "@/models/Book";
+import path from "path";
+import { rm } from "fs/promises";
 
 export async function POST(req) {
   try {
@@ -35,7 +37,7 @@ export async function POST(req) {
         institution: data.institution,
         subject: data.subject,
         createdBy: userId,
-        data: data.data || "", // Assuming empty content initially
+        data: data.data || "{\"ROOT\":{\"type\":{\"resolvedName\":\"renderCanvas\"},\"isCanvas\":true,\"props\":{},\"displayName\":\"renderCanvas\",\"custom\":{},\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}", // Assuming empty content initially
         lastModifiedAt: new Date(),
         isDraft: true
       });
@@ -185,7 +187,7 @@ export async function DELETE(req) {
     }
 
     if (type === "content") {
-      // Delete content
+      // Delete content from DB
       const content = await Content.findOneAndDelete({ _id: id, createdBy: userId });
       
       if (!content) {
@@ -199,18 +201,33 @@ export async function DELETE(req) {
           { $pull: { contents: id } }
         );
       }
+
+      // Delete the associated folder from the filesystem
+      // Adjust the folder structure if needed.
+      const folderPath = path.join(
+        process.cwd(),
+        "public",
+        "LumoCreators",
+        String(userId),
+        id.toString() // assuming the folder name is the content's id
+      );
+      try {
+        await rm(folderPath, { recursive: true, force: true });
+        console.log(`Deleted folder: ${folderPath}`);
+      } catch (fsError) {
+        console.error("Error deleting folder:", fsError);
+      }
       
       return NextResponse.json({ success: true });
     } else if (type === "book") {
-      // Delete book
+      // Delete book from DB
       const book = await Book.findOneAndDelete({ _id: id, createdBy: userId });
       
       if (!book) {
         return NextResponse.json({ error: "Book not found or unauthorized" }, { status: 404 });
       }
       
-      // Optionally, you might want to delete all contents inside this book or mark them as not belonging to a book
-      // For now, we'll just unlink them from the book
+      // Optionally, update contents that belonged to this book
       await Content.updateMany(
         { _id: { $in: book.contents } },
         { $set: { isBook: false } }

@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator"
 import { useEditorStore } from "@/lib/editor-store"
 import { ContentModal } from "@/components/ContentModal"
 import { useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
 
 export function Navbar() {
   const { actions, canUndo, canRedo, query } = useEditor((state, query) => ({
@@ -16,7 +17,9 @@ export function Navbar() {
   const { enabled, setEnabled } = useEditorStore()
   const searchParams = useSearchParams()
   const contentId = searchParams.get("contentId")
+  const { data: session } = useSession()
 
+  // Publish content if there's no contentId (new content)
   const saveContent = async (modalData: {
     title: string
     thumbnail: string
@@ -55,6 +58,29 @@ export function Navbar() {
     }
   }
 
+  // Manual save function that sends a PUT request if contentId exists
+  const manualSave = async () => {
+    if (!contentId) {
+      console.warn("No contentId provided, cannot save manually.")
+      return
+    }
+    const editorData = query.serialize()
+    try {
+      const response = await fetch("/api/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contentId, data: JSON.stringify(editorData) }),
+      })
+      if (!response.ok) {
+        console.error("Failed to update content")
+      } else {
+        console.log("Content updated successfully")
+      }
+    } catch (error) {
+      console.error("Error updating content:", error)
+    }
+  }
+
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-6">
       <div className="flex items-center gap-2">
@@ -64,6 +90,7 @@ export function Navbar() {
             onSave={saveContent} 
             open={true} 
             onOpenChange={(isOpen) => console.log("Modal open state:", isOpen)} 
+            userId={session?.user?.name ?? "Guest"}
           />
         )}
         <Button variant="ghost" size="icon" onClick={handleUndo} disabled={!canUndo}>
@@ -71,6 +98,10 @@ export function Navbar() {
         </Button>
         <Button variant="ghost" size="icon" onClick={handleRedo} disabled={!canRedo}>
           <Redo2 className="h-4 w-4" />
+        </Button>
+        {/* Add the manual Save button */}
+        <Button variant="ghost" onClick={manualSave}>
+          Save
         </Button>
       </div>
       <Separator orientation="vertical" className="h-6" />
