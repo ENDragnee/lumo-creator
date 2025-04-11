@@ -1,48 +1,33 @@
 "use client"
-import React, { useEffect } from "react";
+import React from "react";
 import { useNode, useEditor } from "@craftjs/core";
-import { ResizeHandle } from "@/components/resize-handle";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { ResizableElement } from "@/components/Resizer";
 
-interface VideoComponentProps {
+export interface VideoComponentProps {
   src: string;
+  // These are props used by ResizableElement and saved by Craft
   x?: number;
   y?: number;
   width?: number;
   height?: number;
 }
 
-export const VideoComponent = ({
+export const VideoComponent: React.FC<VideoComponentProps> & { craft?: any } = ({
   src,
-  x = 0,
-  y = 0,
-  width = 200,
-  height = 150,
-}: VideoComponentProps) => {
+  // Note: x, y, width, height are handled by ResizableElement via useNode props
+}) => {
   const {
     connectors: { connect, drag },
     selected,
     id,
-    actions,
-    nodeWidth,
-    nodeHeight,
   } = useNode((node) => ({
     selected: node.events.selected,
     id: node.id,
-    nodeWidth: node.data.props.width,
-    nodeHeight: node.data.props.height,
   }));
 
   const { actions: editorActions } = useEditor();
-
-  useEffect(() => {
-    actions.setProp((props: any) => {
-      props.width = nodeWidth;
-      props.height = nodeHeight;
-    });
-  }, [nodeWidth, nodeHeight, actions]);
 
   const handleRemove = () => {
     editorActions.delete(id);
@@ -73,81 +58,78 @@ export const VideoComponent = ({
     return url;
   };
 
-  // VideoComponent.tsx (updated part)
-return (
-  <ResizableElement>
-    <div
-      className={`relative ${selected ? "outline outline-2 outline-blue-500" : ""}`}
-      style={{
-        width: "100%",
-        height: "100%", // Remove left/top positioning
-      }}
-    >
-      {/* Drag handle */}
+  return (
+    // ResizableElement handles size and position
+    <ResizableElement>
       <div
-        ref={(ref) => {
-          if (ref) {
-            connect(drag(ref));
-          }
-        }}
-        className="absolute inset-0 z-10 cursor-move"
-        style={{ background: "transparent" }}
-      />
-      
-      {selected && (
-        <Button
-          variant="destructive"
-          size="icon"
-          className="absolute top-2 right-2 z-20"
-          onClick={handleRemove}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      )}
-      
-      {/* Video content */}
-      {isExternalUrl ? (
-        <iframe
-          src={getEmbedUrl(src)}
-          className="w-full h-full"
-          style={{
-            display: "block",
-            borderRadius: "var(--radius)",
-            border: "none",
-            pointerEvents: selected ? "auto" : "none"
+        className={`relative w-full h-full ${selected ? "outline outline-2 outline-blue-500" : ""}`}
+      >
+        {/* Drag handle */}
+        <div
+          ref={(ref) => {
+            if (ref) {
+              connect(drag(ref));
+            }
           }}
-          allowFullScreen
+          className="absolute inset-0 z-10 cursor-move"
+          style={{ background: "transparent" }}
         />
-      ) : (
-        <video
-          src={src}
-          controls
-          className="w-full h-full"
-          style={{
-            display: "block",
-            borderRadius: "var(--radius)",
-            pointerEvents: selected ? "auto" : "none"
-          }}
-        />
-      )}
-    </div>
-  </ResizableElement>
-);
+        
+        {selected && (
+          <Button
+            variant="destructive"
+            size="icon"
+            className="absolute top-2 right-2 z-20"
+            onClick={handleRemove}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+        
+        {/* Video content */}
+        {isExternalUrl ? (
+          <iframe
+            src={getEmbedUrl(src)}
+            className="w-full h-full"
+            style={{
+              display: "block",
+              borderRadius: "var(--radius)",
+              border: "none",
+              pointerEvents: selected ? "auto" : "none"
+            }}
+            allowFullScreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          />
+        ) : (
+          <video
+            src={src}
+            controls
+            className="w-full h-full"
+            style={{
+              display: "block",
+              borderRadius: "var(--radius)",
+              pointerEvents: selected ? "auto" : "none"
+            }}
+          />
+        )}
+      </div>
+    </ResizableElement>
+  );
 };
 
 VideoComponent.craft = {
   displayName: "Video",
   props: {
     src: "",
-    x: 0,
+    x: 0, // These props will be set by ResizableElement
     y: 0,
-    width: 200,
-    height: 150,
+    width: 400, // Default size for editor
+    height: 300,
   },
   rules: {
     canDrag: () => true,
     canDrop: () => true,
-    canMoveIn: () => true,
+    canMoveIn: () => false, // Typically you can't drop things into a Video
     canMoveOut: () => true,
   },
 };

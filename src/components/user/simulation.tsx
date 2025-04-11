@@ -1,62 +1,59 @@
-import React, { useEffect } from "react";
+"use client"
+import React from "react";
 import { ResizableElement } from "@/components/Resizer";
 import { useNode, useEditor } from "@craftjs/core";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface SimulationProps {
+export interface SimulationProps {
   src: string;
+  // These are props used by ResizableElement and saved by Craft
   x?: number;
   y?: number;
   width?: number;
   height?: number;
 }
 
-export const SimulationComponent = ({ 
-  src, 
-  x = 0, 
-  y = 0, 
-  width = 200, 
-  height = 300 
-}: SimulationProps) => {
+interface CraftableComponent extends React.FC<SimulationProps> {
+  craft?: {
+    displayName: string;
+    props: Record<string, any>;
+    rules: {
+      canDrag: () => boolean;
+      canDrop: () => boolean;
+      canMoveIn: () => boolean;
+      canMoveOut: () => boolean;
+    };
+  };
+}
+
+export const SimulationComponent: CraftableComponent = ({
+  src,
+  // Note: x, y, width, height are handled by ResizableElement via useNode props
+}) => {
   const {
     connectors: { connect, drag },
     selected,
     id,
-    actions,
-    nodeWidth,
-    nodeHeight
   } = useNode((node) => ({
     selected: node.events.selected,
     id: node.id,
-    nodeWidth: node.data.props.width,
-    nodeHeight: node.data.props.height
+    // nodeWidth: node.data.props.width, // Use the props passed to ResizableElement instead
+    // nodeHeight: node.data.props.height
   }));
 
   // Use editor actions for deletion functionality
   const { actions: editorActions } = useEditor();
-
-  // Update iframe dimensions when component is resized
-  useEffect(() => {
-    // This effect will run when nodeWidth or nodeHeight changes
-    actions.setProp((props: any) => {
-      props.width = nodeWidth;
-      props.height = nodeHeight;
-    });
-  }, [nodeWidth, nodeHeight, actions]);
 
   const handleRemove = () => {
     editorActions.delete(id);
   };
 
   return (
+    // ResizableElement handles size and position
     <ResizableElement>
       <div 
-        className={`relative ${selected ? "outline outline-2 outline-blue-500" : ""}`}
-        style={{
-          width: "100%",
-          height: "100%"
-        }}
+        className={`relative w-full h-full ${selected ? "outline outline-2 outline-blue-500" : ""}`}
       >
         {/* Transparent overlay for drag handling */}
         <div
@@ -82,17 +79,13 @@ export const SimulationComponent = ({
           </Button>
         )}
         
+        {/* The iframe itself fills the container */}
         <iframe
           src={src}
-          width="100%"
-          height="100%"
-          frameBorder="0"
-          allowFullScreen
-          className={`rounded-md ${selected ? "pointer-events-auto" : "pointer-events-none"}`}
+          className={`w-full h-full rounded-md ${selected ? "pointer-events-auto" : "pointer-events-none"}`}
           style={{
-            minWidth: "100%",
-            minHeight: "100%",
-            display: "block"
+            display: "block",
+            border: "none", // Usually remove border for clean embeds
           }}
         ></iframe>
       </div>
@@ -104,16 +97,15 @@ SimulationComponent.craft = {
   displayName: "Simulation",
   props: {
     src: "",
-    alt: "",
-    x: 0,
+    x: 0, // These props will be set by ResizableElement
     y: 0,
-    width: 200,
+    width: 400, // Default size for the editor
     height: 300,
   },
   rules: {
     canDrag: () => true,
     canDrop: () => true,
-    canMoveIn: () => true,
+    canMoveIn: () => true, // If you want to drop things *into* simulation? Unlikely.
     canMoveOut: () => true,
   },
 };
