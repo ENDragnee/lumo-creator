@@ -260,7 +260,7 @@ export default function DriveHome() {
             onClick={() => handleItemClick(item)}
           >
             <Image
-              src={item.thumbnail}
+              src={`${process.env.NEXT_PUBLIC_CREATOR_URL}${item.thumbnail}`}
               alt="File preview"
               width={120}
               height={120}
@@ -309,7 +309,7 @@ export default function DriveHome() {
         {sortedItems.map((item) => (
           <tr key={item._id} className="group hover:bg-gray-100 dark:hover:bg-slate-700">
             <td className="p-3 flex items-center gap-2 cursor-pointer dark:text-gray-200" onClick={() => handleItemClick(item)}>
-              <Image src={item.thumbnail} alt="File icon" width={20} height={20} />
+              <Image src={`${process.env.NEXT_PUBLIC_CREATOR_URL}${item.thumbnail}`} alt="File icon" width={20} height={20} />
               <span>{item.title || 'Untitled'}</span>
             </td>
             <td className="p-3 cursor-pointer dark:text-gray-300" onClick={() => handleItemClick(item)}>
