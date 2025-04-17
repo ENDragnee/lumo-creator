@@ -17,7 +17,7 @@ import {
 import { SliderComponent } from "@/components/user/slider";
 import { QuizComponent } from "@/components/user/quiz";
 import { TextComponent } from "@/components/user/text";
-import { useCursorMode } from "@/contexts/CursorModeContext";
+// import { useCursorMode } from "@/contexts/CursorModeContext";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useTheme } from "next-themes";
 
@@ -33,25 +33,25 @@ export function Toolbar({
   onSimulationButtonClick,
 }: ToolbarProps) {
   const { connectors } = useEditor();
-  const { cursorMode, setCursorMode } = useCursorMode();
+  // const { cursorMode, setCursorMode } = useCursorMode();
   const { theme } = useTheme();
 
-  useEffect(() => {
-    // Update the body cursor based on the current mode
-    switch (cursorMode) {
-      case "resize":
-        document.body.style.cursor = "ew-resize";
-        break;
-      case "drag":
-        document.body.style.cursor = "move";
-        break;
-      case "edit":
-        document.body.style.cursor = "text";
-        break;
-      default:
-        document.body.style.cursor = "default";
-    }
-  }, [cursorMode]);
+  // useEffect(() => {
+  //   // Update the body cursor based on the current mode
+  //   switch (cursorMode) {
+  //     case "resize":
+  //       document.body.style.cursor = "ew-resize";
+  //       break;
+  //     case "drag":
+  //       document.body.style.cursor = "move";
+  //       break;
+  //     case "edit":
+  //       document.body.style.cursor = "text";
+  //       break;
+  //     default:
+  //       document.body.style.cursor = "default";
+  //   }
+  // }, [cursorMode]);
 
   const handleVideoClick = () => onVideoButtonClick();
   const handleImageClick = (e: React.MouseEvent) => {
@@ -71,7 +71,7 @@ export function Toolbar({
       <div className="flex h-12 items-center gap-1 rounded-full bg-gray-100 dark:bg-[#383c4a] border-gray-100 shadow-sm px-4 mx-auto transition-all duration-300 ease-in-out">
         <ThemeToggle />
         {/* Cursor Mode Buttons */}
-        <Button
+        {/* <Button
           variant={cursorMode === "resize" ? "default" : "ghost"}
           size="sm"
           onClick={() =>
@@ -105,7 +105,7 @@ export function Toolbar({
           <span className="sr-only">Edit</span>
         </Button>
 
-        <div className="h-6 w-px bg-border mx-2" />
+        <div className="h-6 w-px bg-border mx-2" /> */}
 
         <Button
           ref={(ref) => {

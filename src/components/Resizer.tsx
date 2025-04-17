@@ -2,7 +2,8 @@
 import React from "react";
 import { Rnd } from "react-rnd";
 import { useNode } from "@craftjs/core";
-import { useCursorMode } from "@/contexts/CursorModeContext";
+// Remove the import for useCursorMode as it's no longer needed here
+// import { useCursorMode } from "@/contexts/CursorModeContext";
 
 interface ResizableElementProps {
   width?: number;
@@ -15,7 +16,9 @@ export const ResizableElement: React.FC<ResizableElementProps> = ({
   height = 200,
   children,
 }) => {
-  const { cursorMode } = useCursorMode();
+  // Remove the useCursorMode hook call
+  // const { cursorMode } = useCursorMode();
+
   const {
     connectors: { connect, drag },
     actions,
@@ -30,6 +33,10 @@ export const ResizableElement: React.FC<ResizableElementProps> = ({
     y: node.data.props.y ?? 50,
   }));
 
+  // Determine if the node is selected (Craft.js usually adds indicators/makes it interactive)
+  // We will rely on Craft.js's selection state to determine if interactions should happen,
+  // rather than the global cursorMode.
+
   return (
     <Rnd
       size={{ width: nodeWidth || width, height: nodeHeight || height }}
@@ -38,6 +45,9 @@ export const ResizableElement: React.FC<ResizableElementProps> = ({
         actions.setProp((props: any) => {
           props.width = ref.offsetWidth;
           props.height = ref.offsetHeight;
+          // Update position as well, as resizing from top/left changes position
+          props.x = position.x;
+          props.y = position.y;
         });
       }}
       onDragStop={(e, d) => {
@@ -46,34 +56,43 @@ export const ResizableElement: React.FC<ResizableElementProps> = ({
           props.y = d.y;
         });
       }}
+      // Always enable resizing handles for the Rnd component.
+      // Craft.js selection state will typically control visibility/interactivity.
       enableResizing={{
-        top: cursorMode === "resize",
-        right: cursorMode === "resize",
-        bottom: cursorMode === "resize",
-        left: cursorMode === "resize",
-        topRight: cursorMode === "resize",
-        bottomRight: cursorMode === "resize",
-        bottomLeft: cursorMode === "resize",
-        topLeft: cursorMode === "resize",
+        top: true,
+        right: true,
+        bottom: true,
+        left: true,
+        topRight: true,
+        bottomRight: true,
+        bottomLeft: true,
+        topLeft: true,
       }}
-      disableDragging={cursorMode !== "drag"}
+      // Always enable dragging for the Rnd component.
+      // Craft.js manages when dragging is actually possible (usually when selected).
+      disableDragging={false}
       bounds="parent"
       innerRef={(ref: HTMLDivElement | null) => {
         if (ref) {
+          // Connect both connect (for selection/overlay) and drag
           connect(drag(ref));
         }
       }}
-      style={{ 
-        border: "1px dashed #ddd",
+      style={{
+        // Add a subtle indicator when selected (Craft.js might do this already)
+        // Consider adding this style conditionally based on useNode's 'selected' state if needed.
+        border: "1px dashed #ddd", // Keep the visual border
         background: "transparent",
-        overflow: "visible" // Allow handles to be visible
+        overflow: "visible", // Allow handles to be visible
       }}
+      // Add classes for styling handles if needed, e.g., based on selection
+      // className={selected ? 'is-selected' : ''}
     >
       {/* Add wrapper div with full size */}
-      <div style={{ 
+      <div style={{
         width: "100%",
         height: "100%",
-        position: "relative"
+        position: "relative",
       }}>
         {children}
       </div>

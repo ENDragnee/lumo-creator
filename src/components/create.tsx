@@ -142,7 +142,6 @@ export default function TemplateEditor() {
   }
 
   return (
-    <CursorModeProvider>
       <Editor
         resolver={{
           renderCanvas,
@@ -176,6 +175,5 @@ export default function TemplateEditor() {
           />
         </div>
       </Editor>
-    </CursorModeProvider>
   )
 }
