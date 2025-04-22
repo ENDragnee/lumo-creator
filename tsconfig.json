@@ -22,6 +22,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/api/upload-video/route.js", "src/app/api/get-user-videos/route.js", "src/lib/auth.ts", "src/app/api/drive/route.js", "tailwind.config.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/api/upload-video/route.js", "src/app/api/get-user-videos/route.js", "src/lib/auth.ts", "src/app/api/drive/oldDrive/route.js", "tailwind.config.js"],
   "exclude": ["node_modules"]
 }

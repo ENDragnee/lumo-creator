@@ -1,10 +1,10 @@
 import React from 'react'
-import DriveHome from "@/components/home"
+import DriveHomeRedesigned from "@/components/MainPages/DriveHomeRedesigned"
 
 const page = () => {
   return (
     <div>
-      <DriveHome />
+      <DriveHomeRedesigned />
     </div>
   )
 }

@@ -4,7 +4,7 @@ export interface IBook extends Document {
   title: string;
   description?: string;
   thumbnail: string;
-  contents: Types.ObjectId[];
+  parentId: Types.ObjectId | null;
   isDraft: boolean;
   isTrash: boolean;
   createdAt: Date;
@@ -24,13 +24,17 @@ export interface IBook extends Document {
 const BookSchema = new mongoose.Schema<IBook>({
   title: { type: String, required: true },
   description: { type: String },
-  thumbnail: { type: String, required: true },
-  contents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Content', required: true }],
+  thumbnail: { type: String, required: false },
   isDraft: { type: Boolean, default: true },
   isTrash: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, required: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User",required: true },
+  parentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Book', // Points to the parent Book document
+    default: null // null means it's in the root directory for the user
+  },
   tags: { type: [String], default: [] },
   genre: { type: String },
   publishedAt: { type: Date },
