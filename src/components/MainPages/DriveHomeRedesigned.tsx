@@ -13,8 +13,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { EditItemModal } from "@/components/EditItemModal";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ContentModal } from "@/components/ContentModal";
-import { BookModal } from "@/components/BookModal";
+import { ContentModal } from "@/components/Modals/ContentModal";
+import { BookModal } from "@/components/Modals/BookModal";
 import {
     DropdownMenuContent, DropdownMenuItem, DropdownMenu, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -431,7 +431,7 @@ export default function DriveHomeRedesigned() {
             {/* Profile/Theme Toggle Section */}
             <div className={`mt-auto flex flex-col gap-2 ${isSidebarCollapsed ? 'items-center' : 'items-stretch'}`}>
                  <div className={`${isSidebarCollapsed ? 'w-full flex justify-center' : ''}`}>
-                     {/* <ThemeToggle /> */}
+                     <ThemeToggle />
                  </div>
                  {session?.user && !isSidebarCollapsed && (
                      <div className="text-center text-xs text-gray-500 dark:text-gray-400 border-t dark:border-slate-700 pt-2 mt-2">

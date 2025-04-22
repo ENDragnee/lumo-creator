@@ -24,15 +24,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <SessionProvider>
-        <ThemeProvider>
-          <body
-            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-          >
-            {children}
-          </body>
-        </ThemeProvider>
-      </SessionProvider>
+      <ThemeProvider>
+        <SessionProvider>
+            <body
+              className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+            >
+              {children}
+            </body>
+        </SessionProvider>
+    </ThemeProvider>
     </html>
   );
 }

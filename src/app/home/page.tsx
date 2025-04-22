@@ -1,7 +1,7 @@
 import React from 'react'
 import DriveHomeRedesigned from "@/components/MainPages/DriveHomeRedesigned"
 
-const page = () => {
+const Home = () => {
   return (
     <div>
       <DriveHomeRedesigned />
@@ -9,4 +9,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Home

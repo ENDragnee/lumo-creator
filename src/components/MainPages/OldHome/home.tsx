@@ -31,8 +31,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { EditItemModal } from "@/components/EditItemModal";
 import { ThemeToggle } from "@/components/theme-toggle"; // Keep if needed
-import { ContentModal } from "@/components/ContentModal";
-import { BookModal } from "@/components/BookModal";
+import { ContentModal } from "@/components/Modals/ContentModal";
+import { BookModal } from "@/components/Modals/BookModal";
 import {
     DropdownMenuContent,
     DropdownMenuItem,

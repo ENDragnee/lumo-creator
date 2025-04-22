@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Undo2, Redo2, Smartphone, Tablet, Monitor } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { useEditorStore } from "@/lib/editor-store"
-import { ContentModal } from "@/components/ContentModal"
+import { ContentModal } from "@/components/Modals/ContentModal"
 import { useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 
