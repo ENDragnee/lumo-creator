@@ -270,9 +270,7 @@ h3 {
 .text-component {
   font-size: inherit; /* Let headers scale naturally */
 }
-/* --------------------------------------- */
-/* Slide In Animation */
-/* --------------------------------------- */
+
 @keyframes slideIn {
   0% {
     opacity: 0;
