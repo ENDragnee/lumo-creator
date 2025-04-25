@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { EditItemModal } from "@/components/EditItemModal";
+import { EditItemModal } from "@/components/Modals/EditItemModal";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ContentModal } from "@/components/Modals/ContentModal";
 import { BookModal } from "@/components/Modals/BookModal";

@@ -168,7 +168,7 @@ export default function TemplateEditor() {
             <Sidebar activeTool={activeTool} />
             <MemoizedCanvas />
           </div>
-          <Toolbar 
+          <Toolbar
             onVideoButtonClick={() => handleToolChange('video')}
             onImageButtonClick={() => handleToolChange('image')}
             onSimulationButtonClick={() => handleToolChange('simulation')}
