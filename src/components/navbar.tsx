@@ -82,7 +82,7 @@ export function Navbar() {
   }
 
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-background px-6">
+    <header className="flex h-14 items-center gap-4 bg-gray-100 rounded-b-3xl mb-1 bg-background px-6">
       <div className="flex items-center gap-2">
         {/* Show ContentModal only if no contentId (new content) */}
         {!contentId && (
@@ -93,25 +93,21 @@ export function Navbar() {
             userId={session?.user?.name ?? "Guest"}
           />
         )}
-        <Button variant="ghost" size="icon" onClick={handleUndo} disabled={!canUndo}>
-          <Undo2 className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={handleRedo} disabled={!canRedo}>
-          <Redo2 className="h-4 w-4" />
-        </Button>
+        <div className="bg-gray-200 rounded-xl flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={handleUndo} disabled={!canUndo}>
+            <Undo2 className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleRedo} disabled={!canRedo}>
+            <Redo2 className="h-4 w-4" />
+          </Button>
+        </div>
         {/* Add the manual Save button */}
-        <Button variant="ghost" onClick={manualSave}>
+        <Button variant="ghost" onClick={manualSave} className="hover:bg-gray-300 bg-gray-200">
           Save
         </Button>
       </div>
       <Separator orientation="vertical" className="h-6" />
       <div className="flex items-center gap-2">
-        <Button variant={enabled ? "secondary" : "ghost"} onClick={() => setEnabled(true)}>
-          Edit
-        </Button>
-        <Button variant={!enabled ? "secondary" : "ghost"} onClick={() => setEnabled(false)}>
-          Preview
-        </Button>
       </div>
       <div className="ml-auto flex items-center gap-2">
         <Button variant="ghost" size="icon">

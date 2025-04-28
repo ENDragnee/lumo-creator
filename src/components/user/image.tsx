@@ -82,8 +82,8 @@ ImageComponent.craft = {
     alt: "",
     x: 0,
     y: 0,
-    width: 200,
-    height: 150,
+    width: 400,
+    height: 300,
   },
   rules: {
     canDrag: true,

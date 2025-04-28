@@ -10,6 +10,7 @@ import { SimulationList } from "./simulation-list";
 import { useSession } from "next-auth/react";
 // Import the NewSidebar component
 import NewSidebar from "./sidebar/NewSidebar"; // Adjust path if necessary
+import { cn } from "@/lib/utils";
 
 // Define interfaces (unchanged)
 interface ExtendedUser {
@@ -224,114 +225,101 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
     // Note: NewSidebar manages its own internal logic for collapse/expand based on isMobile
     return (
         <NewSidebar
-            isOpen={isNewSidebarOpen}
-            setIsOpen={setIsNewSidebarOpen} // Allow NewSidebar to control its state
-            isMobile={isMobileView}
             onContentSelect={handleContentSelectionFromNewSidebar} // Pass the handler
         />
     );
   };
 
-  // Updated renderSidebarContent function
-  const renderSidebarContent = () => {
-    // Prioritize activeTool first
+  // Render function for specific tool/settings views
+  const renderToolOrSettings = () => {
     if (activeTool) {
-      switch (activeTool) {
-        case "video":
-          return (
-            <div className="p-4 h-full overflow-y-auto">
-              <h2 className="text-lg font-semibold mb-4">Video Library</h2>
-              <VideoUploader onUpload={handleVideoUpload} userId={userId} />
-              <div className="mt-4">
-                <Input
-                  type="text"
-                  placeholder="Enter video URL"
-                  value={videoLink}
-                  onChange={(e) => setVideoLink(e.target.value)}
-                  className="h-9"
-                />
-                <Button onClick={handleVideoLinkUpload} className="mt-2 w-full h-9">
-                  Add Video Link
-                </Button>
-              </div>
-              <VideoList videos={videos} onRemove={handleVideoRemove} />
+        let title = "";
+        let content = null;
+        switch (activeTool) {
+            case "video":
+                title = "Video Library";
+                content = (
+                    <>
+                        <VideoUploader onUpload={handleVideoUpload} userId={userId} />
+                        <div className="mt-4 space-y-2">
+                            <Input type="text" placeholder="Enter video URL" value={videoLink} onChange={(e) => setVideoLink(e.target.value)} className="h-9" />
+                            <Button onClick={handleVideoLinkUpload} className="w-full h-9"> Add Video Link </Button>
+                        </div>
+                        <VideoList videos={videos} onRemove={handleVideoRemove} />
+                    </>
+                );
+                break;
+            case "image":
+                title = "Image Library";
+                content = (
+                    <>
+                       <ImageUploader onUpload={handleImageUpload} userId={userId} />
+                       <div className="mt-4 space-y-2">
+                         <Input type="text" placeholder="Enter image URL" value={imageLink} onChange={(e) => setImageLink(e.target.value)} className="h-9"/>
+                         <Button onClick={handleImageLinkUpload} className="w-full h-9"> Add Image Link </Button>
+                       </div>
+                       <ImageList images={images} onRemove={handleImageRemove} />
+                    </>
+                );
+                break;
+            case "simulation":
+               title = "Simulation Library";
+               content = (
+                   <>
+                      <div className="mt-4 space-y-2">
+                          <Input type="text" placeholder="Enter simulation URL" value={simulationLink} onChange={(e) => setSimulationLink(e.target.value)} className="h-9"/>
+                          <Button onClick={handleSimulationLinkUpload} className="w-full h-9"> Add Simulation Link </Button>
+                      </div>
+                      <SimulationList simulations={simulations} onRemove={handleSimulationRemove} />
+                   </>
+               );
+                break;
+            default:
+                console.warn("Unknown activeTool:", activeTool);
+                return null; // Should not happen if logic is correct
+        }
+        // Consistent wrapper for Tool views
+        return (
+            <div className="flex flex-col h-full">
+                 <div className="p-4 border-b border-border flex-shrink-0">
+                     <h2 className="text-lg font-semibold">{title}</h2>
+                 </div>
+                 <div className="flex-grow p-4 overflow-y-auto space-y-4">
+                     {content}
+                 </div>
             </div>
-          );
-        case "image":
-          return (
-            <div className="p-4 h-full overflow-y-auto">
-              <h2 className="text-lg font-semibold mb-4">Image Library</h2>
-              <ImageUploader onUpload={handleImageUpload} userId={userId} />
-               {/* Image Link Upload - Added for consistency */}
-               <div className="mt-4">
-                <Input
-                    type="text"
-                    placeholder="Enter image URL"
-                    value={imageLink}
-                    onChange={(e) => setImageLink(e.target.value)}
-                    className="h-9"
-                />
-                <Button onClick={handleImageLinkUpload} className="mt-2 w-full h-9">
-                    Add Image Link
-                </Button>
-               </div>
-              <ImageList images={images} onRemove={handleImageRemove} />
-            </div>
-          );
-        case "simulation":
-          return (
-            <div className="p-4 h-full overflow-y-auto">
-              <h2 className="text-lg font-semibold mb-4">Simulation Library</h2>
-              <div className="mt-4">
-                <Input
-                  type="text"
-                  placeholder="Enter simulation URL"
-                  value={simulationLink}
-                  onChange={(e) => setSimulationLink(e.target.value)}
-                   className="h-9"
-                />
-                <Button onClick={handleSimulationLinkUpload} className="mt-2 w-full h-9">
-                  Add Simulation Link
-                </Button>
-              </div>
-              <SimulationList
-                simulations={simulations}
-                onRemove={handleSimulationRemove}
-              />
-            </div>
-          );
-        // If activeTool is set but not matched, fall through to default or show error
-        default:
-           console.warn("Unknown activeTool:", activeTool);
-           return renderDefaultSidebar(); // Fallback to NewSidebar
-      }
-    } else if (selected && selected.settings) {
-      // Show component settings ONLY if no tool is active AND a component with settings is selected
-      return (
-        <div className="p-4 h-full overflow-y-auto">
-          <h2 className="text-lg font-semibold mb-4">{selected.name} Settings</h2>
-          {/* Render the settings component provided by the selected Craft.js node */}
-          {React.createElement(selected.settings)}
-        </div>
-      );
-    } else {
-      // Default view: Render NewSidebar when neither tool nor component settings are active
-      return renderDefaultSidebar();
-    }
-  };
+        );
 
-  // Main return statement - Renders the container and the dynamic content
-  return (
-    // Adjust the container if NewSidebar handles its own width/styling differently
-    // The original 'w-80' might conflict if NewSidebar expects to control its width fully.
-    // Let's assume NewSidebar fits within this container for now.
-    // The `NewSidebar` uses `fixed` positioning, so it will overlay or position itself
-    // relative to the viewport, not necessarily *inside* this div unless styled differently.
-    // We might need to remove the width/border from this div and let NewSidebar handle it.
-    // Let's try removing the fixed width and let NewSidebar manage itself.
-     <div className="h-full relative"> {/* Changed: Removed fixed width, added relative positioning if needed */}
-         {/* Render the determined content based on state */}
-         {renderSidebarContent()}
-     </div>
-  );
+    } else if (selected && selected.settings) {
+         // Consistent wrapper for Settings view
+         return (
+             <div className="flex flex-col h-full">
+                 <div className="p-4 border-b border-border flex-shrink-0">
+                     <h2 className="text-lg font-semibold">{selected.name} Settings</h2>
+                 </div>
+                 <div className="flex-grow p-4 overflow-y-auto">
+                     {React.createElement(selected.settings)}
+                 </div>
+             </div>
+         );
+    }
+    return null; // Neither tool nor settings active
+};
+
+
+// Main return statement - Renders the container and the dynamic content
+return (
+  // This div is the actual sidebar container in the flex layout
+  // It has a fixed width (can be made responsive later) and standard styling
+  <div className={cn(
+      "flex flex-col h-full bg-background flex-shrink-0 overflow-hidden",
+      "w-64", // Default width, can be controlled by parent via `className` or state
+      )}>
+      {/* Conditionally render NewSidebar or the Tool/Settings panel */}
+      {activeTool || (selected && selected.settings)
+          ? renderToolOrSettings()
+          : renderDefaultSidebar()
+      }
+  </div>
+);
 }

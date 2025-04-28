@@ -66,10 +66,9 @@ export function Toolbar({
     // Use the data-theme attribute to drive custom styles
     <div
       data-theme={theme === "dark" ? "arc-dark" : "light"}
-      className="flex justify-center p-2 relative bottom-0 bg-card left-0 right-0 transition-all duration-300 ease-in-out animate-slideIn"
+      className="flex justify-center items-center p-2 relative bottom-0 bg-card left-1/4 right-0 transition-all duration-300 ease-in-out animate-slideIn w-1/2"
     >
       <div className="flex h-12 items-center gap-1 rounded-full bg-gray-100 dark:bg-[#383c4a] border-gray-100 shadow-sm px-4 mx-auto transition-all duration-300 ease-in-out">
-        <ThemeToggle />
         {/* Cursor Mode Buttons */}
         {/* <Button
           variant={cursorMode === "resize" ? "default" : "ghost"}
