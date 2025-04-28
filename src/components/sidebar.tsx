@@ -8,8 +8,10 @@ import { ImageUploader } from "./image-uploader";
 import { ImageList } from "./image-list";
 import { SimulationList } from "./simulation-list";
 import { useSession } from "next-auth/react";
+// Import the NewSidebar component
+import NewSidebar from "./sidebar/NewSidebar"; // Adjust path if necessary
 
-// Define interfaces
+// Define interfaces (unchanged)
 interface ExtendedUser {
   id: string;
   name?: string | null;
@@ -33,6 +35,8 @@ interface Simulation {
 
 interface SidebarProps {
   activeTool: string | null;
+  // Add a callback prop to handle content selection from NewSidebar
+  onContentSelected?: (contentId: string) => void;
 }
 
 // API functions (unchanged)
@@ -66,7 +70,8 @@ async function removeImage(userId: string, filename: string): Promise<boolean> {
   return data.success;
 }
 
-export function Sidebar({ activeTool }: SidebarProps) {
+// Main Sidebar Component Updated
+export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
   const { data: session, status } = useSession();
 
   const { selected } = useEditor((state, query) => {
@@ -84,7 +89,7 @@ export function Sidebar({ activeTool }: SidebarProps) {
     return { selected };
   });
 
-  // States
+  // States for libraries (unchanged)
   const [videos, setVideos] = useState<Video[]>([]);
   const [videoLink, setVideoLink] = useState("");
   const [images, setImages] = useState<Image[]>([]);
@@ -92,8 +97,13 @@ export function Sidebar({ activeTool }: SidebarProps) {
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [simulationLink, setSimulationLink] = useState("");
 
-  const userId = (session?.user as ExtendedUser)?.id || "test";
+  // States specifically for managing the NewSidebar view
+  const [isNewSidebarOpen, setIsNewSidebarOpen] = useState(true); // Control NewSidebar's visibility/state if needed externally
+  const [isMobileView, setIsMobileView] = useState(false);
 
+  const userId = (session?.user as ExtendedUser)?.id || "test"; // Use a default or handle appropriately if no session
+
+  // Effect to fetch library data (unchanged)
   useEffect(() => {
     if (activeTool === "video" && userId) {
       fetchUserVideos(userId).then(setVideos);
@@ -101,9 +111,26 @@ export function Sidebar({ activeTool }: SidebarProps) {
     if (activeTool === "image" && userId) {
       fetchUserImages(userId).then(setImages);
     }
+    // Note: Simulations don't seem to be fetched from an API in the original code
   }, [activeTool, userId]);
 
-  // Handlers (unchanged)
+  // Effect to detect mobile view for NewSidebar prop
+  useEffect(() => {
+    const checkMobile = () => {
+        // Use a common breakpoint (e.g., 768px for md in Tailwind)
+        setIsMobileView(window.innerWidth < 768);
+        // If switching to desktop, ensure the sidebar is open by default
+        if (window.innerWidth >= 768) {
+            setIsNewSidebarOpen(true);
+        }
+    };
+    checkMobile(); // Initial check
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+
+  // Library Handlers (unchanged)
   const handleVideoUpload = (filename: string, thumbnailUrl: string) => {
     setVideos((prevVideos) => [...prevVideos, { filename, thumbnailUrl }]);
   };
@@ -165,31 +192,45 @@ export function Sidebar({ activeTool }: SidebarProps) {
     setSimulations((prev) => prev.filter((sim) => sim.url !== url));
   };
 
+  // Handler for when content is selected within NewSidebar
+  const handleContentSelectionFromNewSidebar = (contentId: string) => {
+    console.log("Content selected in Sidebar:", contentId);
+    // Pass the selected contentId up to the parent component if the prop is provided
+    if (onContentSelected) {
+      onContentSelected(contentId);
+    }
+    // You might want to close the mobile NewSidebar after selection
+    if (isMobileView) {
+        setIsNewSidebarOpen(false);
+    }
+    // Optionally, you could clear the activeTool or selected component state here,
+    // but that depends on the desired UX. For now, just log and notify parent.
+  };
+
+
+  // Loading/Auth Status Checks (consider better UX for no session)
   if (status === "loading") {
-    return <div>Loading...</div>;
+    return <div className="w-80 p-4">Loading session...</div>;
   }
 
-  if (!session) {
-    return <div>Please sign in to view your media library.</div>;
-  }
+//   if (!session && status !== "loading") {
+//     return <div className="w-80 p-4">Please sign in to use the tools.</div>;
+//     // Or potentially show NewSidebar in a read-only/limited state if desired
+//   }
 
-  const renderDefaultSidebar = () => (
-    <div className="p-4">
-      <h2 className="text-lg font-semibold mb-4">Editor Tools</h2>
-      <p className="text-sm text-gray-600 mb-4">
-        Select an element on the canvas to edit its properties, or choose a tool
-        from the toolbar below to add content.
-      </p>
-      <div className="mt-4 p-3 bg-blue-50 rounded-md">
-        <h3 className="font-medium text-blue-700">Tips:</h3>
-        <ul className="mt-2 text-sm text-blue-600 space-y-2">
-          <li>• Click on any element to edit its properties</li>
-          <li>• Use the toolbar to add new elements</li>
-          <li>• Drag elements to reposition them</li>
-        </ul>
-      </div>
-    </div>
-  );
+  // Render function for the default view (using NewSidebar)
+  const renderDefaultSidebar = () => {
+    // Ensure NewSidebar receives the necessary props
+    // Note: NewSidebar manages its own internal logic for collapse/expand based on isMobile
+    return (
+        <NewSidebar
+            isOpen={isNewSidebarOpen}
+            setIsOpen={setIsNewSidebarOpen} // Allow NewSidebar to control its state
+            isMobile={isMobileView}
+            onContentSelect={handleContentSelectionFromNewSidebar} // Pass the handler
+        />
+    );
+  };
 
   // Updated renderSidebarContent function
   const renderSidebarContent = () => {
@@ -198,7 +239,7 @@ export function Sidebar({ activeTool }: SidebarProps) {
       switch (activeTool) {
         case "video":
           return (
-            <div className="p-4">
+            <div className="p-4 h-full overflow-y-auto">
               <h2 className="text-lg font-semibold mb-4">Video Library</h2>
               <VideoUploader onUpload={handleVideoUpload} userId={userId} />
               <div className="mt-4">
@@ -207,8 +248,9 @@ export function Sidebar({ activeTool }: SidebarProps) {
                   placeholder="Enter video URL"
                   value={videoLink}
                   onChange={(e) => setVideoLink(e.target.value)}
+                  className="h-9"
                 />
-                <Button onClick={handleVideoLinkUpload} className="mt-2">
+                <Button onClick={handleVideoLinkUpload} className="mt-2 w-full h-9">
                   Add Video Link
                 </Button>
               </div>
@@ -217,15 +259,28 @@ export function Sidebar({ activeTool }: SidebarProps) {
           );
         case "image":
           return (
-            <div className="p-4">
+            <div className="p-4 h-full overflow-y-auto">
               <h2 className="text-lg font-semibold mb-4">Image Library</h2>
               <ImageUploader onUpload={handleImageUpload} userId={userId} />
+               {/* Image Link Upload - Added for consistency */}
+               <div className="mt-4">
+                <Input
+                    type="text"
+                    placeholder="Enter image URL"
+                    value={imageLink}
+                    onChange={(e) => setImageLink(e.target.value)}
+                    className="h-9"
+                />
+                <Button onClick={handleImageLinkUpload} className="mt-2 w-full h-9">
+                    Add Image Link
+                </Button>
+               </div>
               <ImageList images={images} onRemove={handleImageRemove} />
             </div>
           );
         case "simulation":
           return (
-            <div className="p-4">
+            <div className="p-4 h-full overflow-y-auto">
               <h2 className="text-lg font-semibold mb-4">Simulation Library</h2>
               <div className="mt-4">
                 <Input
@@ -233,8 +288,9 @@ export function Sidebar({ activeTool }: SidebarProps) {
                   placeholder="Enter simulation URL"
                   value={simulationLink}
                   onChange={(e) => setSimulationLink(e.target.value)}
+                   className="h-9"
                 />
-                <Button onClick={handleSimulationLinkUpload} className="mt-2">
+                <Button onClick={handleSimulationLinkUpload} className="mt-2 w-full h-9">
                   Add Simulation Link
                 </Button>
               </div>
@@ -244,26 +300,38 @@ export function Sidebar({ activeTool }: SidebarProps) {
               />
             </div>
           );
+        // If activeTool is set but not matched, fall through to default or show error
         default:
-          return renderDefaultSidebar();
+           console.warn("Unknown activeTool:", activeTool);
+           return renderDefaultSidebar(); // Fallback to NewSidebar
       }
-    } else if (selected) {
-      // Show component settings only if no tool is active
+    } else if (selected && selected.settings) {
+      // Show component settings ONLY if no tool is active AND a component with settings is selected
       return (
-        <div className="p-4">
+        <div className="p-4 h-full overflow-y-auto">
           <h2 className="text-lg font-semibold mb-4">{selected.name} Settings</h2>
-          {selected.settings && React.createElement(selected.settings)}
+          {/* Render the settings component provided by the selected Craft.js node */}
+          {React.createElement(selected.settings)}
         </div>
       );
     } else {
-      // Default sidebar when neither tool nor component is active
+      // Default view: Render NewSidebar when neither tool nor component settings are active
       return renderDefaultSidebar();
     }
   };
 
+  // Main return statement - Renders the container and the dynamic content
   return (
-    <div className="w-80 bg-zinc-50 border-l rounded-lg border-gray-200 overflow-auto">
-      {renderSidebarContent()}
-    </div>
+    // Adjust the container if NewSidebar handles its own width/styling differently
+    // The original 'w-80' might conflict if NewSidebar expects to control its width fully.
+    // Let's assume NewSidebar fits within this container for now.
+    // The `NewSidebar` uses `fixed` positioning, so it will overlay or position itself
+    // relative to the viewport, not necessarily *inside* this div unless styled differently.
+    // We might need to remove the width/border from this div and let NewSidebar handle it.
+    // Let's try removing the fixed width and let NewSidebar manage itself.
+     <div className="h-full relative"> {/* Changed: Removed fixed width, added relative positioning if needed */}
+         {/* Render the determined content based on state */}
+         {renderSidebarContent()}
+     </div>
   );
 }
