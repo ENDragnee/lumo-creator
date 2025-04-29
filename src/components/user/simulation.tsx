@@ -1,95 +1,130 @@
+// components/user/simulation.tsx
 "use client"
 import React from "react";
-import { ResizableElement } from "@/components/Resizer";
-import { useNode, useEditor } from "@craftjs/core";
+import { useNode, useEditor, Node } from "@craftjs/core";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SimulationSettings } from "@/components/settings/SimulationSettings"; // Settings component (created below)
+import { StackResizableWrapper } from '@/components/StackResizableWrapper';
 
+// Props Interface
 export interface SimulationProps {
   src: string;
-  // These are props used by ResizableElement and saved by Craft
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
+  width?: string | number;
+  height?: string | number; // Stored, used by wrapper
+  aspectRatio?: string;
+  padding?: string | number;
 }
 
-interface CraftableComponent extends React.FC<SimulationProps> {
-  craft?: {
+// Craftable Component Interface
+interface CraftableSimulationComponent extends React.FC<SimulationProps> {
+   craft?: {
     displayName: string;
-    props: Record<string, any>;
-    rules: {
-      canDrag: () => boolean;
-      canDrop: () => boolean;
-      canMoveIn: () => boolean;
-      canMoveOut: () => boolean;
+    props: Partial<SimulationProps>;
+    related?: {
+      settings: React.ComponentType<any>;
+    };
+    rules?: {
+      canDrag?: (node: Node) => boolean;
     };
   };
 }
 
-export const SimulationComponent: CraftableComponent = ({
-  src,
-  // Note: x, y, width, height are handled by ResizableElement via useNode props
+export const SimulationComponent: CraftableSimulationComponent = ({
+  src = "",
+  aspectRatio = "4/3", // Default aspect ratio for simulations?
+  padding = "0px",
+  // width/height props are read by useNode/StackResizableWrapper
 }) => {
   const {
     connectors: { connect, drag },
-    selected,
     id,
   } = useNode((node) => ({
-    selected: node.events.selected,
     id: node.id,
-    // nodeWidth: node.data.props.width, // Use the props passed to ResizableElement instead
-    // nodeHeight: node.data.props.height
   }));
 
-  // Use editor actions for deletion functionality
-  const { actions: editorActions } = useEditor();
+  const { selected, actions: editorActions, enabled: editorEnabled } = useEditor((state, query) => ({
+      selected: query.getEvent('selected').contains(id),
+      enabled: state.options.enabled,
+  }));
 
-  const handleRemove = () => {
+  const handleRemove = (e: React.MouseEvent) => {
+    e.stopPropagation();
     editorActions.delete(id);
   };
 
+  // Styles
+   const rootStyle: React.CSSProperties = {
+      position: 'relative',
+   };
+
+   const contentStyle: React.CSSProperties = {
+      width: '100%',
+      height: '100%',
+      padding: typeof padding === 'number' ? `${padding}px` : padding,
+      backgroundColor: !src ? '#e0e0e0' : undefined, // Placeholder background
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden', // Important for iframe
+      position: 'relative', // For absolute positioning iframe
+   };
+
+  const iframeStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    border: 'none',
+    display: 'block',
+  };
+
   return (
-    // ResizableElement handles size and position
-    <ResizableElement>
-      <div 
-        className={`relative w-full h-full ${selected ? "outline outline-2 outline-blue-500" : ""}`}
+     <div ref={(ref) => { if (ref) connect(drag(ref)); }} style={rootStyle}
+         className={`relative ${editorEnabled ? 'cursor-grab' : 'cursor-default'}`}
+         title={editorEnabled ? "Drag to reorder" : ""}
+     >
+      <StackResizableWrapper
+          nodeId={id}
+          enableWidthResize={true}
+          enableHeightResize={!aspectRatio} // Only allow height resize if no aspect ratio
+          aspectRatio={aspectRatio || null}
+          minWidth={100}
+          minHeight={75}
       >
-        {/* Transparent overlay for drag handling */}
-        <div
-          ref={(ref) => {
-            if (ref) {
-              connect(drag(ref));
+         {/* Div takes 100% of wrapper */}
+         <div style={contentStyle} className="rounded">
+            {src ? (
+                <iframe
+                  src={src} style={iframeStyle}
+                  title="Simulation Content" // Essential for accessibility
+                  // Consider adding sandbox attributes if simulation requires specific permissions
+                  // sandbox="allow-scripts allow-same-origin allow-forms"
+                  className={editorEnabled && !selected ? "pointer-events-none" : ""}
+                />
+              ) : (
+                 // Show placeholder only in editor mode when no src is set
+                 editorEnabled && <p className="text-muted-foreground text-sm p-4 text-center">Simulation: Set Source URL</p>
+              )
             }
-          }}
-          className="absolute inset-0 z-10 cursor-move"
-          style={{ 
-            background: "transparent"
-          }}
-        />
-        
-        {selected && (
-          <Button
-            variant="destructive"
-            size="icon"
-            className="absolute top-2 right-2 z-20"
-            onClick={handleRemove}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
-        
-        {/* The iframe itself fills the container */}
-        <iframe
-          src={src}
-          className={`w-full h-full rounded-md ${selected ? "pointer-events-auto" : "pointer-events-none"}`}
-          style={{
-            display: "block",
-            border: "none", // Usually remove border for clean embeds
-          }}
-        ></iframe>
-      </div>
-    </ResizableElement>
+            {/* Render empty div with correct size in view mode if no src */}
+            {!src && !editorEnabled && ( <div className="w-full h-full"></div> )}
+
+            {/* Delete Button */}
+            {selected && editorEnabled && (
+              <Button
+                variant="destructive" size="icon"
+                className="absolute top-1 right-1 z-20 h-5 w-5 opacity-80 hover:opacity-100"
+                onMouseDown={(e) => e.stopPropagation()} onClick={handleRemove}
+                aria-label="Delete Simulation Element"
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            )}
+         </div>
+      </StackResizableWrapper>
+    </div>
   );
 };
 
@@ -97,15 +132,11 @@ SimulationComponent.craft = {
   displayName: "Simulation",
   props: {
     src: "",
-    x: 0, // These props will be set by ResizableElement
-    y: 0,
-    width: 400, // Default size for the editor
-    height: 300,
-  },
-  rules: {
-    canDrag: () => true,
-    canDrop: () => true,
-    canMoveIn: () => true, // If you want to drop things *into* simulation? Unlikely.
-    canMoveOut: () => true,
-  },
+    width: "400px", // Default width
+    height: "300px", // Default height (corresponding to 4:3 at 400px width)
+    aspectRatio: "4/3",
+    padding: "0px",
+  } satisfies Partial<SimulationProps>,
+  related: { settings: SimulationSettings },
+  rules: { canDrag: () => true },
 };

@@ -166,7 +166,7 @@ export default function TemplateEditor() {
           <Navbar />
           <div className="flex flex-1 overflow-hidden">
             <Sidebar activeTool={activeTool} />
-            <div className="flex flex-col w-full h-full overflow-y-auto overflow-x-hidden">
+            <div className="flex flex-1 flex-col w-full h-full overflow-y-auto overflow-x-hidden bg-gray-50">
               <MemoizedCanvas />
               <Toolbar
                 onVideoButtonClick={() => handleToolChange('video')}

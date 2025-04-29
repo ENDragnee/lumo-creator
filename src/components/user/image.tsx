@@ -1,92 +1,141 @@
+// components/user/image.tsx
 "use client"
 
-import type React from "react"
-import { useNode } from "@craftjs/core"
-import { ResizableElement } from "@/components/Resizer";
+import React from "react"
+import { useNode, useEditor, Node } from "@craftjs/core"
+import { Button } from "@/components/ui/button"; // Assuming shadcn/ui
+import { Trash2 } from "lucide-react";
+import { ImageSettings } from "@/components/settings/ImageSettings"; // Settings component (created below)
+import { StackResizableWrapper } from '@/components/StackResizableWrapper';
 
+// Props Interface
 export interface ImageProps {
-  src?: string
-  alt?: string
-  // Use 'number' for x/y/width/height in the props interface,
-  // as react-rnd deals with numbers.
-  x?: number,
-  y?: number,
-  width: number,
-  height: number,
+  src?: string;
+  alt?: string;
+  width?: string | number;
+  height?: string | number; // Allow specific height for images
+  objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
+  padding?: string | number;
 }
 
-// Remove the CustomImageComponent interface, not strictly necessary here
-export const ImageComponent: React.FC<ImageProps> & { craft?: any } = ({
+// Craftable Component Interface
+interface CraftableImageComponent extends React.FC<ImageProps> {
+  craft?: {
+    displayName: string;
+    props: Partial<ImageProps>;
+    related?: {
+      settings: React.ComponentType<any>;
+    };
+    rules?: {
+      canDrag?: (node: Node) => boolean;
+    };
+  };
+}
+
+export const ImageComponent: CraftableImageComponent = ({
   src = "/placeholder.svg",
-  alt = "",
-  // Ensure these default values are used if not provided by Craft
-  // Note: Craft will typically provide them from its own props.
-  x = 0,
-  y = 0,
-  width = 200,
-  height = 150,
+  alt = "Image placeholder",
+  objectFit = 'contain',
+  padding = "0px",
+  // width/height props are read by useNode/StackResizableWrapper
 }) => {
   const {
-    connectors: { connect, drag },
-    selected,
-    actions, // actions from useNode are for manipulating the node itself
+    connectors: { connect, drag }, // Connectors applied to the draggable root
+    id,
   } = useNode((node) => ({
-    selected: node.events.selected,
+    id: node.id,
   }));
 
+  // Use useEditor hook to get selected state and editor actions/state
+   const { selected, actions: editorActions, enabled: editorEnabled } = useEditor((state, query) => ({
+      selected: query.getEvent('selected').contains(id), // Check if this specific node is selected
+      enabled: state.options.enabled,
+  }));
+
+  const handleRemove = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    editorActions.delete(id);
+  };
+
+  // Styles
+  const rootStyle: React.CSSProperties = {
+      position: 'relative', // Base positioning context
+  };
+
+  const contentStyle: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+    padding: typeof padding === 'number' ? `${padding}px` : padding,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative', // Position context for image and button
+  };
+
+  const imageStyle: React.CSSProperties = {
+    display: 'block',
+    maxWidth: '100%',
+    maxHeight: '100%',
+    width: 'auto',
+    height: 'auto',
+    objectFit: objectFit,
+  };
+
   return (
-    // ResizableElement handles the absolute positioning and resizing
-    <ResizableElement>
-      <div
-        // Connect drag handler to this div
-        ref={(ref) => { connect(drag(ref!)); }}
-        // Basic styling for the selected state
-        className={`w-full h-full ${selected ? "outline outline-2 outline-blue-500" : ""}`}
-        // Styles handled by ResizableElement based on node props
-        // Use w-full h-full inside ResizableElement to fill its container
+    // Apply connectors to the outermost div that should be dragged
+    <div ref={(ref) => { if (ref) connect(drag(ref)); }} style={rootStyle}
+         className={`relative ${editorEnabled ? 'cursor-grab' : 'cursor-default'}`}
+         title={editorEnabled ? "Drag to reorder" : ""}
+    >
+      <StackResizableWrapper
+          nodeId={id}
+          enableWidthResize={true}
+          enableHeightResize={true} // Allow arbitrary height for images
+          aspectRatio={null} // No forced aspect ratio
+          minWidth={50}
+          minHeight={50}
       >
-        <img
-          src={src || "/placeholder.svg"}
-          alt={alt}
-          // Make the image fill the container provided by ResizableElement
-          className="h-full w-full object-contain"
-          draggable={false} // Prevent dragging the image itself
-        />
-        {selected && (
-          <>
-            <button
-              className="absolute top-0 right-0 bg-red-500 text-white p-1 text-xs z-10"
-              onClick={() => actions.setHidden(true)} // This hides the node, use editorActions.delete(id) for proper deletion
-            >
-              Hide
-            </button>
-             {/* Better: Use editorActions.delete(id) from useEditor */}
-             {/* <Button
-               variant="destructive"
-               size="icon"
-               className="absolute top-2 right-2 z-20"
-               onClick={() => editorActions.delete(id)}
-             >
-               <Trash2 className="h-4 w-4" />
-             </Button> */}
-          </>
-        )}
-      </div>
-    </ResizableElement>
+        {/* This div receives the 100% width/height from wrapper */}
+        <div style={contentStyle} className="rounded"> {/* Added rounded class */}
+            <img
+              src={src || "/placeholder.svg"}
+              alt={alt}
+              style={imageStyle}
+              draggable={false}
+            />
+
+            {/* Delete Button - Positioned relative to the content div */}
+            {selected && editorEnabled && (
+                <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-1 right-1 z-20 h-5 w-5 opacity-80 hover:opacity-100"
+                onMouseDown={(e) => e.stopPropagation()} // Prevent starting drag/resize
+                onClick={handleRemove}
+                aria-label="Delete Image Element"
+                />
+            )}
+        </div>
+      </StackResizableWrapper>
+    </div>
   )
 }
 
 ImageComponent.craft = {
+  displayName: "Image",
   props: {
     src: "/placeholder.svg",
-    alt: "",
-    x: 0,
-    y: 0,
-    width: 400,
-    height: 300,
+    alt: "Placeholder Image",
+    width: "300px", // Initial pixel width
+    height: "200px", // Initial pixel height
+    objectFit: 'contain',
+    padding: "0px",
+  } satisfies Partial<ImageProps>,
+  related: {
+      settings: ImageSettings, // Link to the Settings component
   },
   rules: {
-    canDrag: true,
+    canDrag: () => true, // Allow dragging this component
   },
-  displayName: "Image", // Add displayName for clarity
-}
+};

@@ -186,7 +186,7 @@ export function TextWidget({
 
   return (
     // Pass the current width/height into ResizableElement.
-    <ResizableElement width={nodeWidth || width} height={nodeHeight || height}>
+    <ResizableElement>
       <div
         ref={(ref) => {
           if (ref) connect(drag(ref))
