@@ -1,18 +1,20 @@
+// components/Sidebar.tsx (or wherever your Sidebar file is)
+
 import React, { useState, useEffect } from "react";
 import { useEditor } from "@craftjs/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { VideoUploader } from "./video-uploader";
-import { VideoList } from "./video-list";
-import { ImageUploader } from "./image-uploader";
-import { ImageList } from "./image-list";
-import { SimulationList } from "./simulation-list";
+import { VideoUploader } from "./video-uploader"; // Assuming this path is correct
+import { VideoList } from "./video-list"; // Assuming this path is correct
+import { ImageUploader } from "./image-uploader"; // Assuming this path is correct
+import { ImageList } from "./image-list"; // Assuming this path is correct
+import { SimulationList } from "./simulation-list"; // Assuming this path is correct
 import { useSession } from "next-auth/react";
-// Import the NewSidebar component
 import NewSidebar from "./sidebar/NewSidebar"; // Adjust path if necessary
 import { cn } from "@/lib/utils";
 
-// Define interfaces (unchanged)
+
+// Define interfaces (assuming these are correct)
 interface ExtendedUser {
   id: string;
   name?: string | null;
@@ -22,53 +24,76 @@ interface ExtendedUser {
 
 interface Video {
   filename: string;
-  thumbnailUrl: string;
+  thumbnailUrl: string; // Ensure consistent naming if needed
 }
 
 interface Image {
-  filename: string;
+  filename: string; // Could be URL or unique identifier
   imageUrl: string;
 }
 
 interface Simulation {
-  url: string;
+  url: string; // Typically the source URL
 }
 
 interface SidebarProps {
   activeTool: string | null;
-  // Add a callback prop to handle content selection from NewSidebar
   onContentSelected?: (contentId: string) => void;
 }
 
-// API functions (unchanged)
+// API functions (assuming these are correct)
 async function fetchUserVideos(userId: string): Promise<Video[]> {
-  const response = await fetch(`/api/get-user-videos?userId=${userId}`);
-  const data = await response.json();
-  return data.success ? data.videos : [];
+  try {
+    const response = await fetch(`/api/get-user-videos?userId=${userId}`);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    return data.success ? data.videos : [];
+  } catch (error) {
+    console.error("Failed to fetch videos:", error);
+    return [];
+  }
 }
 
 async function removeVideo(userId: string, filename: string): Promise<boolean> {
-  const response = await fetch(
-    `/api/remove-video?userId=${userId}&filename=${filename}`,
-    { method: "DELETE" }
-  );
-  const data = await response.json();
-  return data.success;
+  try {
+    const response = await fetch(
+      `/api/remove-video?userId=${userId}&filename=${encodeURIComponent(filename)}`, // Ensure filename is encoded
+      { method: "DELETE" }
+    );
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    return data.success;
+  } catch (error) {
+    console.error("Failed to remove video:", error);
+    return false;
+  }
 }
 
 async function fetchUserImages(userId: string): Promise<Image[]> {
-  const response = await fetch(`/api/get-user-images?userId=${userId}`);
-  const data = await response.json();
-  return data.success ? data.images : [];
+   try {
+     const response = await fetch(`/api/get-user-images?userId=${userId}`);
+     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+     const data = await response.json();
+     return data.success ? data.images : [];
+   } catch (error) {
+     console.error("Failed to fetch images:", error);
+     return [];
+   }
 }
 
 async function removeImage(userId: string, filename: string): Promise<boolean> {
-  const response = await fetch(
-    `/api/remove-image?userId=${userId}&filename=${filename}`,
-    { method: "DELETE" }
-  );
-  const data = await response.json();
-  return data.success;
+  try {
+      const response = await fetch(
+      `/api/remove-image?userId=${userId}&filename=${encodeURIComponent(filename)}`, // Ensure filename is encoded
+      { method: "DELETE" }
+    );
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    return data.success;
+  } catch (error) {
+      console.error("Failed to remove image:", error);
+      return false;
+  }
 }
 
 // Main Sidebar Component Updated
@@ -77,20 +102,22 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
 
   const { selected } = useEditor((state, query) => {
     const currentNodeId = query.getEvent("selected").last();
-    let selected;
+    let selectedInfo = null; // Initialize as null
     if (currentNodeId) {
-      selected = {
-        id: currentNodeId,
-        name: state.nodes[currentNodeId].data.name,
-        settings:
-          state.nodes[currentNodeId].related &&
-          state.nodes[currentNodeId].related.settings,
-      };
+      const node = state.nodes[currentNodeId];
+      if (node) { // Check if node exists
+        selectedInfo = {
+          id: currentNodeId,
+          name: node.data.displayName || node.data.name, // Use displayName first, then name
+          // settings should hold the actual *Component Type* (the function/class)
+          settings: node.related?.settings,
+        };
+      }
     }
-    return { selected };
+    return { selected: selectedInfo }; // Return the structured info or null
   });
 
-  // States for libraries (unchanged)
+  // States for libraries
   const [videos, setVideos] = useState<Video[]>([]);
   const [videoLink, setVideoLink] = useState("");
   const [images, setImages] = useState<Image[]>([]);
@@ -98,94 +125,103 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [simulationLink, setSimulationLink] = useState("");
 
-  // States specifically for managing the NewSidebar view
-  const [isNewSidebarOpen, setIsNewSidebarOpen] = useState(true); // Control NewSidebar's visibility/state if needed externally
+  // States for NewSidebar view management
+  const [isNewSidebarOpen, setIsNewSidebarOpen] = useState(true);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  const userId = (session?.user as ExtendedUser)?.id || "test"; // Use a default or handle appropriately if no session
+  // Ensure userId is handled safely
+  const userId = (session?.user as ExtendedUser | undefined)?.id;
 
-  // Effect to fetch library data (unchanged)
+  // Effect to fetch library data
   useEffect(() => {
-    if (activeTool === "video" && userId) {
-      fetchUserVideos(userId).then(setVideos);
+    // Only fetch if the tool is active AND userId is available
+    if (userId) {
+        if (activeTool === "video") {
+            fetchUserVideos(userId).then(setVideos);
+        } else if (activeTool === "image") {
+            fetchUserImages(userId).then(setImages);
+        }
+        // Note: Simulations are added via link only in current setup
+    } else {
+        // Clear lists if user logs out or userId becomes unavailable
+        if (activeTool === "video") setVideos([]);
+        if (activeTool === "image") setImages([]);
+        if (activeTool === "simulation") setSimulations([]);
     }
-    if (activeTool === "image" && userId) {
-      fetchUserImages(userId).then(setImages);
-    }
-    // Note: Simulations don't seem to be fetched from an API in the original code
-  }, [activeTool, userId]);
+  }, [activeTool, userId]); // Depend on userId
 
-  // Effect to detect mobile view for NewSidebar prop
+  // Effect for mobile view detection (seems okay)
   useEffect(() => {
     const checkMobile = () => {
-        // Use a common breakpoint (e.g., 768px for md in Tailwind)
-        setIsMobileView(window.innerWidth < 768);
-        // If switching to desktop, ensure the sidebar is open by default
-        if (window.innerWidth >= 768) {
-            setIsNewSidebarOpen(true);
-        }
+        const mobile = window.innerWidth < 768;
+        setIsMobileView(mobile);
+        // if (!mobile) { // Optional: force open on desktop resize
+        //     setIsNewSidebarOpen(true);
+        // }
     };
-    checkMobile(); // Initial check
+    checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
 
-  // Library Handlers (unchanged)
+  // Library Handlers (Simplified error handling, assuming API functions handle console errors)
   const handleVideoUpload = (filename: string, thumbnailUrl: string) => {
-    setVideos((prevVideos) => [...prevVideos, { filename, thumbnailUrl }]);
+    setVideos((prev) => [...prev, { filename, thumbnailUrl }]);
   };
 
   const handleVideoRemove = async (filename: string) => {
+    if (!userId) return; // Prevent action if no user
     const success = await removeVideo(userId, filename);
     if (success) {
-      setVideos((prevVideos) =>
-        prevVideos.filter((video) => video.filename !== filename)
-      );
-    } else {
-      console.error("Failed to remove video and thumbnail");
-    }
+      setVideos((prev) => prev.filter((v) => v.filename !== filename));
+    } // Implicitly handles failure by not removing from state
   };
 
   const handleVideoLinkUpload = () => {
-    if (videoLink) {
-      setVideos((prevVideos) => [
-        ...prevVideos,
-        { filename: videoLink, thumbnailUrl: "/placeholder-thumbnail.jpg" },
-      ]);
-      setVideoLink("");
+    if (videoLink.trim()) {
+        // Basic validation for common video URLs (optional but recommended)
+        if (videoLink.includes('youtube.com') || videoLink.includes('youtu.be') || videoLink.includes('vimeo.com')) {
+             setVideos((prev) => [...prev, { filename: videoLink.trim(), thumbnailUrl: "/placeholder-thumbnail.jpg" }]); // Use a placeholder
+             setVideoLink("");
+        } else {
+            alert("Please enter a valid YouTube or Vimeo URL."); // Simple feedback
+        }
     }
   };
 
   const handleImageUpload = (filename: string, imageUrl: string) => {
-    setImages((prevImages) => [...prevImages, { filename, imageUrl }]);
+    setImages((prev) => [...prev, { filename, imageUrl }]);
   };
 
   const handleImageRemove = async (filename: string) => {
+    if (!userId) return;
     const success = await removeImage(userId, filename);
     if (success) {
-      setImages((prevImages) =>
-        prevImages.filter((image) => image.filename !== filename)
-      );
-    } else {
-      console.error("Failed to remove image");
+      setImages((prev) => prev.filter((img) => img.filename !== filename));
     }
   };
 
   const handleImageLinkUpload = () => {
-    if (imageLink) {
-      setImages((prevImages) => [
-        ...prevImages,
-        { filename: imageLink, imageUrl: imageLink },
-      ]);
-      setImageLink("");
+    if (imageLink.trim()) {
+      // Basic check if it looks like a URL (can be improved)
+      if (imageLink.startsWith('http://') || imageLink.startsWith('https://')) {
+        setImages((prev) => [...prev, { filename: imageLink.trim(), imageUrl: imageLink.trim() }]);
+        setImageLink("");
+      } else {
+          alert("Please enter a valid URL starting with http:// or https://");
+      }
     }
   };
 
   const handleSimulationLinkUpload = () => {
-    if (simulationLink) {
-      setSimulations((prev) => [...prev, { url: simulationLink }]);
-      setSimulationLink("");
+    if (simulationLink.trim()) {
+       if (simulationLink.startsWith('http://') || simulationLink.startsWith('https://')) {
+            setSimulations((prev) => [...prev, { url: simulationLink.trim() }]);
+            setSimulationLink("");
+       } else {
+           alert("Please enter a valid URL starting with http:// or https://");
+       }
     }
   };
 
@@ -193,46 +229,50 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
     setSimulations((prev) => prev.filter((sim) => sim.url !== url));
   };
 
-  // Handler for when content is selected within NewSidebar
+  // Handler for content selection from NewSidebar (seems okay)
   const handleContentSelectionFromNewSidebar = (contentId: string) => {
     console.log("Content selected in Sidebar:", contentId);
-    // Pass the selected contentId up to the parent component if the prop is provided
     if (onContentSelected) {
       onContentSelected(contentId);
     }
-    // You might want to close the mobile NewSidebar after selection
-    if (isMobileView) {
-        setIsNewSidebarOpen(false);
-    }
-    // Optionally, you could clear the activeTool or selected component state here,
-    // but that depends on the desired UX. For now, just log and notify parent.
+    // if (isMobileView) { setIsNewSidebarOpen(false); } // Optional: close on mobile
   };
 
 
-  // Loading/Auth Status Checks (consider better UX for no session)
+  // Loading/Auth Status Checks
   if (status === "loading") {
-    return <div className="w-80 p-4">Loading session...</div>;
+    return <div className="w-64 flex-shrink-0 p-4">Loading...</div>;
   }
 
-//   if (!session && status !== "loading") {
-//     return <div className="w-80 p-4">Please sign in to use the tools.</div>;
-//     // Or potentially show NewSidebar in a read-only/limited state if desired
-//   }
+  // --- Decide what to render ---
 
-  // Render function for the default view (using NewSidebar)
-  const renderDefaultSidebar = () => {
-    // Ensure NewSidebar receives the necessary props
-    // Note: NewSidebar manages its own internal logic for collapse/expand based on isMobile
-    return (
-        <NewSidebar
-            onContentSelect={handleContentSelectionFromNewSidebar} // Pass the handler
-        />
-    );
-  };
+  // Prioritize showing settings if a component is selected
+  const showSettings = selected && selected.settings;
+  // Show tool library only if a tool is active AND no component is selected (or selected component has no settings)
+  const showToolLibrary = activeTool && !showSettings;
+  // Show default sidebar if neither settings nor tool library should be shown
+  const showDefault = !showSettings && !showToolLibrary;
 
-  // Render function for specific tool/settings views
-  const renderToolOrSettings = () => {
-    if (activeTool) {
+  // Dynamic Content Rendering
+  const renderDynamicContent = () => {
+    if (showSettings) {
+      // Render the Settings Panel
+       return (
+           <div className="flex flex-col h-full">
+               <div className="p-4 border-b border-border flex-shrink-0">
+                   {/* Use selected.name which should have displayName */}
+                   <h2 className="text-lg font-semibold">{selected.name} Settings</h2>
+               </div>
+               <div className="flex-grow p-4 overflow-y-auto">
+                   {/* Render the specific settings component linked in the node's craft config */}
+                   {React.createElement(selected.settings)}
+               </div>
+           </div>
+       );
+    }
+
+    if (showToolLibrary) {
+        // Render the Tool Library Panel
         let title = "";
         let content = null;
         switch (activeTool) {
@@ -240,9 +280,9 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
                 title = "Video Library";
                 content = (
                     <>
-                        <VideoUploader onUpload={handleVideoUpload} userId={userId} />
+                        <VideoUploader onUpload={handleVideoUpload} userId={userId || ""} />
                         <div className="mt-4 space-y-2">
-                            <Input type="text" placeholder="Enter video URL" value={videoLink} onChange={(e) => setVideoLink(e.target.value)} className="h-9" />
+                            <Input type="url" placeholder="Enter YouTube/Vimeo URL" value={videoLink} onChange={(e) => setVideoLink(e.target.value)} className="h-9" />
                             <Button onClick={handleVideoLinkUpload} className="w-full h-9 bg-[#3B82F6] hover:bg-blue-600"> Add Video Link </Button>
                         </div>
                         <VideoList videos={videos} onRemove={handleVideoRemove} />
@@ -253,9 +293,9 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
                 title = "Image Library";
                 content = (
                     <>
-                       <ImageUploader onUpload={handleImageUpload} userId={userId} />
+                       <ImageUploader onUpload={handleImageUpload} userId={userId || ""} />
                        <div className="mt-4 space-y-2">
-                         <Input type="text" placeholder="Enter image URL" value={imageLink} onChange={(e) => setImageLink(e.target.value)} className="h-9"/>
+                         <Input type="url" placeholder="Enter image URL" value={imageLink} onChange={(e) => setImageLink(e.target.value)} className="h-9"/>
                          <Button onClick={handleImageLinkUpload} className="w-full h-9 bg-[#3B82F6] hover:bg-blue-600"> Add Image Link </Button>
                        </div>
                        <ImageList images={images} onRemove={handleImageRemove} />
@@ -267,18 +307,17 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
                content = (
                    <>
                       <div className="mt-4 space-y-2">
-                          <Input type="text" placeholder="Enter simulation URL" value={simulationLink} onChange={(e) => setSimulationLink(e.target.value)} className="h-9"/>
+                          <Input type="url" placeholder="Enter simulation URL" value={simulationLink} onChange={(e) => setSimulationLink(e.target.value)} className="h-9"/>
                           <Button onClick={handleSimulationLinkUpload} className="w-full h-9 bg-[#3B82F6] hover:bg-blue-600"> Add Simulation Link </Button>
                       </div>
                       <SimulationList simulations={simulations} onRemove={handleSimulationRemove} />
                    </>
                );
                 break;
+            // Add cases for other tools if needed
             default:
-                console.warn("Unknown activeTool:", activeTool);
-                return null; // Should not happen if logic is correct
+                return <div className="p-4">Unknown Tool: {activeTool}</div>; // Handle unknown tool case
         }
-        // Consistent wrapper for Tool views
         return (
             <div className="flex flex-col h-full">
                  <div className="p-4 border-b border-border flex-shrink-0">
@@ -289,37 +328,25 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
                  </div>
             </div>
         );
-
-    } else if (selected && selected.settings) {
-         // Consistent wrapper for Settings view
-         return (
-             <div className="flex flex-col h-full">
-                 <div className="p-4 border-b border-border flex-shrink-0">
-                     <h2 className="text-lg font-semibold">{selected.name} Settings</h2>
-                 </div>
-                 <div className="flex-grow p-4 overflow-y-auto">
-                     {React.createElement(selected.settings)}
-                 </div>
-             </div>
-         );
     }
-    return null; // Neither tool nor settings active
-};
 
+    // Default: Render NewSidebar
+    return (
+         <NewSidebar
+            onContentSelect={handleContentSelectionFromNewSidebar}
+            // Pass other necessary props to NewSidebar if any
+        />
+    );
+  };
 
-// Main return statement - Renders the container and the dynamic content
-return (
-  // This div is the actual sidebar container in the flex layout
-  // It has a fixed width (can be made responsive later) and standard styling
-  <div className={cn(
-      "flex flex-col h-full bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden",
-      "w-64", // Default width, can be controlled by parent via `className` or state
-      )}>
-      {/* Conditionally render NewSidebar or the Tool/Settings panel */}
-      {activeTool || (selected && selected.settings)
-          ? renderToolOrSettings()
-          : renderDefaultSidebar()
-      }
-  </div>
-);
+  // Main return statement
+  return (
+    <div className={cn(
+        "flex flex-col h-full bg-background border-r border-border flex-shrink-0 overflow-hidden", // Use theme colors
+        "w-64", // Default width
+    )}>
+       {/* Render the decided content */}
+       {renderDynamicContent()}
+    </div>
+  );
 }

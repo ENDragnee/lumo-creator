@@ -14,7 +14,6 @@ import { QuizComponent } from "@/components/user/quiz"
 import { SliderComponent } from "@/components/user/slider"
 import { AITutorComponent } from "@/components/user/ai-tutor"
 import { useEditorStore } from "@/lib/editor-store"
-import { CursorModeProvider } from "@/contexts/CursorModeContext"
 import { useSearchParams } from "next/navigation";
 
 interface DebounceCallback {

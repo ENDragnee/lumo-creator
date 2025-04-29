@@ -5,10 +5,9 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useNode, useEditor, Node } from "@craftjs/core";
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
-// import { ResizableElement } from "@/components/Resizer"; // *** REMOVE THIS ***
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { TextSettings } from "@/components/TextSettings"; // Keep settings
+import { TextSettings } from "@/components/settings/TextSettings"; // Keep settings
 
 // --- TextProps Interface ---
 export interface TextProps {

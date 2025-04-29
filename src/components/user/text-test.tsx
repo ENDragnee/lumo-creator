@@ -7,7 +7,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import { ResizableElement } from "@/components/Resizer"; // *** ADD BACK ***
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { TextSettings } from "@/components/TextSettings";
+import { TextSettings } from "@/components/settings/TextSettings";
 
 // --- TextProps and CraftableComponent interfaces (as defined above) ---
 export interface TextProps {
