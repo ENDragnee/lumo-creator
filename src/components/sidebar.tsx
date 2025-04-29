@@ -243,7 +243,7 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
                         <VideoUploader onUpload={handleVideoUpload} userId={userId} />
                         <div className="mt-4 space-y-2">
                             <Input type="text" placeholder="Enter video URL" value={videoLink} onChange={(e) => setVideoLink(e.target.value)} className="h-9" />
-                            <Button onClick={handleVideoLinkUpload} className="w-full h-9"> Add Video Link </Button>
+                            <Button onClick={handleVideoLinkUpload} className="w-full h-9 bg-[#3B82F6] hover:bg-blue-600"> Add Video Link </Button>
                         </div>
                         <VideoList videos={videos} onRemove={handleVideoRemove} />
                     </>
@@ -256,7 +256,7 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
                        <ImageUploader onUpload={handleImageUpload} userId={userId} />
                        <div className="mt-4 space-y-2">
                          <Input type="text" placeholder="Enter image URL" value={imageLink} onChange={(e) => setImageLink(e.target.value)} className="h-9"/>
-                         <Button onClick={handleImageLinkUpload} className="w-full h-9"> Add Image Link </Button>
+                         <Button onClick={handleImageLinkUpload} className="w-full h-9 bg-[#3B82F6] hover:bg-blue-600"> Add Image Link </Button>
                        </div>
                        <ImageList images={images} onRemove={handleImageRemove} />
                     </>
@@ -268,7 +268,7 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
                    <>
                       <div className="mt-4 space-y-2">
                           <Input type="text" placeholder="Enter simulation URL" value={simulationLink} onChange={(e) => setSimulationLink(e.target.value)} className="h-9"/>
-                          <Button onClick={handleSimulationLinkUpload} className="w-full h-9"> Add Simulation Link </Button>
+                          <Button onClick={handleSimulationLinkUpload} className="w-full h-9 bg-[#3B82F6] hover:bg-blue-600"> Add Simulation Link </Button>
                       </div>
                       <SimulationList simulations={simulations} onRemove={handleSimulationRemove} />
                    </>
@@ -312,7 +312,7 @@ return (
   // This div is the actual sidebar container in the flex layout
   // It has a fixed width (can be made responsive later) and standard styling
   <div className={cn(
-      "flex flex-col h-full bg-background flex-shrink-0 overflow-hidden",
+      "flex flex-col h-full bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden",
       "w-64", // Default width, can be controlled by parent via `className` or state
       )}>
       {/* Conditionally render NewSidebar or the Tool/Settings panel */}

@@ -25,7 +25,7 @@ export function ImageList({ images, onRemove }: ImageListProps) {
       <h3 className="text-md font-semibold mb-2">Your Images</h3>
       <div className="grid grid-cols-2 gap-2">
         {images.map((image, index) => (
-          <div key={index} className="relative group">
+          <div key={index} className="relative group hover:scale-105 transition-transform duration-200">
             <div
               ref={(ref) => {
                 if (ref) {

@@ -36,7 +36,7 @@ export function VideoList({ videos, onRemove }: VideoListProps) {
                     connectors.create(ref, <VideoComponent src={`https://lumo-creator.aasciihub.com/public/${videoSrc}`} />)
                   }
                 }}
-                className="cursor-move"
+                className="cursor-move  hover:scale-105 transition-transform duration-200"
               >
                 <Image
                   src={`https://lumo-creator.aasciihub.com/public/${video.thumbnailUrl}` || "/placeholder.svg"}

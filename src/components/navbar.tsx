@@ -94,7 +94,7 @@ export function Navbar() {
           />
         )}
         <div className="bg-gray-200 rounded-xl flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleUndo} disabled={!canUndo}>
+          <Button variant="ghost" size="icon" onClick={handleUndo} disabled={!canUndo} className="hover:bg-gray-400">
             <Undo2 className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" onClick={handleRedo} disabled={!canRedo}>

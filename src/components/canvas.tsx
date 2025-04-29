@@ -23,10 +23,10 @@ export const renderCanvas: CanvasComponent = ({ children }) => {
       ref={(ref) => {
         connect(drag(ref!))
       }}
-      className="relative flex-1 overflow-y-auto overflow-x-hidden p-4"
+      className="relative flex-1 overflow-y-visible overflow-x-hidden p-4"
     >
       <div
-        className={`relative m-8 min-h-[calc(100%-4rem)] rounded-lg ${
+        className={`relative m-8 min-h-[calc(100%-4rem)] rounded-lg overflow-y-visible ${
           isEmpty ? "border-2 border-dashed border-zinc-200" : ""
         }`}
       >

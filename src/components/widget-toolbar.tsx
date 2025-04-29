@@ -111,7 +111,7 @@ export function Toolbar({
             connectors.create(ref!, <SliderComponent />);
           }}
           variant="ghost"
-          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 text-toolbar-accent hover:text-toolbar-accent-hover"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
         >
           <SlidersHorizontal className="h-4 w-4" />
           Slider
@@ -121,7 +121,7 @@ export function Toolbar({
             connectors.create(ref!, <QuizComponent />);
           }}
           variant="ghost"
-          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 text-toolbar-accent hover:text-toolbar-accent-hover"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
         >
           <HelpCircle className="h-4 w-4" />
           Quiz
@@ -129,7 +129,7 @@ export function Toolbar({
         <Button
           onClick={handleSimulationClick}
           variant="ghost"
-          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 text-toolbar-accent hover:text-toolbar-accent-hover"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
         >
           <Monitor className="h-4 w-4" />
           Simulation
@@ -137,7 +137,7 @@ export function Toolbar({
         <Button
           onClick={handleVideoClick}
           variant="ghost"
-          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 text-toolbar-accent hover:text-toolbar-accent-hover"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
         >
           <Play className="h-4 w-4" />
           Video
@@ -145,7 +145,7 @@ export function Toolbar({
         <Button
           onClick={handleImageClick}
           variant="ghost"
-          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 text-toolbar-accent hover:text-toolbar-accent-hover"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
         >
           <ImageIcon className="h-4 w-4" />
           Image
@@ -155,7 +155,7 @@ export function Toolbar({
             connectors.create(ref!, <TextComponent content="Sample Text" />);
           }}
           variant="ghost"
-          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 text-toolbar-accent hover:text-toolbar-accent-hover"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
         >
           <Type className="h-4 w-4" />
           Text
