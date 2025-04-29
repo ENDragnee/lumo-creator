@@ -260,7 +260,7 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
       // Render the Settings Panel
        return (
            <div className="flex flex-col h-full">
-               <div className="p-4 border-b border-border flex-shrink-0">
+               <div className="p-4 flex-shrink-0">
                    {/* Use selected.name which should have displayName */}
                    <h2 className="text-lg font-semibold">{selected.name} Settings</h2>
                </div>
@@ -328,8 +328,8 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
                 return <div className="p-4">Unknown Tool: {activeTool}</div>; // Handle unknown tool case
         }
         return (
-            <div className="flex flex-col h-full">
-                 <div className="p-4 border-b border-border flex-shrink-0">
+            <div className="flex flex-col h-full bg-gray-100 rounded-md">
+                 <div className="p-4 flex-shrink-0">
                      <h2 className="text-lg font-semibold">{title}</h2>
                  </div>
                  <div className="flex-grow p-4 overflow-y-auto space-y-4">
@@ -351,7 +351,7 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
   // Main return statement
   return (
     <div className={cn(
-        "flex flex-col h-full bg-background border-r border-border flex-shrink-0 overflow-hidden", // Use theme colors
+        "flex flex-col h-full bg-background mt-2 flex-shrink-0 overflow-hidden", // Use theme colors
         "w-64", // Default width
     )}>
        {/* Render the decided content */}

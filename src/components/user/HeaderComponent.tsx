@@ -171,7 +171,7 @@ export const HeaderComponent: CraftableComponent = ({
             }
         }}
         style={rootStyle}
-        className={`relative ${editorEnabled ? 'cursor-grab' : ''} transition-shadow duration-100 hover:shadow-md`}
+        className={`relative ${editorEnabled ? 'cursor-grab' : ''} transition-shadow duration-100 hover:shadow-md bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-300 border-solid`}
         onDoubleClick={selected && editorEnabled ? handleBeginEditing : undefined}
         title={editorEnabled ? "Drag to reorder, double-click to edit" : ""}
         onClick={(e) => {

@@ -12,7 +12,7 @@ export function TextList() {
   const { connectors } = useEditor();
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 gap-2">
         <Button
             ref={(ref) => {
                 // Pass the component type. Craft.js will use its default props.
