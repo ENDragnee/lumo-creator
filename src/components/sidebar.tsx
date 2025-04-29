@@ -328,7 +328,7 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
                 return <div className="p-4">Unknown Tool: {activeTool}</div>; // Handle unknown tool case
         }
         return (
-            <div className="flex flex-col h-full bg-gray-100 rounded-md">
+            <div className="flex flex-col h-full bg-gray-100 rounded-md border border-solid border-gray-300">
                  <div className="p-4 flex-shrink-0">
                      <h2 className="text-lg font-semibold">{title}</h2>
                  </div>
