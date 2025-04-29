@@ -2,26 +2,26 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { useNode, useEditor, Node } from "@craftjs/core";
+import { useNode, useEditor, Node as CraftNode } from "@craftjs/core"; // Use CraftNode alias if needed, else stick to Node
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
+import remarkGfm from 'remark-gfm'; // <--- Import GFM plugin
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { TextSettings } from "@/components/settings/TextSettings"; // Keep settings
+import { TextSettings } from "@/components/settings/TextSettings";
 
-// --- TextProps Interface ---
+// --- TextProps Interface --- (Keep as is)
 export interface TextProps {
     content: string;
-    width?: string | number; // Keep width control
-    // height?: string | number; // Height is now generally auto based on content
+    width?: string | number;
     alignment?: "left" | "center" | "right" | "justify";
     fontSize?: string;
     color?: string;
     fontWeight?: string;
-    padding?: string | number; // Add padding control
+    padding?: string | number;
 }
 
-// --- CraftableComponent Interface ---
+// --- CraftableComponent Interface --- (Keep as is)
 interface CraftableComponent extends React.FC<TextProps> {
     craft?: {
       displayName: string;
@@ -30,14 +30,18 @@ interface CraftableComponent extends React.FC<TextProps> {
         settings: React.ComponentType<any>;
       };
       rules?: {
-        canDrag?: (node: Node) => boolean;
-        // canDrop?: (node: Node) => boolean; // Can it accept children? Usually no for Text.
-        // canMoveIn?: (incomingNodes: Node[], self: Node, helpers: NodeHelpers) => boolean;
-        // canMoveOut?: (outgoingNodes: Node[], self: Node, helpers: NodeHelpers) => boolean;
+        canDrag?: (node: CraftNode) => boolean; // Use CraftNode if that's the intended type
       };
     };
   }
 
+// --- Helper function to adjust textarea height --- (Keep as is)
+const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
+    if (textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+};
 
 export const TextComponent: CraftableComponent = ({
   content = "Edit me!",
@@ -45,17 +49,16 @@ export const TextComponent: CraftableComponent = ({
   fontSize = "16px",
   color = "inherit",
   fontWeight = "normal",
-  width = "100%", // Default to full width in stacking layout
-  padding = "8px", // Default internal padding
+  width = "100%",
+  padding = "8px",
 }) => {
   const {
-    connectors: { connect, drag }, // Use both connectors on the root
+    connectors: { connect, drag },
     selected,
     actions: { setProp },
     id,
   } = useNode((node) => ({
     selected: node.events.selected,
-    // props: node.data.props, // Access props if needed
   }));
 
   const { actions: editorActions, enabled: editorEnabled } = useEditor((state) => ({
@@ -65,148 +68,173 @@ export const TextComponent: CraftableComponent = ({
   const [isEditing, setIsEditing] = useState(false);
   const [localContent, setLocalContent] = useState(content);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const rootRef = useRef<HTMLDivElement>(null); // Ref for the root element
+  const rootRef = useRef<HTMLDivElement>(null);
 
-  // --- State Syncing ---
+  // --- State Syncing --- (Keep as is)
   useEffect(() => {
     if (!isEditing) {
       setLocalContent(content);
     }
   }, [content, isEditing]);
 
+  // --- Handle Entering Edit Mode --- (Keep as is)
+  const handleBeginEditing = useCallback(() => {
+    if (!editorEnabled) return;
+    setLocalContent(content);
+    setIsEditing(true);
+  }, [editorEnabled, content]);
+
+  // --- Handle Focus and Initial Height --- (Keep as is)
   useEffect(() => {
     if (isEditing && textareaRef.current) {
-      textareaRef.current.focus();
-      textareaRef.current.select();
+      const textarea = textareaRef.current;
+      textarea.focus();
+      textarea.select();
+      requestAnimationFrame(() => {
+           adjustTextareaHeight(textareaRef.current);
+      });
     }
   }, [isEditing]);
 
-  // --- Handlers ---
-  const handleBeginEditing = () => {
-    if (!editorEnabled) return;
-    setIsEditing(true);
-    setLocalContent(content);
+  // --- Handle Textarea Changes --- (Keep as is)
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setLocalContent(e.target.value);
+    adjustTextareaHeight(textareaRef.current);
   };
 
+  // --- Handle Finishing Editing --- (Keep as is)
   const handleFinishEditing = useCallback(() => {
+    if (!isEditing) return;
     setIsEditing(false);
-    if (localContent !== content) {
-      setProp((props: TextProps) => { props.content = localContent; }, 500);
-      // Height will adjust naturally based on content in stacking layout
+    const trimmedContent = localContent.trim();
+    if (trimmedContent !== content.trim()) {
+      setProp((props: TextProps) => { props.content = trimmedContent; }, 100);
     }
-  }, [setProp, localContent, content]);
+  }, [setProp, localContent, content, isEditing]);
 
-
+  // --- Handle Element Removal --- (Keep as is)
   const handleRemove = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent triggering selection/edit
+    e.stopPropagation();
     editorActions.delete(id);
   }, [editorActions, id]);
 
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setLocalContent(e.target.value);
-    // Auto-grow textarea height (simple approach)
-    if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'; // Reset height
-        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`; // Set to content height
-    }
-  };
-
   // --- Styles ---
+  // rootStyle & textareaStyle (Keep as is)
+   const rootStyle: React.CSSProperties = {
+        width: typeof width === 'number' ? `${width}px` : width,
+        position: 'relative',
+        textAlign: alignment,
+        fontSize: fontSize,
+        color: color,
+        fontWeight: fontWeight,
+        padding: typeof padding === 'number' ? `${padding}px` : padding,
+        outline: selected && editorEnabled ? '2px dashed blue' : 'none',
+        outlineOffset: '2px',
+        transition: 'outline 0.1s ease-in-out',
+        minHeight: `calc(${fontSize || '16px'} * 1.2)`, // Ensure fontSize has a fallback
+        lineHeight: 1.5, // Base line height for the container
+   };
 
-  // Style for the ROOT div (the draggable, connectable element)
-  const rootStyle: React.CSSProperties = {
-    width: typeof width === 'number' ? `${width}px` : width, // Handle number or string width
-    // Height is auto by default
-    position: 'relative', // Needed for absolute positioning of delete button
-    textAlign: alignment,
-    fontSize: fontSize,
-    color: color,
-    fontWeight: fontWeight,
-    padding: typeof padding === 'number' ? `${padding}px` : padding,
-    // Add outline for selection state directly here
-    outline: selected && editorEnabled ? '2px dashed blue' : 'none',
-    outlineOffset: '2px',
-    transition: 'outline 0.1s ease-in-out', // Smooth transition for outline
+   const textareaStyle: React.CSSProperties = {
+        width: '100%',
+        height: 'auto',
+        minHeight: `calc(${fontSize || '16px'} * 1.2)`,
+        resize: 'none',
+        border: 'none',
+        outline: 'none',
+        background: 'rgba(240, 240, 240, 0.5)',
+        fontFamily: 'inherit',
+        fontSize: 'inherit',
+        color: 'inherit',
+        fontWeight: 'inherit',
+        textAlign: alignment,
+        padding: 0,
+        margin: 0,
+        whiteSpace: 'pre-wrap',
+        overflowWrap: 'break-word',
+        overflowY: 'hidden',
+        lineHeight: 1.5, // Match container
+        boxSizing: 'border-box',
+   };
+
+  // Update contentDisplayStyle - Remove specific minHeight/lineHeight here,
+  // let the Markdown component and its CSS handle the internal structure.
+  const contentDisplayStyle: React.CSSProperties = {
+       width: '100%',
+       overflowWrap: 'break-word',
+       // Add other styles if needed, but avoid height/line-height conflicts
   };
 
-   // Style for the actual content display (Markdown)
-   // Needs to handle potential overflow if height were constrained, but usually won't be
-   const contentDisplayStyle: React.CSSProperties = {
-       width: '100%',
-       minHeight: '1.2em', // Ensure it has some height even when empty
-       overflowWrap: 'break-word', // Ensure text wraps
-       // No overflow: auto needed unless you set a max-height
-   };
-
-   // Style for the textarea during editing
-   const textareaStyle: React.CSSProperties = {
-     width: '100%',
-     height: 'auto', // Start auto, will be adjusted by handleTextareaChange
-     minHeight: '1.2em',
-     resize: 'none',
-     border: 'none',
-     outline: 'none',
-     background: 'rgba(0, 0, 0, 0.05)', // Slight background to indicate editing
-     fontFamily: 'inherit',
-     fontSize: 'inherit',
-     color: 'inherit',
-     fontWeight: 'inherit',
-     textAlign: alignment,
-     padding: 0, // Padding is on the parent
-     margin: 0,
-     whiteSpace: 'pre-wrap',
-     overflowWrap: 'break-word',
-     overflowY: 'hidden', // Hide scrollbar, height adjusts instead
-   };
 
   return (
-    // *** NO ResizableElement wrapper ***
-    // Apply connectors and styles directly to this div
     <div
         ref={(ref) => {
             if (ref) {
-                connect(drag(ref)); // Apply both connectors here
-                rootRef.current = ref; // Store ref if needed elsewhere
+                connect(drag(ref));
+                rootRef.current = ref;
             }
         }}
         style={rootStyle}
-        className={`relative ${editorEnabled ? 'cursor-grab' : 'cursor-default'} transition-shadow duration-100 hover:shadow-md`} // Add hover effect maybe
+        className={`relative ${editorEnabled ? 'cursor-grab' : ''} transition-shadow duration-100 hover:shadow-md`}
         onDoubleClick={selected && editorEnabled ? handleBeginEditing : undefined}
         title={editorEnabled ? "Drag to reorder, double-click to edit" : ""}
         onClick={(e) => {
-             // Prevent double-click from propagating if already editing
              if (isEditing) e.stopPropagation();
+             if (editorEnabled && !selected) {
+                editorActions.selectNode(id);
+             }
+         }}
+         onBlurCapture={(e) => {
+            // Use DOM Node type for contains check
+            if (isEditing && !rootRef.current?.contains(e.relatedTarget as Node | null)) {
+                handleFinishEditing();
+            }
          }}
     >
-      {/* Conditional Rendering for Edit/Display */}
       {isEditing && editorEnabled ? (
-        // --- Editing Mode ---
         <textarea
           ref={textareaRef}
           value={localContent}
           onChange={handleTextareaChange}
-          onBlur={handleFinishEditing}
           style={textareaStyle}
-          onClick={(e) => e.stopPropagation()} // Prevent selection changes
-          onMouseDown={(e) => e.stopPropagation()} // Prevent drag start
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          rows={1}
         />
       ) : (
-        // --- Display Mode ---
-        <div style={contentDisplayStyle} className="craft-markdown-display">
-           <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+        // --- Updated Display Mode ---
+        <div
+            style={contentDisplayStyle}
+            // Add a dedicated class for styling the Markdown output
+            className="craft-markdown-display prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none" // Example using Tailwind Typography, adjust as needed
+        >
+           <ReactMarkdown
+              // --- Add remarkGfm plugin ---
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeSanitize]}
+              // You might want to customize components for finer control,
+              // but let's first rely on plugins and CSS.
+              // components={{
+              //   // Example: Override link rendering
+              //   a: ({node, ...props}) => <a style={{ color: 'blue' }} {...props} />
+              // }}
+           >
               {content || ""}
            </ReactMarkdown>
         </div>
       )}
 
-      {/* Delete Button - positioned relative to the root div */}
+      {/* Delete Button (Keep as is) */}
       {selected && editorEnabled && (
         <Button
           variant="destructive"
           size="icon"
-          className="absolute top-0 right-0 z-10 -mt-2 -mr-2 h-5 w-5 opacity-80 hover:opacity-100" // Adjusted position/size
-          onMouseDown={(e) => e.stopPropagation()} // Crucial to prevent drag
-          onClick={handleRemove} // Use onClick for accessibility
+          className="absolute top-0 right-0 z-10 -mt-2 -mr-2 h-5 w-5 opacity-80 hover:opacity-100"
+          onMouseDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+          }}
+          onClick={handleRemove}
           aria-label="Delete Text Element"
         >
           <Trash2 className="h-3 w-3" />
@@ -216,26 +244,36 @@ export const TextComponent: CraftableComponent = ({
   );
 }
 
-// Update Craft settings
+// --- Update Craft Default Props with Multi-level List Example ---
 TextComponent.craft = {
   displayName: "Text",
   props: {
-    // Default Props for stacking layout
-    content: "## New Text Block\n\nDouble-click to edit this Markdown content. Drag to reorder.",
-    width: '100%', // Default to full width of the canvas container
-    // No height prop by default - let content determine it
+    content: `## Markdown Text
+Double-click to edit. Supports **Markdown** including:
+
+*   Item 1
+    *   Sub-item 1.1 (indent with 2 or 4 spaces)
+        *   Sub-sub-item 1.1.1
+    *   Sub-item 1.2
+*   Item 2
+    *   Sub-item 2.1
+*   Item 3
+
+1.  Ordered Item 1
+    1.  Ordered Sub 1.1
+    2.  Ordered Sub 1.2
+2.  Ordered Item 2`,
+    width: '100%',
     alignment: "left",
-    fontSize: "16px",
-    color: "#333333", // Darker default color
+    fontSize: "16px", // Base font size for the component
+    color: "#333333",
     fontWeight: "normal",
-    padding: "8px", // Default internal padding
-  } satisfies Partial<TextProps>, // Use Partial as some props are optional
+    padding: "8px",
+  } satisfies Partial<TextProps>,
   related: {
-    settings: TextSettings, // Keep link to settings panel
+    settings: TextSettings,
   },
   rules: {
-    canDrag: () => true, // Allow dragging (for reordering)
-    // Text components typically cannot have children dropped inside them
-    // canMoveIn: () => false,
+    canDrag: () => true,
   },
 };
