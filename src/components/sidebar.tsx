@@ -12,6 +12,7 @@ import { SimulationList } from "./simulation-list"; // Assuming this path is cor
 import { useSession } from "next-auth/react";
 import NewSidebar from "./sidebar/NewSidebar"; // Adjust path if necessary
 import { cn } from "@/lib/utils";
+import { TextList } from "@/components/text-list"; // Assuming this is the correct path
 
 
 // Define interfaces (assuming these are correct)
@@ -313,6 +314,14 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
                       <SimulationList simulations={simulations} onRemove={handleSimulationRemove} />
                    </>
                );
+                break;
+            case "text":
+                title = "Text Library";
+                content = (
+                  <>
+                    <TextList />
+                  </>
+                );
                 break;
             // Add cases for other tools if needed
             default:

@@ -25,12 +25,14 @@ interface ToolbarProps {
   onVideoButtonClick: () => void;
   onImageButtonClick: () => void;
   onSimulationButtonClick: () => void;
+  onTextButtonClick: () => void; // <--- Add new prop for text
 }
 
 export function Toolbar({
   onVideoButtonClick,
   onImageButtonClick,
   onSimulationButtonClick,
+  onTextButtonClick,
 }: ToolbarProps) {
   const { connectors } = useEditor();
   // const { cursorMode, setCursorMode } = useCursorMode();
@@ -60,6 +62,9 @@ export function Toolbar({
   };
   const handleSimulationClick = () => {
     onSimulationButtonClick();
+  };
+  const handleTextClick = () => { // <--- New handler
+    onTextButtonClick();
   };
 
   return (
@@ -150,7 +155,17 @@ export function Toolbar({
           <ImageIcon className="h-4 w-4" />
           Image
         </Button>
+        {/* --- Updated Text Button --- */}
         <Button
+          // Remove the ref={...} for direct creation
+          onClick={handleTextClick} // <--- Use the new handler
+          variant="ghost"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
+        >
+          <Type className="h-4 w-4" />
+          Text
+        </Button>
+        {/* <Button
           ref={(ref) => {
             connectors.create(ref!, <TextComponent content="Sample Text" />);
           }}
@@ -159,7 +174,7 @@ export function Toolbar({
         >
           <Type className="h-4 w-4" />
           Text
-        </Button>
+        </Button> */}
       </div>
     </div>
   );

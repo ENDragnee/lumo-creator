@@ -15,6 +15,9 @@ import { SliderComponent } from "@/components/user/slider"
 import { AITutorComponent } from "@/components/user/ai-tutor"
 import { useEditorStore } from "@/lib/editor-store"
 import { useSearchParams } from "next/navigation";
+import { HeaderComponent } from "@/components/user/HeaderComponent";
+import { FooterComponent } from "@/components/user/FooterComponent"
+import { Header } from "@radix-ui/react-accordion"
 
 interface DebounceCallback {
   (...args: any[]): void;
@@ -151,6 +154,8 @@ export default function TemplateEditor() {
           Quiz: QuizComponent,
           Slider: SliderComponent,
           AITutor: AITutorComponent,
+          Header: HeaderComponent,
+          Footer: FooterComponent,
         }}
         enabled={enabled}
         onNodesChange={() => {
@@ -171,6 +176,7 @@ export default function TemplateEditor() {
                 onVideoButtonClick={() => handleToolChange('video')}
                 onImageButtonClick={() => handleToolChange('image')}
                 onSimulationButtonClick={() => handleToolChange('simulation')}
+                onTextButtonClick={() => handleToolChange('text')} // <--- Pass text handler
               />
             </div>
           </div>
