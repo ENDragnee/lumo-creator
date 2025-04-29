@@ -263,7 +263,7 @@ Double-click to edit. Supports **Markdown** including:
     1.  Ordered Sub 1.1
     2.  Ordered Sub 1.2
 2.  Ordered Item 2`,
-    width: '100%',
+    width: '80%',
     alignment: "left",
     fontSize: "16px", // Base font size for the component
     color: "#333333",

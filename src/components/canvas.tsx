@@ -57,7 +57,7 @@ export const renderCanvas: CanvasComponent = ({ children, gap = defaultCanvasPro
       {/* Inner container: Stacks elements, grows with content, applies padding/gap */}
       <div
         // Use flexbox for stacking, remove fixed heights, add padding/gap from props
-        className={`relative mx-44 my-8 max-w-full flex flex-col ${gapClass} rounded-lg bg-white shadow-md`}
+        className={`relative mx-2 items-center my-8 max-w-full flex flex-col ${gapClass} rounded-lg bg-white shadow-md items-center`}
         style={{
           padding: `${padding}px`, // Use inline style for precise padding
           // Add a minimum height for visual structure, esp. when empty
@@ -68,7 +68,7 @@ export const renderCanvas: CanvasComponent = ({ children, gap = defaultCanvasPro
       >
         {children}
         {!hasChildren && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none border-2 border-dashed border-gray-400 rounded-lg">
+          <div className="absolute inset-0 flex justify-center pointer-events-none border-2 border-dashed border-gray-400 rounded-lg">
             <p className="text-sm text-center text-muted-foreground p-4">
               Drag and drop elements here
             </p>
