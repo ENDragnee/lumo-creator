@@ -9,7 +9,7 @@ export interface IContent extends Document {
   rating?: number;
   data: string;
   createdAt: Date;
-  lastModifiedAt?: Date;
+  updatedAt?: Date;
   createdBy: Types.ObjectId;
   tags: string[];
   institution?: string;
@@ -38,7 +38,7 @@ const ContentSchema = new mongoose.Schema<IContent>({
     type: Date,
     default: Date.now
   },
-  lastModifiedAt: {
+  updatedAt: {
     type: Date,
     default: Date.now
   },
@@ -62,8 +62,8 @@ const ContentSchema = new mongoose.Schema<IContent>({
     shares: { type: Number, default: 0 },
     completions: { type: Number, default: 0 }
   },
-  isDraft: { type: Boolean, default: true },
-  isTrash: { type: Boolean, default: false },
+  isDraft: { type: Boolean, default: true, index: true },
+  isTrash: { type: Boolean, default: false, index: true },
 });
 
 const Content: Model<IContent> = 

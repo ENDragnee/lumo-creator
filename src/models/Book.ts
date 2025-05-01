@@ -26,7 +26,7 @@ const BookSchema = new mongoose.Schema<IBook>({
   description: { type: String },
   thumbnail: { type: String, required: false },
   isDraft: { type: Boolean, default: true },
-  isTrash: { type: Boolean, default: false },
+  isTrash: { type: Boolean, default: false, index:true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User",required: true },

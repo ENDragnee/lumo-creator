@@ -346,22 +346,20 @@ export async function DELETE(request: NextRequest) {
     if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    // Use createdBy consistently with your models
     const userId = new mongoose.Types.ObjectId(session.user.id);
 
     try {
         await connectDB();
         const body = await request.json();
-        // Expect id, type, and optionally mode ('trash' or 'permanent')
-        const { id, type, mode } = body;
+        // Only expect id and type for trashing from the main view
+        const { id, type } = body;
 
         if (!id || !type) {
             return NextResponse.json({ error: 'Missing required fields (id, type)' }, { status: 400 });
         }
         if (type !== 'book' && type !== 'content') {
             return NextResponse.json({ error: 'Invalid item type' }, { status: 400 });
-        }
-        if (mode && mode !== 'trash' && mode !== 'permanent') {
-            return NextResponse.json({ error: 'Invalid delete mode specified' }, { status: 400 });
         }
 
         const ModelToUse: Model<IBook> | Model<IContent> = type === 'book' ? Book : Content;
@@ -372,52 +370,44 @@ export async function DELETE(request: NextRequest) {
              return NextResponse.json({ error: 'Invalid item ID format.' }, { status: 400 });
         }
 
-        // --- Handle Trash Mode ---
-        if (mode === 'trash') {
-           const result = await (ModelToUse as Model<any>).findOneAndUpdate(
-               { _id: itemId, createdBy: userId },
-               { $set: { isTrash: true, updatedAt: new Date() } }, // Set isTrash flag and update timestamp
-               { new: true } // Optional: return updated doc if needed later
-           );
+        // --- Always Move to Trash ---
+        const updateData = { $set: { isTrash: true, updatedAt: new Date() } };
 
-           if (!result) {
-                return NextResponse.json({ error: 'Item not found or access denied' }, { status: 404 });
-            }
-            console.log(`Item ${id} moved to trash.`);
-            return NextResponse.json({ message: 'Item moved to trash successfully' }, { status: 200 });
+        // Find the item first to ensure it exists and is owned by the user
+        const itemToTrash = await (ModelToUse as Model<any>).findOne({
+            _id: itemId,
+            createdBy: userId,
+            isTrash: false // Only trash items not already in trash
+        });
+
+        if (!itemToTrash) {
+             return NextResponse.json({ error: 'Item not found, already in trash, or access denied' }, { status: 404 });
         }
 
-        // --- Handle Permanent Delete Mode (or default if mode is missing) ---
-        else {
-            // Check for children only if permanently deleting a book
-            if (type === 'book') {
-                const [childBooksCount, childContentCount] = await Promise.all([
-                     Book.countDocuments({ parentId: itemId, createdBy: userId, isTrash: false }), // Only count non-trashed children
-                     Content.countDocuments({ parentId: itemId, createdBy: userId, isTrash: false })
-                 ]);
+        // Update the item itself
+        await (ModelToUse as Model<any>).updateOne({ _id: itemId, createdBy: userId }, updateData);
+        console.log(`${type} ${id} marked as trash.`);
 
-                if (childBooksCount > 0 || childContentCount > 0) {
-                    return NextResponse.json({ error: 'Cannot permanently delete a non-empty book. Please delete or move its contents first.' }, { status: 400 });
-                }
-            }
-
-            // Perform permanent deletion
-            const result = await (ModelToUse as Model<any>).findOneAndDelete(
-                { _id: itemId, createdBy: userId }
-            );
-
-            if (!result) {
-                return NextResponse.json({ error: 'Item not found or access denied' }, { status: 404 });
-            }
-            console.log(`Item ${id} permanently deleted.`);
-            return NextResponse.json({ message: 'Item permanently deleted successfully' }, { status: 200 });
+        // --- Recursive Trashing for Books ---
+        if (type === 'book') {
+            console.log(`Recursively trashing contents of book ${id}`);
+            // Note: This simple approach trashes immediate children.
+            // For deeply nested structures, a more complex recursive function might be needed.
+            const [bookUpdateResult, contentUpdateResult] = await Promise.all([
+                Book.updateMany({ parentId: itemId, createdBy: userId }, updateData),
+                Content.updateMany({ parentId: itemId, createdBy: userId }, updateData)
+            ]);
+            console.log(`Trashed ${bookUpdateResult.modifiedCount} sub-books and ${contentUpdateResult.modifiedCount} contents.`);
         }
+
+        return NextResponse.json({ message: 'Item moved to trash successfully' }, { status: 200 });
+
 
     } catch (error: any) {
         console.error("API Drive DELETE Error:", error);
         if (error instanceof mongoose.Error.CastError) {
             return NextResponse.json({ error: 'Invalid item ID format.' }, { status: 400 });
         }
-        return NextResponse.json({ error: 'Failed to process delete request', details: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to move item to trash', details: error.message }, { status: 500 });
     }
 }
