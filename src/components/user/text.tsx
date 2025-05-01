@@ -2,10 +2,12 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { useNode, useEditor, Node as CraftNode } from "@craftjs/core"; // Use CraftNode alias if needed, else stick to Node
+import { useNode, useEditor, Node as CraftNode } from "@craftjs/core";
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
-import remarkGfm from 'remark-gfm'; // <--- Import GFM plugin
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';    // <--- Import remark-math
+import rehypeKatex from 'rehype-katex';  // <--- Import rehype-katex
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { TextSettings } from "@/components/settings/TextSettings";
@@ -30,7 +32,7 @@ interface CraftableComponent extends React.FC<TextProps> {
         settings: React.ComponentType<any>;
       };
       rules?: {
-        canDrag?: (node: CraftNode) => boolean; // Use CraftNode if that's the intended type
+        canDrag?: (node: CraftNode) => boolean;
       };
     };
   }
@@ -43,11 +45,12 @@ const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
     }
 };
 
+
 export const TextComponent: CraftableComponent = ({
-  content = "Edit me!",
+  content = "Edit me!", // Update default content below
   alignment = "left",
   fontSize = "16px",
-  color = "inherit",
+  color = "inherit", // Use inherit to better respect container style
   fontWeight = "normal",
   width = "100%",
   padding = "8px",
@@ -80,7 +83,7 @@ export const TextComponent: CraftableComponent = ({
   // --- Handle Entering Edit Mode --- (Keep as is)
   const handleBeginEditing = useCallback(() => {
     if (!editorEnabled) return;
-    setLocalContent(content);
+    setLocalContent(content); // Use the current prop content when starting edit
     setIsEditing(true);
   }, [editorEnabled, content]);
 
@@ -106,11 +109,13 @@ export const TextComponent: CraftableComponent = ({
   const handleFinishEditing = useCallback(() => {
     if (!isEditing) return;
     setIsEditing(false);
-    const trimmedContent = localContent.trim();
-    if (trimmedContent !== content.trim()) {
-      setProp((props: TextProps) => { props.content = trimmedContent; }, 100);
+    // Only update if content actually changed (trimming whitespace for comparison)
+    if (localContent.trim() !== content.trim()) {
+        // Update the prop with the raw content from the textarea
+        setProp((props: TextProps) => { props.content = localContent; }, 100);
     }
   }, [setProp, localContent, content, isEditing]);
+
 
   // --- Handle Element Removal --- (Keep as is)
   const handleRemove = useCallback((e: React.MouseEvent) => {
@@ -118,21 +123,20 @@ export const TextComponent: CraftableComponent = ({
     editorActions.delete(id);
   }, [editorActions, id]);
 
-  // --- Styles ---
-  // rootStyle & textareaStyle (Keep as is)
+  // --- Styles --- (Keep rootStyle and textareaStyle as is)
    const rootStyle: React.CSSProperties = {
         width: typeof width === 'number' ? `${width}px` : width,
         position: 'relative',
         textAlign: alignment,
         fontSize: fontSize,
-        color: color,
+        color: color === 'inherit' ? undefined : color, // Apply color unless 'inherit'
         fontWeight: fontWeight,
         padding: typeof padding === 'number' ? `${padding}px` : padding,
         outline: selected && editorEnabled ? '2px dashed blue' : 'none',
         outlineOffset: '2px',
         transition: 'outline 0.1s ease-in-out',
-        minHeight: `calc(${fontSize || '16px'} * 1.2)`, // Ensure fontSize has a fallback
-        lineHeight: 1.5, // Base line height for the container
+        minHeight: `calc(${fontSize || '16px'} * 1.2)`,
+        lineHeight: 1.5,
    };
 
    const textareaStyle: React.CSSProperties = {
@@ -145,7 +149,7 @@ export const TextComponent: CraftableComponent = ({
         background: 'rgba(240, 240, 240, 0.5)',
         fontFamily: 'inherit',
         fontSize: 'inherit',
-        color: 'inherit',
+        color: 'inherit', // Textarea should always inherit color for editing
         fontWeight: 'inherit',
         textAlign: alignment,
         padding: 0,
@@ -153,16 +157,13 @@ export const TextComponent: CraftableComponent = ({
         whiteSpace: 'pre-wrap',
         overflowWrap: 'break-word',
         overflowY: 'hidden',
-        lineHeight: 1.5, // Match container
+        lineHeight: 1.5,
         boxSizing: 'border-box',
    };
 
-  // Update contentDisplayStyle - Remove specific minHeight/lineHeight here,
-  // let the Markdown component and its CSS handle the internal structure.
   const contentDisplayStyle: React.CSSProperties = {
        width: '100%',
        overflowWrap: 'break-word',
-       // Add other styles if needed, but avoid height/line-height conflicts
   };
 
 
@@ -179,13 +180,13 @@ export const TextComponent: CraftableComponent = ({
         onDoubleClick={selected && editorEnabled ? handleBeginEditing : undefined}
         title={editorEnabled ? "Drag to reorder, double-click to edit" : ""}
         onClick={(e) => {
-             if (isEditing) e.stopPropagation();
+             if (isEditing) e.stopPropagation(); // Prevent click-away when clicking inside textarea
              if (editorEnabled && !selected) {
                 editorActions.selectNode(id);
              }
          }}
          onBlurCapture={(e) => {
-            // Use DOM Node type for contains check
+            // Check if the new focused element is *outside* the root container
             if (isEditing && !rootRef.current?.contains(e.relatedTarget as Node | null)) {
                 handleFinishEditing();
             }
@@ -197,27 +198,23 @@ export const TextComponent: CraftableComponent = ({
           value={localContent}
           onChange={handleTextareaChange}
           style={textareaStyle}
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()} // Prevent triggering root onClick
+          onMouseDown={(e) => e.stopPropagation()} // Prevent triggering drag
           rows={1}
         />
       ) : (
-        // --- Updated Display Mode ---
+        // --- Updated Display Mode with Math Support ---
         <div
             style={contentDisplayStyle}
-            // Add a dedicated class for styling the Markdown output
-            className="craft-markdown-display prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none" // Example using Tailwind Typography, adjust as needed
+            className="craft-markdown-display prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none"
         >
            <ReactMarkdown
-              // --- Add remarkGfm plugin ---
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeSanitize]}
-              // You might want to customize components for finer control,
-              // but let's first rely on plugins and CSS.
-              // components={{
-              //   // Example: Override link rendering
-              //   a: ({node, ...props}) => <a style={{ color: 'blue' }} {...props} />
-              // }}
+              // --- Add Math Plugins ---
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[
+                  rehypeSanitize, // Sanitize first
+                  [rehypeKatex, { output: 'mathml' }] // Then render KaTeX
+              ]}
            >
               {content || ""}
            </ReactMarkdown>
@@ -232,7 +229,7 @@ export const TextComponent: CraftableComponent = ({
           className="absolute top-0 right-0 z-10 -mt-2 -mr-2 h-5 w-5 opacity-80 hover:opacity-100"
           onMouseDown={(e) => {
               e.stopPropagation();
-              e.preventDefault();
+              e.preventDefault(); // Prevent focus loss/blur when clicking delete
           }}
           onClick={handleRemove}
           aria-label="Delete Text Element"
@@ -244,28 +241,31 @@ export const TextComponent: CraftableComponent = ({
   );
 }
 
-// --- Update Craft Default Props with Multi-level List Example ---
+// --- Update Craft Default Props with LaTeX Example ---
 TextComponent.craft = {
-  displayName: "Text",
+  displayName: "Text (Markdown/LaTeX)", // Updated display name
   props: {
-    content: `## Markdown Text
-Double-click to edit. Supports **Markdown** including:
+    // --- Example Content with Markdown and LaTeX ---
+    content: `## Markdown & LaTeX Example
+Double-click to edit this text.
 
-*   Item 1
-    *   Sub-item 1.1 (indent with 2 or 4 spaces)
-        *   Sub-sub-item 1.1.1
-    *   Sub-item 1.2
-*   Item 2
-    *   Sub-item 2.1
-*   Item 3
+Supports **Markdown** features like lists:
+* Item 1
+* Item 2
 
-1.  Ordered Item 1
-    1.  Ordered Sub 1.1
-    2.  Ordered Sub 1.2
-2.  Ordered Item 2`,
+And LaTeX for math:
+Inline math uses single dollars: $E = mc^2$.
+
+Display math uses double dollars:
+$$
+\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}
+$$
+
+You can mix them freely. Remember to escape backslashes in the editor: use \`\\\\\` for a literal backslash in math mode (e.g., \`\\\\frac\`).
+`,
     width: '100%',
     alignment: "left",
-    fontSize: "16px", // Base font size for the component
+    fontSize: "16px",
     color: "#333333",
     fontWeight: "normal",
     padding: "8px",

@@ -4,6 +4,7 @@ import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { ReactNode } from "react";
+import 'katex/dist/katex.min.css'; // Add this line
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

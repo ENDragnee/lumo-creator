@@ -234,7 +234,7 @@ HeaderComponent.craft = {
   displayName: "Header", // Changed display name
   props: {
     content: `## Header Text`, // Default content
-    width: '100%',
+    width: '80%',
     alignment: "center",      // Default alignment
     fontSize: "24px",         // Default size
     color: "#333333",

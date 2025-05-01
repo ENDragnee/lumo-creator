@@ -235,7 +235,7 @@ FooterComponent.craft = {
   displayName: "Footer", // Changed display name
   props: {
     content: `_Footer text_`, // Default content
-    width: '100%',
+    width: '80%',
     alignment: "center",      // Default alignment
     fontSize: "12px",         // Default size
     color: "#666666",         // Default color
