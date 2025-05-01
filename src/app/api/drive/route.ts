@@ -12,6 +12,7 @@ import mongoose, { Model, Document } from 'mongoose'; // Import necessary types
 interface DriveItemBase {
     _id: string; // Always string in JSON
     title: string;
+    data?: string; // Optional for content type
     thumbnail: string;
     createdAt: Date; // Keep as Date for potential client-side formatting
     updatedAt: Date; // Keep as Date
@@ -87,16 +88,19 @@ export async function GET(request: NextRequest) {
             isTrash: false,
         };
 
-        const selectFields = '_id title thumbnail createdAt updatedAt parentId createdBy isDraft';
+        // **** Define separate select fields ****
+        const selectFieldsBook = '_id title thumbnail createdAt updatedAt parentId createdBy isDraft';
+        const selectFieldsContent = '_id title thumbnail createdAt updatedAt parentId createdBy isDraft data'; // <-- Added 'data' field
 
+        // **** Use specific select fields for each query ****
         const booksPromise = Book.find(queryConditions)
-            .select(selectFields)
+            .select(selectFieldsBook) // Select fields for books
             .sort({ title: 1 })
             .lean()
             .exec();
 
         const contentsPromise = Content.find(queryConditions)
-            .select(selectFields)
+            .select(selectFieldsContent) // Select fields for content (including data)
             .sort({ title: 1 })
             .lean()
             .exec();
@@ -104,7 +108,7 @@ export async function GET(request: NextRequest) {
         const [books, contents] = await Promise.all([booksPromise, contentsPromise]);
 
         const items: DriveItem[] = [
-            // Use 'as unknown as ExpectedType[]' to bypass stricter checking
+            // Map books (no data field)
             ...(books as unknown as ExpectedLeanBook[]).map((book): DriveBook => ({
                 _id: book._id.toString(),
                 title: book.title,
@@ -114,19 +118,20 @@ export async function GET(request: NextRequest) {
                 parentId: book.parentId ? book.parentId.toString() : null,
                 type: 'book' as const,
             })),
-            // Fix 1: Use 'as unknown as ExpectedType[]' for contents array
+            // Map contents (include data field)
             ...(contents as unknown as ExpectedLeanContent[]).map((content): DriveContent => ({
                 _id: content._id.toString(),
                 title: content.title,
+                data: content.data, // Data is now selected and available
                 thumbnail: content.thumbnail,
                 createdAt: content.createdAt,
-                updatedAt: content.updatedAt, // Now assumed to exist due to assertion
+                updatedAt: content.updatedAt,
                 parentId: content.parentId ? content.parentId.toString() : null,
                 type: 'content' as const,
             }))
         ];
 
-        // Fetch breadcrumbs
+        // Fetch breadcrumbs (no changes needed here)
         let breadcrumbs: { _id: string; title: string }[] = [];
         if (parentId) {
             let currentParentId: mongoose.Types.ObjectId | null = parentId;

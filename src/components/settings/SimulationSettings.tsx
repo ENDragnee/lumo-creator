@@ -8,45 +8,46 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SimulationProps } from '@/components/user/simulation'; // Import props interface
 
+// Define a unique, non-empty value for the "None" option
+const NONE_VALUE = "__none__"; // Or "none", "manual", etc. - just not ""
+
 export const SimulationSettings: React.FC = () => {
     const {
         actions: { setProp },
-        // Destructure the actual props directly
         src,
         width,
-        // height is managed by StackResizableWrapper via aspectRatio or direct resize
         aspectRatio,
         padding,
-        // Add type assertion here
     } = useNode<SimulationProps>((node) => node.data.props as SimulationProps);
 
-    // Helper to handle input changes (excluding aspectRatio, handled by select)
-    // Input onChange always gives string, so value should be string type
     const handleInputChange = (
-        propName: Exclude<keyof SimulationProps, 'aspectRatio' | 'height'>, // Exclude props not set via this input type
-        value: string // Input elements provide string values
+        propName: Exclude<keyof SimulationProps, 'aspectRatio' | 'height'>,
+        value: string
     ) => {
-        // Explicitly type currentProps
-        setProp((currentProps: SimulationProps) => {
-            // Type checking is now satisfied:
-            // - If propName is 'src', value (string) is assignable to currentProps.src (string).
-            // - If propName is 'width' or 'padding', value (string) is assignable to currentProps[propName] (string | number).
-            currentProps[propName] = value;
-        });
+        setProp((currentProps: SimulationProps) => ({
+            ...currentProps,
+            [propName]: value,
+        }), 500);
     };
 
-    // Helper for Select component change (specifically for aspectRatio)
     const handleSelectChange = (propName: 'aspectRatio', value: string) => {
-        // Explicitly type currentProps
-        setProp((currentProps: SimulationProps) => {
-            // Assign directly, type 'string' is compatible with 'string | undefined'
-            currentProps[propName] = value === "" ? undefined : value; // Set to undefined if empty string selected
-        });
+        setProp((currentProps: SimulationProps) => ({
+            ...currentProps,
+            // If the selected value is our special "none" value, set prop to undefined
+            // Otherwise, use the selected value directly.
+            [propName]: value === NONE_VALUE ? undefined : value,
+        }), 500);
     };
+
+    // Determine the value prop for the Select component.
+    // If aspectRatio is undefined, use our special NONE_VALUE.
+    // Otherwise, use the actual aspectRatio string.
+    const selectValue = aspectRatio === undefined ? NONE_VALUE : aspectRatio;
 
     return (
         <div className="p-4 space-y-4">
-            <div className="space-y-2">
+            {/* ... other inputs remain the same ... */}
+             <div className="space-y-2">
                 <Label htmlFor="src">Simulation URL</Label>
                 <Input
                     id="src"
@@ -68,13 +69,16 @@ export const SimulationSettings: React.FC = () => {
                 />
             </div>
 
+
             <div className="space-y-2">
                 <Label htmlFor="aspectRatio">Aspect Ratio</Label>
                 <Select
-                    value={aspectRatio || ''} // Use destructured prop
+                    // Use the calculated selectValue based on aspectRatio state
+                    value={selectValue}
                     onValueChange={(value) => handleSelectChange('aspectRatio', value)}
                 >
                     <SelectTrigger id="aspectRatio">
+                        {/* Keep placeholder */}
                         <SelectValue placeholder="Select ratio (optional)" />
                     </SelectTrigger>
                     <SelectContent>
@@ -82,7 +86,8 @@ export const SimulationSettings: React.FC = () => {
                         <SelectItem value="4/3">4:3 (Standard)</SelectItem>
                         <SelectItem value="1/1">1:1 (Square)</SelectItem>
                         <SelectItem value="9/16">9:16 (Vertical)</SelectItem>
-                        <SelectItem value="">None (Manual Height)</SelectItem> {/* Represent 'None' with an empty string */}
+                        {/* Use the non-empty NONE_VALUE for the "None" option */}
+                        <SelectItem value={NONE_VALUE}>None (Manual Height)</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

@@ -14,31 +14,34 @@ type InputChangePropNames = Exclude<keyof ImageProps, 'objectFit'>;
 export const ImageSettings: React.FC = () => {
     const {
         actions: { setProp },
-        // Destructure the actual props directly from the hook's return value
+        // Destructure props
         src,
         alt,
         width,
         height,
         objectFit,
         padding,
-    } = useNode<ImageProps>((node) => node.data.props); // Selector returns ImageProps directly
+    } = useNode<ImageProps>((node) => node.data.props as ImageProps); // Added type assertion
 
-    // Helper to handle input changes and update props (excluding objectFit)
-    const handleInputChange = (propName: InputChangePropNames, value: string | number) => {
-        // Explicitly type currentProps
-        setProp((currentProps: ImageProps) => {
-            // This assignment is now safer because propName cannot be 'objectFit'
-            currentProps[propName] = value as string;
-        });
+    // Helper to handle input changes using immutable pattern
+    const handleInputChange = (propName: InputChangePropNames, value: string) => { // Input always provides string
+        // Use the immutable update pattern
+        setProp((currentProps: ImageProps) => ({
+            ...currentProps,
+            // Assign the string value from the input
+            // Type 'string' is assignable to 'string | number | undefined' for width/height/padding
+            [propName]: value,
+        }), 500); // Optional debounce
     };
 
-    // Helper for Select component change (specifically for objectFit)
+    // Helper for Select component change using immutable pattern
     const handleSelectChange = (propName: 'objectFit', value: string) => {
-        // Explicitly type currentProps
-        setProp((currentProps: ImageProps) => {
+         // Use the immutable update pattern
+        setProp((currentProps: ImageProps) => ({
+            ...currentProps,
             // Assert the value type as it comes from the Select component
-            currentProps[propName] = value as ImageProps['objectFit'];
-        });
+            [propName]: value as ImageProps['objectFit'], // Keep assertion as objectFit has specific values
+        }), 500); // Optional debounce
     };
 
     return (
@@ -48,7 +51,7 @@ export const ImageSettings: React.FC = () => {
                 <Input
                     id="src"
                     type="text"
-                    value={src || ''} // Use destructured prop
+                    value={src || ''}
                     onChange={(e) => handleInputChange('src', e.target.value)}
                     placeholder="https://example.com/image.jpg"
                 />
@@ -59,7 +62,7 @@ export const ImageSettings: React.FC = () => {
                 <Input
                     id="alt"
                     type="text"
-                    value={alt || ''} // Use destructured prop
+                    value={alt || ''}
                     onChange={(e) => handleInputChange('alt', e.target.value)}
                     placeholder="Descriptive text for accessibility"
                 />
@@ -70,8 +73,8 @@ export const ImageSettings: React.FC = () => {
                     <Label htmlFor="width">Width</Label>
                     <Input
                         id="width"
-                        type="text"
-                        value={width || ''} // Use destructured prop
+                        type="text" // Stays text type
+                        value={width || ''}
                         onChange={(e) => handleInputChange('width', e.target.value)}
                         placeholder="e.g., 300px or 100%"
                     />
@@ -80,8 +83,8 @@ export const ImageSettings: React.FC = () => {
                     <Label htmlFor="height">Height</Label>
                     <Input
                         id="height"
-                        type="text"
-                        value={height || ''} // Use destructured prop
+                        type="text" // Stays text type
+                        value={height || ''}
                         onChange={(e) => handleInputChange('height', e.target.value)}
                         placeholder="e.g., 200px or auto"
                     />
@@ -91,13 +94,15 @@ export const ImageSettings: React.FC = () => {
             <div className="space-y-2">
                 <Label htmlFor="objectFit">Object Fit</Label>
                 <Select
-                    value={objectFit || 'contain'} // Use destructured prop
+                    // Default to 'contain' if objectFit is undefined/nullish
+                    value={objectFit || 'contain'}
                     onValueChange={(value) => handleSelectChange('objectFit', value)}
                 >
                     <SelectTrigger id="objectFit">
                         <SelectValue placeholder="Select fit" />
                     </SelectTrigger>
                     <SelectContent>
+                        {/* These values are fine as they are non-empty */}
                         <SelectItem value="contain">Contain</SelectItem>
                         <SelectItem value="cover">Cover</SelectItem>
                         <SelectItem value="fill">Fill</SelectItem>
@@ -111,8 +116,8 @@ export const ImageSettings: React.FC = () => {
                 <Label htmlFor="padding">Padding</Label>
                 <Input
                     id="padding"
-                    type="text"
-                    value={padding || ''} // Use destructured prop
+                    type="text" // Stays text type
+                    value={padding || ''}
                     onChange={(e) => handleInputChange('padding', e.target.value)}
                     placeholder="e.g., 0px or 8px"
                 />

@@ -8,38 +8,43 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VideoComponentProps } from '../user/video'; // Import props interface
 
+// Define a unique, non-empty value for the "None" option
+const NONE_VALUE = "__none__"; // Consistent value for "None"
+
 export const VideoSettings: React.FC = () => {
     const {
         actions: { setProp },
-        // Destructure the actual props directly
         src,
         width,
-        // height is managed by StackResizableWrapper via aspectRatio or direct resize
         aspectRatio,
         padding,
-        // Add type assertion here
     } = useNode<VideoComponentProps>((node) => node.data.props as VideoComponentProps);
 
     // Helper to handle input changes (excluding aspectRatio, handled by select)
     const handleInputChange = (
-        propName: Exclude<keyof VideoComponentProps, 'aspectRatio' | 'height'>, // Exclude props not set via this input type
+        propName: Exclude<keyof VideoComponentProps, 'aspectRatio' | 'height'>,
         value: string // Input elements provide string values
     ) => {
-        // Explicitly type currentProps
-        setProp((currentProps: VideoComponentProps) => {
-            // Type checking is now satisfied
-            currentProps[propName] = value;
-        });
+        // Use the immutable update pattern
+        setProp((currentProps: VideoComponentProps) => ({
+            ...currentProps,
+            [propName]: value,
+        }), 500); // Optional debounce
     };
 
     // Helper for Select component change (specifically for aspectRatio)
     const handleSelectChange = (propName: 'aspectRatio', value: string) => {
-        // Explicitly type currentProps
-        setProp((currentProps: VideoComponentProps) => {
-            // Assign directly, handling the "None" case
-            currentProps[propName] = value === "" ? undefined : value; // Set to undefined if empty string selected
-        });
+         // Use the immutable update pattern
+        setProp((currentProps: VideoComponentProps) => ({
+            ...currentProps,
+            // If the selected value is our special "none" value, set prop to undefined
+            // Otherwise, use the selected value directly.
+            [propName]: value === NONE_VALUE ? undefined : value,
+        }), 500); // Optional debounce
     };
+
+    // Determine the value prop for the Select component.
+    const selectValue = aspectRatio === undefined ? NONE_VALUE : aspectRatio;
 
     return (
         <div className="p-4 space-y-4">
@@ -48,7 +53,7 @@ export const VideoSettings: React.FC = () => {
                 <Input
                     id="src"
                     type="text"
-                    value={src || ''} // Use destructured prop
+                    value={src || ''}
                     onChange={(e) => handleInputChange('src', e.target.value)}
                     placeholder="https://www.youtube.com/watch?v=..."
                 />
@@ -58,18 +63,18 @@ export const VideoSettings: React.FC = () => {
                 <Label htmlFor="width">Width</Label>
                 <Input
                     id="width"
-                    type="text" // Allow 'px' or '%'
-                    value={width || ''} // Use destructured prop
+                    type="text"
+                    value={width || ''}
                     onChange={(e) => handleInputChange('width', e.target.value)}
                     placeholder="e.g., 560px or 100%"
                 />
-                {/* Note: Height is controlled by width + aspect ratio when aspectRatio is set */}
             </div>
 
             <div className="space-y-2">
                 <Label htmlFor="aspectRatio">Aspect Ratio</Label>
                 <Select
-                    value={aspectRatio || ''} // Use destructured prop
+                    // Use the calculated selectValue
+                    value={selectValue}
                     onValueChange={(value) => handleSelectChange('aspectRatio', value)}
                 >
                     <SelectTrigger id="aspectRatio">
@@ -80,7 +85,8 @@ export const VideoSettings: React.FC = () => {
                         <SelectItem value="4/3">4:3 (Standard)</SelectItem>
                         <SelectItem value="1/1">1:1 (Square)</SelectItem>
                         <SelectItem value="9/16">9:16 (Vertical)</SelectItem>
-                        <SelectItem value="">None (Manual Height)</SelectItem> {/* Represent 'None' with empty string */}
+                        {/* Use the non-empty NONE_VALUE */}
+                        <SelectItem value={NONE_VALUE}>None (Manual Height)</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -90,7 +96,7 @@ export const VideoSettings: React.FC = () => {
                 <Input
                     id="padding"
                     type="text"
-                    value={padding || ''} // Use destructured prop
+                    value={padding || ''}
                     onChange={(e) => handleInputChange('padding', e.target.value)}
                     placeholder="e.g., 0px or 8px"
                 />
