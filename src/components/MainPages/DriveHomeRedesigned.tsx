@@ -279,10 +279,7 @@ export default function DriveHomeRedesigned() {
     };
 
 
-     const handleCreateNewItem = async (data: { type: 'book' | 'content'; title: string; thumbnail?: string; data?: string; institution:string; subject:string }) => {
-        // Calls POST /api/drive
-       // ... (implementation remains largely the same)
-       // setLoading(true); // Consider a specific loading state
+     const handleCreateNewItem = async (data: { type: 'book' | 'content'; title: string; thumbnail?: string; data?: string; institution:string; subject:string; tags:string[] }) => {
        setHomeError(null);
         console.log("Creating new item:", data);
         try {

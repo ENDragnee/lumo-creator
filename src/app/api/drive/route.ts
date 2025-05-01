@@ -42,6 +42,7 @@ interface ApiResponseItem {
     isDraft?: boolean;
     institution?: string;
     subject?: string;
+    tags?: string[]; // Optional, as it may not be set during creation
     // Add other relevant fields returned after creation/update
 }
 
@@ -179,7 +180,7 @@ export async function POST(request: NextRequest) {
     try {
         await connectDB();
         const body = await request.json();
-        const { type, title, parentId: parentIdStr, thumbnail, data, institution, subject } = body;
+        const { type, title, parentId: parentIdStr, thumbnail, data, institution, subject, tags } = body;
 
         if (!type || !title) {
             return NextResponse.json({ error: 'Missing required fields (type, title)' }, { status: 400 });
@@ -212,6 +213,7 @@ export async function POST(request: NextRequest) {
             isTrash: false,
             institution,
             subject,
+            tags: tags || [],
         };
 
         if (type === 'book') {
@@ -241,6 +243,7 @@ export async function POST(request: NextRequest) {
             isDraft: savedDoc.isDraft,
             institution: savedDoc.institution,
             subject: savedDoc.subject,
+            tags: savedDoc.tags,
         };
 
         return NextResponse.json(responseItem, { status: 201 });
