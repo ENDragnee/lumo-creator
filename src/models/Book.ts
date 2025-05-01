@@ -10,6 +10,8 @@ export interface IBook extends Document {
   createdAt: Date;
   updatedAt: Date;
   createdBy: Types.ObjectId;
+  institution?: string;
+  subject?: string;
   tags: string[];
   genre?: string;
   publishedAt?: Date;

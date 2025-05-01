@@ -40,6 +40,8 @@ interface ApiResponseItem {
     createdBy: string;
     type: 'book' | 'content';
     isDraft?: boolean;
+    institution?: string;
+    subject?: string;
     // Add other relevant fields returned after creation/update
 }
 
@@ -50,6 +52,8 @@ type ExpectedLeanBook = IBook & {
     createdBy: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
+    institution?: string;
+    subject?: string;
 };
 
 type ExpectedLeanContent = IContent & {
@@ -58,6 +62,8 @@ type ExpectedLeanContent = IContent & {
     createdBy: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date; // Ensure updatedAt is expected
+    institution?: string;
+    subject?: string;
 };
 
 
@@ -173,7 +179,7 @@ export async function POST(request: NextRequest) {
     try {
         await connectDB();
         const body = await request.json();
-        const { type, title, parentId: parentIdStr, thumbnail, data, /* other fields */ } = body;
+        const { type, title, parentId: parentIdStr, thumbnail, data, institution, subject } = body;
 
         if (!type || !title) {
             return NextResponse.json({ error: 'Missing required fields (type, title)' }, { status: 400 });
@@ -204,6 +210,8 @@ export async function POST(request: NextRequest) {
             thumbnail: thumbnail || (type === 'book' ? '/placeholder-folder.png' : '/placeholder-file.png'),
             isDraft: true,
             isTrash: false,
+            institution,
+            subject,
         };
 
         if (type === 'book') {
@@ -231,6 +239,8 @@ export async function POST(request: NextRequest) {
             createdBy: savedDoc.createdBy.toString(),
             type: type,
             isDraft: savedDoc.isDraft,
+            institution: savedDoc.institution,
+            subject: savedDoc.subject,
         };
 
         return NextResponse.json(responseItem, { status: 201 });
