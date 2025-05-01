@@ -354,7 +354,6 @@ const NewSidebar: React.FC<NewSidebarProps> = ({ onContentSelect }) => {
         onOpenChange={setIsDeleteModalOpen}
         item={itemToDelete as any}
         onTrash={handleTrashItem}
-        onDelete={handlePermanentDeleteItem}
         isProcessing={isProcessingAction}
       />
     </>
