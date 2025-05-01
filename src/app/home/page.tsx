@@ -1,12 +1,12 @@
 import React from 'react'
-import DriveHome from "@/components/home"
+import DriveHomeRedesigned from "@/components/MainPages/DriveHomeRedesigned"
 
-const page = () => {
+const Home = () => {
   return (
     <div>
-      <DriveHome />
+      <DriveHomeRedesigned />
     </div>
   )
 }
 
-export default page
+export default Home

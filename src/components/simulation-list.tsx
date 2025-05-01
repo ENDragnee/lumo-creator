@@ -22,7 +22,7 @@ export function SimulationList({ simulations, onRemove }: SimulationListProps) {
       <h3 className="text-md font-semibold mb-2">Your Simulations</h3>
       <div className="grid grid-cols-1 gap-2">
         {simulations.map((simulation, index) => (
-          <div key={index} className="relative group">
+          <div key={index} className="relative group  hover:scale-105 transition-transform duration-200">
             <div
               ref={(ref) => {
                 if (ref) {

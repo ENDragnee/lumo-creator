@@ -4,6 +4,8 @@ import path from "path";
 import sharp from "sharp";
 import ffmpeg from "fluent-ffmpeg";
 import { mkdir } from "fs/promises";
+import Media from "@/models/Media";
+import mongoose from "mongoose";
 
 export async function POST(request) {
   const data = await request.formData();
@@ -55,6 +57,15 @@ export async function POST(request) {
 
     // Remove the temporary thumbnail.
     await unlink(tempThumbnailPath).catch(() => {});
+
+      // Create a document in the Media collection for the video upload.
+      await Media.create({
+        uploadedBy: new mongoose.Types.ObjectId(userId),
+        mediaType: "video",
+        filename,
+        url: `/LumoCreators/${userId}/videos/${filename}`,
+        thumbnailUrl: `/LumoCreators/${userId}/videos/thumbnails/${filename}.jpg`,
+      });
 
     return NextResponse.json({
       success: true,

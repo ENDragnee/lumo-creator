@@ -17,7 +17,7 @@ import {
 import { SliderComponent } from "@/components/user/slider";
 import { QuizComponent } from "@/components/user/quiz";
 import { TextComponent } from "@/components/user/text";
-import { useCursorMode } from "@/contexts/CursorModeContext";
+// import { useCursorMode } from "@/contexts/CursorModeContext";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useTheme } from "next-themes";
 
@@ -25,33 +25,35 @@ interface ToolbarProps {
   onVideoButtonClick: () => void;
   onImageButtonClick: () => void;
   onSimulationButtonClick: () => void;
+  onTextButtonClick: () => void; // <--- Add new prop for text
 }
 
 export function Toolbar({
   onVideoButtonClick,
   onImageButtonClick,
   onSimulationButtonClick,
+  onTextButtonClick,
 }: ToolbarProps) {
   const { connectors } = useEditor();
-  const { cursorMode, setCursorMode } = useCursorMode();
+  // const { cursorMode, setCursorMode } = useCursorMode();
   const { theme } = useTheme();
 
-  useEffect(() => {
-    // Update the body cursor based on the current mode
-    switch (cursorMode) {
-      case "resize":
-        document.body.style.cursor = "ew-resize";
-        break;
-      case "drag":
-        document.body.style.cursor = "move";
-        break;
-      case "edit":
-        document.body.style.cursor = "text";
-        break;
-      default:
-        document.body.style.cursor = "default";
-    }
-  }, [cursorMode]);
+  // useEffect(() => {
+  //   // Update the body cursor based on the current mode
+  //   switch (cursorMode) {
+  //     case "resize":
+  //       document.body.style.cursor = "ew-resize";
+  //       break;
+  //     case "drag":
+  //       document.body.style.cursor = "move";
+  //       break;
+  //     case "edit":
+  //       document.body.style.cursor = "text";
+  //       break;
+  //     default:
+  //       document.body.style.cursor = "default";
+  //   }
+  // }, [cursorMode]);
 
   const handleVideoClick = () => onVideoButtonClick();
   const handleImageClick = (e: React.MouseEvent) => {
@@ -61,17 +63,18 @@ export function Toolbar({
   const handleSimulationClick = () => {
     onSimulationButtonClick();
   };
+  const handleTextClick = () => { // <--- New handler
+    onTextButtonClick();
+  };
 
   return (
     // Use the data-theme attribute to drive custom styles
     <div
-      data-theme={theme === "dark" ? "arc-dark" : "light"}
-      className="flex justify-center p-2 relative bottom-0 bg-card left-0 right-0 transition-all duration-300 ease-in-out animate-slideIn"
+      className="flex justify-center items-center p-2 relative bottom-0 bg-card left-1/4 right-0 transition-all duration-300 ease-in-out animate-slideIn w-1/2 mb-2"
     >
-      <div className="flex h-12 items-center gap-1 rounded-full bg-gray-100 dark:bg-[#383c4a] border-gray-100 shadow-sm px-4 mx-auto transition-all duration-300 ease-in-out">
-        <ThemeToggle />
+      <div className="flex h-12 items-center gap-1 rounded-full bg-gray-100 dark:bg-[#383c4a] border border-gray-200 shadow-sm px-4 mx-auto transition-all duration-300 ease-in-out">
         {/* Cursor Mode Buttons */}
-        <Button
+        {/* <Button
           variant={cursorMode === "resize" ? "default" : "ghost"}
           size="sm"
           onClick={() =>
@@ -105,14 +108,14 @@ export function Toolbar({
           <span className="sr-only">Edit</span>
         </Button>
 
-        <div className="h-6 w-px bg-border mx-2" />
+        <div className="h-6 w-px bg-border mx-2" /> */}
 
         <Button
           ref={(ref) => {
             connectors.create(ref!, <SliderComponent />);
           }}
           variant="ghost"
-          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 text-toolbar-accent hover:text-toolbar-accent-hover"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
         >
           <SlidersHorizontal className="h-4 w-4" />
           Slider
@@ -122,7 +125,7 @@ export function Toolbar({
             connectors.create(ref!, <QuizComponent />);
           }}
           variant="ghost"
-          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 text-toolbar-accent hover:text-toolbar-accent-hover"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
         >
           <HelpCircle className="h-4 w-4" />
           Quiz
@@ -130,7 +133,7 @@ export function Toolbar({
         <Button
           onClick={handleSimulationClick}
           variant="ghost"
-          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 text-toolbar-accent hover:text-toolbar-accent-hover"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
         >
           <Monitor className="h-4 w-4" />
           Simulation
@@ -138,7 +141,7 @@ export function Toolbar({
         <Button
           onClick={handleVideoClick}
           variant="ghost"
-          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 text-toolbar-accent hover:text-toolbar-accent-hover"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
         >
           <Play className="h-4 w-4" />
           Video
@@ -146,21 +149,31 @@ export function Toolbar({
         <Button
           onClick={handleImageClick}
           variant="ghost"
-          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 text-toolbar-accent hover:text-toolbar-accent-hover"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
         >
           <ImageIcon className="h-4 w-4" />
           Image
         </Button>
+        {/* --- Updated Text Button --- */}
         <Button
-          ref={(ref) => {
-            connectors.create(ref!, <TextComponent content="Sample Text" />);
-          }}
+          // Remove the ref={...} for direct creation
+          onClick={handleTextClick} // <--- Use the new handler
           variant="ghost"
-          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 text-toolbar-accent hover:text-toolbar-accent-hover"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
         >
           <Type className="h-4 w-4" />
           Text
         </Button>
+        {/* <Button
+          ref={(ref) => {
+            connectors.create(ref!, <TextComponent content="Sample Text" />);
+          }}
+          variant="ghost"
+          className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 hover:bg-gray-200 rounded-3xl"
+        >
+          <Type className="h-4 w-4" />
+          Text
+        </Button> */}
       </div>
     </div>
   );
