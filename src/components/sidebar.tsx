@@ -13,6 +13,7 @@ import { useSession } from "next-auth/react";
 import NewSidebar from "./sidebar/NewSidebar"; // Adjust path if necessary
 import { cn } from "@/lib/utils";
 import { TextList } from "@/components/text-list"; // Assuming this is the correct path
+import { useRouter } from "next/navigation";
 
 
 // Define interfaces (assuming these are correct)
@@ -125,6 +126,7 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
   const [imageLink, setImageLink] = useState("");
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [simulationLink, setSimulationLink] = useState("");
+  const router = useRouter();
 
   // States for NewSidebar view management
   const [isNewSidebarOpen, setIsNewSidebarOpen] = useState(true);
@@ -232,6 +234,7 @@ export function Sidebar({ activeTool, onContentSelected }: SidebarProps) {
 
   // Handler for content selection from NewSidebar (seems okay)
   const handleContentSelectionFromNewSidebar = (contentId: string) => {
+    router.push(`/create?contentId=${contentId}`); // Assuming you want to navigate to the content page
     console.log("Content selected in Sidebar:", contentId);
     if (onContentSelected) {
       onContentSelected(contentId);
