@@ -2,7 +2,7 @@
 import { getToken } from 'next-auth/jwt';
 import { NextResponse } from 'next/server';
 
-const publicRoutes = ['/', '/home', '/auth/signin', '/auth/signup'];
+const publicRoutes = ['/', '/landing', '/auth/signin', '/auth/signup'];
 
 export async function middleware(request) {
   const token = await getToken({ req: request });
@@ -20,7 +20,7 @@ export async function middleware(request) {
   }
 
   if (token && publicRoutes.includes(pathname)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL('/landing', request.url));
   }
 
   return NextResponse.next();

@@ -494,7 +494,7 @@ export default function SignIn() {
             }
         } else if (result?.ok) {
             // Successful sign in
-            router.push("/main"); // Redirect to the main page or dashboard
+            router.push("/home"); // Redirect to the main page or dashboard
             // Optionally refresh router state if needed, though push usually suffices
             // router.refresh();
         } else {
@@ -519,7 +519,7 @@ export default function SignIn() {
         // Errors during the OAuth flow will redirect back here with ?error=...
         // Success will redirect to callbackUrl defined in authOptions or '/main' here.
         await signIn("google", {
-            callbackUrl: "/main", // Where to go after successful Google auth
+            callbackUrl: "/home", // Where to go after successful Google auth
         });
         // If signIn initiates successfully, the page redirects, so code below here
         // might not execute unless there's an immediate client-side error.
