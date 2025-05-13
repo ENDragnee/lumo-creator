@@ -101,7 +101,7 @@ export function Navbar() {
   }
 
   return (
-    <header className="flex h-14 items-center gap-4 bg-gray-100 rounded-b-3xl mb-1 bg-background px-6">
+    <header className="flex h-14 items-center gap-4 bg-gray-100 rounded-b-3xl mb-1 dark:bg-[#0F172A] -px-6">
       <div className="flex items-center gap-2">
         {/* Show ContentModal only if no contentId (new content) */}
         {!contentId && (
@@ -112,11 +112,11 @@ export function Navbar() {
             userId={session?.user?.name ?? "Guest"}
           />
         )}
-        <div className="bg-gray-200 rounded-xl flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleUndo} disabled={!canUndo} className="hover:bg-gray-400">
+        <div className="ml-4 bg-gray-200 dark:bg-[#6366F1] rounded-xl flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={handleUndo} disabled={!canUndo} className="hover:bg-gray-400 dark:hover:bg-[#5194E1]">
             <Undo2 className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleRedo} disabled={!canRedo} className="hover:bg-gray-400">
+          <Button variant="ghost" size="icon" onClick={handleRedo} disabled={!canRedo} className="hover:bg-gray-400 dark:hover:bg-[#5194E1]">
             <Redo2 className="h-4 w-4" />
           </Button>
         </div>
@@ -127,7 +127,7 @@ export function Navbar() {
           <Button
             variant="ghost"
             onClick={manualSave}
-            className="hover:bg-gray-300 bg-gray-200 min-w-[80px]" // Added min-width to prevent layout shift
+            className="hover:bg-gray-300 bg-gray-200 min-w-[80px] dark:bg-[#6366F1] dark:hover:bg-[#5194E1]" // Added min-width to prevent layout shift
             disabled={isSaving} // Disable button while saving
           >
             {isSaving ? (

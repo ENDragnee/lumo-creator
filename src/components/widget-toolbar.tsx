@@ -72,7 +72,7 @@ export function Toolbar({
     <div
       className="flex justify-center items-center p-2 relative bottom-0 bg-card left-1/4 right-0 transition-all duration-300 ease-in-out animate-slideIn w-1/2 mb-2"
     >
-      <div className="flex h-12 items-center gap-1 rounded-full bg-gray-100 dark:bg-[#383c4a] border border-gray-200 shadow-sm px-4 mx-auto transition-all duration-300 ease-in-out">
+      <div className="flex h-12 items-center gap-1 rounded-full border border-gray-200 dark:border-gray-600 shadow-sm px-4 mx-auto transition-all duration-300 ease-in-out">
         {/* Cursor Mode Buttons */}
         {/* <Button
           variant={cursorMode === "resize" ? "default" : "ghost"}
