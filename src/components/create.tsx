@@ -218,50 +218,50 @@ export default function TemplateEditor() {
     }
 
     // Component to handle auto-saving editor changes
-    // function EditorAutoSaveHandler() {
-    //     const { query } = useEditor((state, query) => ({
-    //         // We only need query here, not the full state
-    //         query: query
-    //     }));
+    function EditorAutoSaveHandler() {
+        const { query } = useEditor((state, query) => ({
+            // We only need query here, not the full state
+            query: query
+        }));
 
-    //     const currentJsonRef = useRef<string | null>(null);
+        const currentJsonRef = useRef<string | null>(null);
 
-    //     useEffect(() => {
-    //         // Get the current JSON string using query.serialize()
-    //         const latestJson = query.serialize();
+        useEffect(() => {
+            // Get the current JSON string using query.serialize()
+            const latestJson = query.serialize();
 
-    //          // Avoid saving if the JSON hasn't actually changed since the last save attempt
-    //         if (latestJson === currentJsonRef.current) {
-    //              console.log("Editor state unchanged, skipping save trigger.");
-    //              return;
-    //         }
+             // Avoid saving if the JSON hasn't actually changed since the last save attempt
+            if (latestJson === currentJsonRef.current) {
+                 console.log("Editor state unchanged, skipping save trigger.");
+                 return;
+            }
 
-    //         console.log("Editor JSON changed.");
-    //         currentJsonRef.current = latestJson; // Update the ref with the latest JSON
+            console.log("Editor JSON changed.");
+            currentJsonRef.current = latestJson; // Update the ref with the latest JSON
 
-    //         // Only save if we have a contentId and initial deserialization has completed
-    //         if (contentId && deserializedRef.current) {
-    //             console.log("Triggering auto-save...");
-    //             debouncedSave(latestJson);
-    //         } else {
-    //             console.log("Auto-save conditions not met - contentId:", contentId, "deserialized:", deserializedRef.current);
-    //         }
-    //     // eslint-disable-next-line react-hooks/exhaustive-deps
-    //     }, [query.serialize(), contentId]); // Depend on the serialized string and contentId
+            // Only save if we have a contentId and initial deserialization has completed
+            if (contentId && deserializedRef.current) {
+                console.log("Triggering auto-save...");
+                debouncedSave(latestJson);
+            } else {
+                console.log("Auto-save conditions not met - contentId:", contentId, "deserialized:", deserializedRef.current);
+            }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [query.serialize(), contentId]); // Depend on the serialized string and contentId
 
-    //      // Make debouncedSave stable using useCallback
-    //     const stableDebouncedSave = useCallback(debouncedSave, [debouncedSave]);
+         // Make debouncedSave stable using useCallback
+        const stableDebouncedSave = useCallback(debouncedSave, [debouncedSave]);
 
-    //     useEffect(() => {
-    //          // Re-run the effect if debouncedSave changes (e.g., due to contentId change)
-    //          // This ensures the latest debounced function is used.
-    //          // The actual saving logic depends on query.serialize() change.
-    //          console.log("EditorAutoSaveHandler effect re-ran due to dependency change.");
-    //     }, [stableDebouncedSave, contentId]);
+        useEffect(() => {
+             // Re-run the effect if debouncedSave changes (e.g., due to contentId change)
+             // This ensures the latest debounced function is used.
+             // The actual saving logic depends on query.serialize() change.
+             console.log("EditorAutoSaveHandler effect re-ran due to dependency change.");
+        }, [stableDebouncedSave, contentId]);
 
 
-    //     return null; // This component doesn't render anything
-    // }
+        return null; // This component doesn't render anything
+    }
 
 
     if (isLoading) {
@@ -296,13 +296,13 @@ export default function TemplateEditor() {
             {/* Component to load the initial state */}
             <DeserializeOnce contentData={initialContentData} />
             {/* Component to handle auto-saving changes */}
-            {/* <EditorAutoSaveHandler /> */}
+            <EditorAutoSaveHandler />
 
             <div className="flex h-screen flex-col bg-background">
                 <Navbar />
                 <div className="flex flex-1 overflow-hidden">
                     <Sidebar activeTool={activeTool} />
-                    <div className="flex flex-1 flex-col w-full h-full overflow-y-auto overflow-x-hidden bg-gray-50 mx-4 mt-2 rounded-md border border-gray-100">
+                    <div className="flex flex-1 flex-col w-full h-full overflow-y-auto overflow-x-hidden bg-transparent mx-4 mt-2">
                         <MemoizedCanvas />
                         <Toolbar
                             onVideoButtonClick={() => handleToolChange('video')}

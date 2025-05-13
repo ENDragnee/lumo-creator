@@ -222,7 +222,7 @@ const NewSidebar: React.FC<NewSidebarProps> = ({ onContentSelect }) => {
       {/* REMOVED Sidebar Container div with fixed positioning */}
 
       {/* Use a simple div that fills its container (provided by Sidebar.tsx) */}
-      <div className="flex flex-col h-full w-full bg-background dark:bg-slate-900 text-foreground dark:text-slate-100 overflow-hidden bg-gray-100 rounded-lg border border-gray-300">
+      <div className="flex flex-col h-full w-full bg-background dark:bg-slate-900 text-foreground dark:text-slate-100 overflow-hidden bg-gray-100 rounded-lg border border-gray-300 dark:border-slate-900">
         {/* Header */}
         {/* Removed outer container that managed justify-between/center based on isOpen */}
         {/* Header might need slight adjustments depending on whether parent shows title */}
