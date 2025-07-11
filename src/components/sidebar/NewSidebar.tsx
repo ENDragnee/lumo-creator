@@ -18,10 +18,10 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { SidebarDriveItem } from '@/app/api/sidebar-items/route';
 
 // Modals (assuming paths are correct)
-import { ContentModal } from '@/components/Modals/ContentModal';
-import { BookModal } from '@/components/Modals/BookModal';
-import { EditItemModal } from '@/components/Modals/EditItemModal';
-import { DeleteItemModal } from '@/components/Modals/DeleteItemModal';
+import { ContentModal } from '@/components/modals/ContentModal';
+import { BookModal } from '@/components/modals/BookModal';
+import { EditItemModal } from '@/components/modals/EditItemModal';
+import { DeleteItemModal } from '@/components/modals/DeleteItemModal';
 import {
     DropdownMenu,
     DropdownMenuContent,
