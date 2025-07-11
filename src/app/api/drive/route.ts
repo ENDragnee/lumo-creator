@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth'; // Adjust path
-import connectDB from '@/lib/db'; // Adjust path
+import connectDB from '@/lib/mongodb'; // Adjust path
 import Book, { IBook } from '@/models/Book'; // Adjust path
 import Content, { IContent } from '@/models/Content'; // Adjust path
 import mongoose, { Model, Document } from 'mongoose'; // Import necessary types

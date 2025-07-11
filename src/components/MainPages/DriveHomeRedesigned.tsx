@@ -1,4 +1,4 @@
-// app/page.tsx (or your main page component)
+// compoents/MainPages/DriveHomeRedesigned.tsx (or your main page component)
 "use client";
 
 import { useSession, signOut } from "next-auth/react";

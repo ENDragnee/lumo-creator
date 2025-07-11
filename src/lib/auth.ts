@@ -4,7 +4,7 @@ import { NextAuthOptions, User as NextAuthUser, Account, Profile } from 'next-au
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import { verifyPassword } from './password-utils'; // Adjust path if needed
-import connectDB from "@/lib/db";
+import connectDB from "@/lib/mongodb";
 // Ensure IUser interface has _id: Types.ObjectId;
 import User, { IUser } from '@/models/User';
 import mongoose, { Types } from 'mongoose';

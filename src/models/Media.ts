@@ -2,11 +2,11 @@
 import mongoose, { Document, Model, Types } from 'mongoose';
 
 export interface IMedia extends Document {
+  _id: string;
   uploadedBy: Types.ObjectId;
   mediaType: 'image' | 'video' | 'thumbnail';
   filename: string;
-  url: string;
-  thumbnailUrl?: string; // Optional: only for video assets
+  path: string;
   createdAt: Date;
 }
 
@@ -25,13 +25,9 @@ const MediaSchema = new mongoose.Schema<IMedia>({
     type: String,
     required: true,
   },
-  url: {
+  path: {
     type: String,
     required: true,
-  },
-  thumbnailUrl: {
-    type: String,
-    // This field is optional and can be used to store video thumbnails
   },
   createdAt: {
     type: Date,
