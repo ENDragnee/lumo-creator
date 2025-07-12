@@ -29,7 +29,8 @@ export interface IContent extends Document {
   version: number; // The versioning field
   institutionId?: Types.ObjectId; // For B2B model
 }
-
+const defaultData = `'{\"ROOT\":{\"type\":{\"resolvedName\":\"renderCanvas\"},\"isCanvas\":true,\"props\":{\"gap\":8,\"padding\":16},\"displayName\":\"Canvas\",\"custom\":{},\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}'
+`
 const ContentSchema = new mongoose.Schema<IContent>({
   title: { type: String, required: true },
   views: { type: Number, default: 0 },
@@ -46,7 +47,8 @@ const ContentSchema = new mongoose.Schema<IContent>({
   },
   data: {
     type: String,
-    required: false
+    required: true,
+    default: defaultData
   },
   createdAt: {
     type: Date,

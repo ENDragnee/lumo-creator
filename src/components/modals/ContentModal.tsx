@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from 'next/image';
-import { FilePlus, Image as ImageIcon, Tag, Loader2 } from 'lucide-react';
+import { FilePlus, Tag, Loader2, UploadCloud, AlertTriangle } from 'lucide-react';
 
 interface ContentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void; // Callback on successful creation
+  onSuccess: (newContentId: string) => void;
   parentId: string | null;
 }
 
@@ -31,11 +31,26 @@ export const ContentModal: React.FC<ContentModalProps> = ({ open, onOpenChange, 
         setError("Please select a valid image file.");
         return;
       }
+      if (file.size > 10 * 1024 * 1024) { // 10MB size limit
+        setError("File is too large. Maximum size is 10MB.");
+        return;
+      }
       setThumbnailFile(file);
       setError(null);
       const reader = new FileReader();
       reader.onloadend = () => setThumbnailPreview(reader.result as string);
       reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    // Create a synthetic event to reuse the handleFileChange logic
+    if(file) {
+      const syntheticEvent = { target: { files: [file] } } as unknown as ChangeEvent<HTMLInputElement>;
+      handleFileChange(syntheticEvent);
     }
   };
 
@@ -64,28 +79,19 @@ export const ContentModal: React.FC<ContentModalProps> = ({ open, onOpenChange, 
     setError(null);
 
     try {
-      // Step 1: Upload the thumbnail to the media API
       const mediaFormData = new FormData();
       mediaFormData.append("file", thumbnailFile);
-
-      const mediaRes = await fetch("/api/media", {
-        method: "POST",
-        body: mediaFormData,
-      });
-
+      const mediaRes = await fetch("/api/media", { method: "POST", body: mediaFormData });
       if (!mediaRes.ok) throw new Error("Thumbnail upload failed.");
       const mediaData = await mediaRes.json();
-      if (!mediaData.success || !mediaData.data._id) {
-        throw new Error(mediaData.message || "Could not get thumbnail ID.");
-      }
+      if (!mediaData.success || !mediaData.data._id) throw new Error(mediaData.message || "Could not get thumbnail ID.");
       const thumbnailId = mediaData.data._id;
 
-      // Step 2: Create the content item with the new media ID
       const contentPayload = {
         title,
         thumbnail: thumbnailId,
         parentId: parentId,
-        contentType: 'dynamic', // Or whatever default you prefer
+        contentType: 'dynamic',
         tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
       };
 
@@ -95,11 +101,16 @@ export const ContentModal: React.FC<ContentModalProps> = ({ open, onOpenChange, 
         body: JSON.stringify(contentPayload),
       });
 
-      if (!contentRes.ok) throw new Error("Failed to create content item.");
+      if (!contentRes.ok) {
+        const errorData = await contentRes.json();
+        throw new Error(errorData.message || "Failed to create content item.");
+      }
       
-      onSuccess(); // Trigger refetch on the parent page
-      handleOpenChange(false);
+      const result = await contentRes.json();
+      if (!result.data?._id) throw new Error("API did not return a new content ID.");
 
+      onSuccess(result.data._id);
+      handleOpenChange(false);
     } catch (err: any) {
       console.error("Error creating content:", err);
       setError(err.message || "An unknown error occurred.");
@@ -110,47 +121,76 @@ export const ContentModal: React.FC<ContentModalProps> = ({ open, onOpenChange, 
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md bg-background border rounded-lg shadow-2xl">
-        <DialogHeader className="p-6">
-          <DialogTitle className="text-xl font-semibold text-foreground flex items-center gap-3">
-            <FilePlus className="h-6 w-6 text-primary" />
+      <DialogContent className="sm:max-w-lg p-0">
+        <DialogHeader className="p-6 pb-4">
+          <DialogTitle className="text-2xl font-bold text-foreground flex items-center gap-3">
+            <FilePlus className="h-7 w-7 text-primary" />
             Create New Content
           </DialogTitle>
           <DialogDescription className="text-muted-foreground pt-1">
-            Fill in the details for your new masterpiece.
+            Fill in the details for your new masterpiece. A title and thumbnail are required.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="content-title" className="font-medium">Title</Label>
-            <Input id="content-title" placeholder="e.g., Introduction to Quantum Physics" value={title} onChange={(e) => setTitle(e.target.value)} required />
-          </div>
-          <div className="space-y-2">
-            <Label className="font-medium">Thumbnail</Label>
-            <div className="flex items-center gap-4">
-                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                  <ImageIcon className="mr-2 h-4 w-4" />
-                  {thumbnailFile ? "Change Image" : "Upload Image"}
-                </Button>
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                {thumbnailPreview && <Image src={thumbnailPreview} alt="Preview" width={48} height={48} className="object-cover rounded-md border" />}
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 space-y-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-2">
+              <Label htmlFor="content-title" className="font-medium text-sm">Title</Label>
+              <Input id="content-title" placeholder="e.g., Introduction to Quantum Physics" value={title} onChange={(e) => setTitle(e.target.value)} required />
             </div>
-            <p className="text-xs text-muted-foreground">A 16:9 aspect ratio looks best.</p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="content-tags" className="font-medium">Tags (Optional)</Label>
-            <div className="relative">
-              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input id="content-tags" placeholder="Comma-separated, e.g., science, physics" value={tags} onChange={(e) => setTags(e.target.value)} className="pl-9" />
+
+            <div className="space-y-2">
+              <Label htmlFor="file-upload" className="font-medium text-sm">Thumbnail</Label>
+              <div 
+                className="relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted transition-colors"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {thumbnailPreview ? (
+                  <>
+                    <Image src={thumbnailPreview} alt="Thumbnail Preview" layout="fill" className="object-cover rounded-lg" />
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-lg">
+                      <p className="text-white font-semibold">Click or drag to change</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center p-4">
+                    <UploadCloud className="mx-auto h-10 w-10 text-muted-foreground" />
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+                    </p>
+                    <p className="text-xs text-muted-foreground/80 mt-1">PNG, JPG, or GIF (max 10MB). 16:9 recommended.</p>
+                  </div>
+                )}
+              </div>
+              <input ref={fileInputRef} id="file-upload" type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="content-tags" className="font-medium text-sm">Tags (Optional)</Label>
+              <div className="relative">
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input id="content-tags" placeholder="Comma-separated, e.g., science, physics" value={tags} onChange={(e) => setTags(e.target.value)} className="pl-9" />
+              </div>
             </div>
           </div>
-          {error && <p className="text-sm text-destructive font-medium">{error}</p>}
-          <DialogFooter className="pt-4 !justify-between gap-2 flex-col-reverse sm:flex-row">
-            <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)} disabled={processing}>Cancel</Button>
-            <Button type="submit" disabled={processing || !title || !thumbnailFile}>
-              {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FilePlus className="mr-2 h-4 w-4" />}
-              {processing ? "Creating..." : "Create Content"}
-            </Button>
+          
+          <DialogFooter className="p-6 mt-2 border-t flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div className="w-full sm:w-auto sm:max-w-xs">
+              {error && (
+                <div className="flex items-center gap-2 text-sm text-destructive font-medium p-2 rounded-md bg-destructive/10">
+                   <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                   <p>{error}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 justify-end w-full sm:w-auto">
+              <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)} disabled={processing}>Cancel</Button>
+              <Button type="submit" disabled={processing || !title || !thumbnailFile}>
+                {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FilePlus className="mr-2 h-4 w-4" />}
+                {processing ? "Creating..." : "Create Content"}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

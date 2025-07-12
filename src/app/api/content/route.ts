@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-handler";
 import Content from "@/models/Content";
 import mongoose from "mongoose";
+import { isDraft } from "@reduxjs/toolkit";
 
 // --- GET all Content for the authenticated user ---
 export const GET = withAuth(async (request, { userId }) => {
@@ -51,8 +52,10 @@ export const POST = withAuth(async (request, { userId }) => {
 
   const newContent = await Content.create({
     ...body,
+    data: `{\"ROOT\":{\"type\":{\"resolvedName\":\"renderCanvas\"},\"isCanvas\":true,\"props\":{\"gap\":8,\"padding\":16},\"displayName\":\"Canvas\",\"custom\":{},\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}`,
     createdBy: new mongoose.Types.ObjectId(userId),
     thumbnail: new mongoose.Types.ObjectId(thumbnail),
+    isDraft: true,
     parentId: parentId ? new mongoose.Types.ObjectId(parentId) : null,
   });
 

@@ -69,36 +69,39 @@ export const PUT = withAuth(async (request, { params, userId }) => {
 
 // --- DELETE a Media Item ---
 export const DELETE = withAuth(async (request, { params, userId }) => {
-  const { mediaId } = params;
+  const { mediaId } = await params;
 
-  // 1. Find the DB record to get file details before deleting.
-  // Crucially, we check that the media item belongs to the user trying to delete it.
-  const mediaToDelete = await Media.findOne({ _id: mediaId, uploadedBy: userId });
-
-  if (!mediaToDelete) {
-    return NextResponse.json(
-      { success: false, message: "Media not found or you do not have permission to delete it." },
-      { status: 404 }
-    );
+  if (!mediaId) {
+    return NextResponse.json({ success: false, message: "Media ID is required." }, { status: 400 });
   }
 
   try {
-    // 2. Delete the physical file from the filesystem.
-    const filePath = path.join(process.cwd(), "public", mediaToDelete.path);
-    await fs.unlink(filePath);
-    console.log(`Successfully deleted file: ${filePath}`);
+    // Find the media item to ensure the user owns it and to get the file path
+    const mediaItem = await Media.findOne({ _id: mediaId, uploadedBy: userId });
 
-  } catch (error: any) {
-    // If the file doesn't exist, we can still proceed to delete the DB record.
-    if (error.code !== 'ENOENT') {
-      console.error("Error deleting file from filesystem:", error);
-      // Decide if you want to stop the process if file deletion fails.
-      // For now, we log the error but still attempt to delete the DB record.
+    if (!mediaItem) {
+      return NextResponse.json({ success: false, message: "Media not found or you do not have permission to delete it." }, { status: 404 });
     }
+
+    // Construct the full file path from the public URL
+    const publicDir = path.join(process.cwd(), "public");
+    const filePath = path.join(publicDir, mediaItem.path);
+
+    // Delete the file from the filesystem
+    try {
+        await fs.unlink(filePath);
+    } catch (fileError: any) {
+        // Log the error but don't block DB deletion if file is already gone
+        console.warn(`Could not delete file ${filePath}: ${fileError.message}`);
+    }
+
+    // Delete the media record from the database
+    await Media.deleteOne({ _id: mediaId });
+
+    return NextResponse.json({ success: true, message: "Media deleted successfully." });
+
+  } catch (error) {
+    console.error("Error deleting media:", error);
+    return NextResponse.json({ success: false, message: "An internal server error occurred." }, { status: 500 });
   }
-
-  // 3. Delete the record from the database.
-  await Media.findByIdAndDelete(mediaId);
-
-  return NextResponse.json({ success: true, message: "Media deleted successfully." });
 });

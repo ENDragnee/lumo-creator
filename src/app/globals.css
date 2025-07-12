@@ -1,4 +1,4 @@
-/* public/globals.css or styles/globals.css */
+/* public/globals.css */
 
 /* 1. Tailwind Imports */
 @tailwind base;
@@ -7,69 +7,88 @@
 
 /* 2. Theme Variables & Base Styles Layer */
 @layer base {
-  /* Light Theme Variables (From your old file) */
+  /*
+   ==========================================================================
+   THEME: Dracula Inspired (Light & Dark)
+   ==========================================================================
+  */
+
+  /* Light Theme Variables (Dracula Inverted) */
   :root {
-    --background: 255 100% 100%; /* #ffffff */
-    --foreground: 227 11% 25%; /* rgb(64,69,82) */
+    --background: 60 30% 96%; /* #f8f8f2 - Dracula Foreground */
+    --foreground: 231 15% 18%; /* #282a36 - Dracula Background */
 
-    --card: 255 100% 100%; /* #ffffff */
-    --card-foreground: 227 11% 25%; /* rgb(64,69,82) */
+    --card: 0 0% 100%; /* #ffffff - Pure White */
+    --card-foreground: 231 15% 18%; /* #282a36 */
 
-    --popover: 255 100% 100%; /* #ffffff */
-    --popover-foreground: 227 11% 25%; /* rgb(64,69,82) */
+    --popover: 0 0% 100%; /* #ffffff */
+    --popover-foreground: 231 15% 18%; /* #282a36 */
+    
+    --primary: 271 76% 77%; /* #bd93f7 - Dracula Purple */
+    --primary-foreground: 231 15% 18%; /* #282a36 */
 
-    --primary: 227 11% 25%; /* rgb(64,69,82) */
-    --primary-foreground: 255 100% 100%; /* #ffffff */
+    --secondary: 60 13% 90%; /* #e9e9e2 - Lighter Gray */
+    --secondary-foreground: 231 15% 18%; /* #282a36 */
 
-    --secondary: 220 29% 96%; /* rgb(241,245,249) */
-    --secondary-foreground: 227 11% 25%; /* rgb(64,69,82) */
+    --muted: 60 13% 90%; /* #e9e9e2 */
+    --muted-foreground: 225 27% 51%; /* #6272a4 - Dracula Comment */
+    
+    --accent: 328 100% 74%; /* #ff79c6 - Dracula Pink */
+    --accent-foreground: 231 15% 18%; /* #282a36 */
 
-    --muted: 220 29% 96%; /* rgb(241,245,249) */
-    --muted-foreground: 215 19% 46%; /* rgb(100,116,139) */
-
-    --accent: 220 29% 96%; /* rgb(241,245,249) */
-    --accent-foreground: 227 11% 25%; /* rgb(64,69,82) */
-
-    --destructive: 0 84% 60%; /* rgb(239,68,68) */
-    --destructive-foreground: 210 17% 98%; /* rgb(249,250,251) */
-
-    --border: 220 23% 91%; /* rgb(226,232,240) */
-    --input: 220 23% 91%; /* rgb(226,232,240) */
-    --ring: 227 11% 25%; /* rgb(64,69,82) */
+    --destructive: 0 100% 67%; /* #ff5555 - Dracula Red */
+    --destructive-foreground: 60 30% 96%; /* #f8f8f2 */
+    
+    --border: 240 13% 89%; /* #dddde7 - Light Border */
+    --input: 60 13% 90%; /* #e9e9e2 */
+    --ring: 193 97% 77%; /* #8be9fd - Dracula Cyan for focus */
 
     --radius: 0.5rem;
+    
+    /* Chart / Accent Colors */
+    --chart-1: 145 83% 54%; /* Darker Green for light mode */
+    --chart-2: 33 100% 61%; /* Darker Orange for light mode */
+    --chart-3: 328 100% 64%; /* Darker Pink for light mode */
+    --chart-4: 193 87% 67%; /* Darker Cyan for light mode */
+    --chart-5: 64 82% 66%;  /* Darker Yellow for light mode */
   }
 
-  /* Dark Theme Variables (Arc Dark from your old file) */
+  /* Dark Theme Variables (Official Dracula) */
   .dark {
-    --background: 225 12% 22%; /* #2f343f */
-    --foreground: 218 15% 86%; /* #d3dae3 */
+    --background: 231 15% 18%; /* #282a36 */
+    --foreground: 60 30% 96%; /* #f8f8f2 */
+    
+    --card: 232 14% 31%; /* #44475a */
+    --card-foreground: 60 30% 96%; /* #f8f8f2 */
 
-    --card: 228 13% 25%; /* #383c4a */
-    --card-foreground: 218 15% 86%; /* #d3dae3 */
+    --popover: 232 14% 31%; /* #44475a */
+    --popover-foreground: 60 30% 96%; /* #f8f8f2 */
 
-    --popover: 228 13% 25%; /* #383c4a */
-    --popover-foreground: 218 15% 86%; /* #d3dae3 */
+    --primary: 271 76% 77%; /* #bd93f7 - Purple */
+    --primary-foreground: 231 15% 18%; /* #282a36 */
 
-    --primary: 212 71% 60%; /* #5294e2 */
-    --primary-foreground: 255 100% 100%; /* #ffffff */
+    --secondary: 232 15% 15%; /* #21222c - Slightly darker bg */
+    --secondary-foreground: 60 30% 96%; /* #f8f8f2 */
+    
+    --muted: 232 14% 31%; /* #44475a */
+    --muted-foreground: 225 27% 51%; /* #6272a4 - Comment */
 
-    --secondary: 225 12% 28%; /* #404552 */
-    --secondary-foreground: 218 15% 86%; /* #d3dae3 */
+    --accent: 328 100% 74%; /* #ff79c6 - Pink */
+    --accent-foreground: 231 15% 18%; /* #282a36 */
+    
+    --destructive: 0 100% 67%; /* #ff5555 - Red */
+    --destructive-foreground: 60 30% 96%; /* #f8f8f2 */
 
-    --muted: 227 13% 34%; /* #4b5162 */
-    --muted-foreground: 224 5% 52%; /* #7c818c */
+    --border: 232 14% 31%; /* #44475a */
+    --input: 232 14% 31%; /* #44475a */
+    --ring: 193 97% 77%; /* #8be9fd - Cyan */
 
-    --accent: 212 71% 60%; /* #5294e2 */
-    --accent-foreground: 255 100% 100%; /* #ffffff */
-
-    --destructive: 359 71% 57%; /* #e14245 */
-    --destructive-foreground: 255 100% 100%; /* #ffffff */
-
-    --border: 225 12% 28%; /* #404552 */
-    --input: 225 12% 28%; /* #404552 */
-    --ring: 212 71% 60%; /* #5294e2 */
-    /* --radius: 0.5rem; /* Inherits from :root */
+    /* Chart / Accent Colors */
+    --chart-1: 145 93% 64%; /* #50fa7b - Green */
+    --chart-2: 33 100% 71%; /* #ffb86c - Orange */
+    --chart-3: 328 100% 74%; /* #ff79c6 - Pink */
+    --chart-4: 193 97% 77%; /* #8be9fd - Cyan */
+    --chart-5: 64 92% 76%;  /* #f1fa8c - Yellow */
   }
 
   /* Apply base variables */
@@ -81,269 +100,71 @@
     @apply bg-background text-foreground; /* Default background and text */
     font-feature-settings: "rlig" 1, "calt" 1; /* Font features */
     transition: background-color 0.3s, color 0.3s; /* Smooth theme transition */
-    /* font-family: Arial, Helvetica, sans-serif; */ /* Removed: Prefer font setup in layout.tsx or tailwind.config */
   }
 }
 
 
-/* 3. Utility Layer (Includes merged scrollbar utilities) */
+/* 3. Utility Layer (Includes scrollbar utilities) */
 @layer utilities {
-  /* Scrollbar Utilities (Adapted from your old file, using CSS vars) */
-  .scrollbar-thin {
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: hsl(var(--muted-foreground)) transparent; /* Firefox: thumb track */
-  }
-
+  /* Thin scrollbar for webkit browsers */
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px; /* Thinner scrollbar */
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
-
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
-
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted-foreground) / 0.5); /* Use muted text color with some transparency */
-    border-radius: 3px;
-    border: 1px solid transparent; /* Optional padding */
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 10px;
+    border: 2px solid transparent;
     background-clip: content-box;
   }
-
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-     background-color: hsl(var(--muted-foreground) / 0.7); /* Darken on hover */
+     background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+  /* Thin scrollbar for Firefox */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.5) transparent;
   }
 
   /* Utility to completely hide scrollbars */
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
-  }
-  /* Alias */
+  .no-scrollbar::-webkit-scrollbar,
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+  .no-scrollbar,
   .scrollbar-none {
-     -ms-overflow-style: none;
-     scrollbar-width: none;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
-
-  /* Add your custom scrollbar utilities from the DriveHome component's usage */
-  /* These might override .scrollbar-thin if applied to the same element */
-   .scrollbar-thumb-gray-200::-webkit-scrollbar-thumb {
-       background-color: hsl(var(--border)); /* Light mode thumb (border color) */
-       border-radius: 10px;
-       border: 2px solid transparent;
-       background-clip: content-box;
-   }
-    .dark .scrollbar-thumb-slate-700::-webkit-scrollbar-thumb {
-       background-color: hsl(var(--muted)); /* Dark mode thumb (muted bg color) */
-       border-radius: 10px;
-       border: 2px solid transparent;
-       background-clip: content-box;
-   }
-
-   .scrollbar-thumb-gray-200::-webkit-scrollbar-thumb:hover,
-   .dark .scrollbar-thumb-slate-700::-webkit-scrollbar-thumb:hover {
-      background-color: hsl(var(--muted-foreground)); /* Use muted text color on hover */
-   }
-
-   .scrollbar-track-transparent::-webkit-scrollbar-track {
-     background: transparent;
-   }
-
-   /* Note: Firefox styling for these specific classes requires duplication */
-    .scrollbar-thumb-gray-200 {
-      scrollbar-color: hsl(var(--border)) transparent;
-    }
-    .dark .scrollbar-thumb-slate-700 {
-      scrollbar-color: hsl(var(--muted)) transparent;
-    }
-
 }
 
 
-/* 4. Remaining Custom Styles (From your old file) */
-
+/* 4. Remaining Custom Styles (Unchanged from your file) */
 /* Input Number Reset */
 input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-input[type="number"] {
-  -moz-appearance: textfield; /* Firefox */
-   appearance: textfield;
-}
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
-/* VS Code-inspired styles (Keep if used elsewhere) */
-.vscode-tree-view {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-}
-.vscode-tree-item {
-  display: flex;
-  align-items: center;
-  padding: 3px 0;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.vscode-tree-item:hover {
-  /* Adapt hover to theme variables */
-  background-color: hsl(var(--accent) / 0.5);
-}
-.vscode-tree-item-active {
-  /* Adapt active state to theme variables */
-  background-color: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
-  font-weight: bold;
-}
-.vscode-tree-item-icon {
-  width: 16px;
-  height: 16px;
-  margin-right: 6px;
-}
-.vscode-tree-item-label {
-  flex-grow: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.vscode-tree-item-arrow {
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s ease;
-}
-.vscode-tree-item-arrow-expanded {
-  transform: rotate(90deg);
-}
+/* Global Heading Styles */
+h1 { @apply text-2xl font-bold; }
+h2 { @apply text-xl font-bold; }
+h3 { @apply text-lg font-bold; }
 
-/* Pill-shaped search bar utility (Keep if used) */
-.search-bar {
-  border-radius: 9999px;
-}
-
-/* Collapsible animations (Keep if used, maybe by shadcn?) */
-.collapsible-content {
-  overflow: hidden;
-  transition: max-height 0.3s ease-out;
-}
-/* Use data attributes consistent with shadcn/ui */
-.collapsible-content[data-state="open"] {
-  max-height: 1000px; /* Adjust if needed */
-}
-.collapsible-content[data-state="closed"] {
-  max-height: 0;
-}
-.collapsible-trigger[data-state="open"] .chevron {
-  transform: rotate(90deg); /* Ensure .chevron class exists on icon */
-}
-
-/* Global Heading Styles (Keep with caution - may conflict with Tailwind utils) */
-h1 {
-  @apply text-2xl font-bold; /* Replaced with Tailwind */
-}
-h2 {
-  @apply text-xl font-bold; /* Replaced with Tailwind */
-}
-h3 {
-  @apply text-lg font-bold; /* Replaced with Tailwind */
-}
-/* Keep container style if needed */
-.text-component {
-  font-size: inherit;
-}
-
-/* Animation (Keep if used) */
-@keyframes slideIn {
-  0% { opacity: 0; transform: translateY(10px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-.animate-slideIn {
-  animation: slideIn 0.5s ease-out;
-}
-
-/* Markdown Display Styles (Keep - Essential if rendering Markdown) */
-.craft-markdown-display {
-  text-align: inherit;
-  line-height: 1.6;
-}
-.craft-markdown-display ul,
-.craft-markdown-display ol {
-  margin-top: 0.8em;
-  margin-bottom: 0.8em;
-  list-style-position: outside;
-  padding-left: 2em;
-}
+/* Markdown Display Styles */
+.craft-markdown-display { line-height: 1.6; }
+.craft-markdown-display ul, .craft-markdown-display ol { margin-top: 0.8em; margin-bottom: 0.8em; list-style-position: outside; padding-left: 2em; }
 .craft-markdown-display ul { list-style-type: disc; }
 .craft-markdown-display ol { list-style-type: decimal; }
 .craft-markdown-display ul ul { list-style-type: circle; }
-.craft-markdown-display ul ul ul { list-style-type: square; }
-.craft-markdown-display ol ol { list-style-type: lower-alpha; }
-.craft-markdown-display ol ol ol { list-style-type: lower-roman; }
-.craft-markdown-display li > ul,
-.craft-markdown-display li > ol {
-  margin-top: 0.3em;
-  margin-bottom: 0.3em;
-  padding-left: 1.5em;
-}
-.craft-markdown-display li {
-  margin-bottom: 0.3em;
-}
-.craft-markdown-display h1,
-.craft-markdown-display h2,
-.craft-markdown-display h3,
-.craft-markdown-display h4,
-.craft-markdown-display h5,
-.craft-markdown-display h6 {
-  margin-top: 1.2em;
-  margin-bottom: 0.6em;
-  line-height: 1.3;
-  font-weight: 600;
-}
+.craft-markdown-display li { margin-bottom: 0.3em; }
+.craft-markdown-display h1, .craft-markdown-display h2, .craft-markdown-display h3, .craft-markdown-display h4 { margin-top: 1.2em; margin-bottom: 0.6em; line-height: 1.3; font-weight: 600; }
 .craft-markdown-display p { margin-bottom: 0.8em; }
 .craft-markdown-display strong { font-weight: bold; }
 .craft-markdown-display em { font-style: italic; }
-.craft-markdown-display blockquote {
-  margin-left: 1em;
-  padding-left: 1em;
-  border-left: 3px solid hsl(var(--border)); /* Use theme border */
-  color: hsl(var(--muted-foreground));      /* Use theme muted text */
-  font-style: italic;
-}
-.craft-markdown-display code {
-    background-color: hsl(var(--muted)); /* Use theme muted bg */
-    padding: 0.2em 0.4em;
-    border-radius: 3px;
-    font-size: 0.9em;
-    font-family: monospace;
-    color: hsl(var(--muted-foreground)); /* Use theme muted text */
-}
-.craft-markdown-display pre {
-    background-color: hsl(var(--muted)); /* Use theme muted bg */
-    padding: 0.8em;
-    border-radius: var(--radius);
-    overflow-x: auto;
-    margin-bottom: 0.8em; /* Add some margin */
-}
-.craft-markdown-display pre code {
-    background-color: transparent; /* Code inside pre doesn't need extra bg */
-    padding: 0;
-    font-size: inherit;
-    color: inherit; /* Inherit from pre */
-    border-radius: 0;
-    display: block; /* Ensure block display for overflow */
-}
-
-/* 5. Removed Styles */
-/*
- - Removed old ::-webkit-scrollbar global styles (replaced by utilities)
- - Removed old @media query for sidebar (handled by component logic/Tailwind)
- - Removed direct body font-family (handled elsewhere)
- - Updated h1,h2,h3 to use @apply for consistency (optional)
-*/
+.craft-markdown-display blockquote { margin-left: 1em; padding-left: 1em; border-left: 3px solid hsl(var(--border)); color: hsl(var(--muted-foreground)); font-style: italic; }
+.craft-markdown-display code { background-color: hsl(var(--muted)); padding: 0.2em 0.4em; border-radius: 3px; font-size: 0.9em; font-family: monospace; color: hsl(var(--accent-foreground)); }
+.craft-markdown-display pre { background-color: hsl(var(--muted)); padding: 0.8em; border-radius: var(--radius); overflow-x: auto; margin-bottom: 0.8em; }
+.craft-markdown-display pre code { background-color: transparent; padding: 0; font-size: inherit; border-radius: 0; display: block; }

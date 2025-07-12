@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useSession } from 'next-auth/react';
 
 // Import shared types and modals
 import { DriveItem } from '@/types/drive';
@@ -19,6 +18,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 // --- TYPE DEFINITIONS ---
 interface StudioTreeSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
   onContentSelect: (contentId: string) => void;
 }
 
@@ -151,10 +152,9 @@ const SidebarLevel: React.FC<SidebarLevelProps> = ({ parentId, level, searchQuer
 };
 
 // --- MAIN SIDEBAR COMPONENT ---
-export function StudioTreeSidebar({ onContentSelect }: StudioTreeSidebarProps) {
+export function StudioTreeSidebar({ isOpen, onClose, onContentSelect }: StudioTreeSidebarProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [isMobile, setIsMobile] = useState(false);
-    const [isMobileOpen, setIsMobileOpen] = useState(false);
     
     // State for Modals
     const [modalState, setModalState] = useState<{
@@ -188,7 +188,9 @@ export function StudioTreeSidebar({ onContentSelect }: StudioTreeSidebarProps) {
     // Close mobile sidebar when content is selected
     const handleContentClick = (contentId: string) => {
         onContentSelect(contentId);
-        if (isMobile) setIsMobileOpen(false);
+        if (isMobile) {
+            onClose();
+        }
     };
 
     // Modal action handlers
@@ -198,12 +200,11 @@ export function StudioTreeSidebar({ onContentSelect }: StudioTreeSidebarProps) {
 
     const sidebarContent = (
         <div className={cn(
-            "flex flex-col h-full bg-background border-r",
-            isMobile && "w-72" // Fixed width for mobile overlay
+            "flex flex-col h-full bg-background border-r w-72"
         )}>
-            <div className="flex items-center justify-between p-2 border-b h-16 shrink-0">
+            <div className="flex items-center justify-between p-2 border-b h-14 shrink-0">
                 <h2 className="font-semibold text-lg px-2">Studio Library</h2>
-                {isMobile && <Button variant="ghost" size="icon" onClick={() => setIsMobileOpen(false)}><X className="h-5 w-5" /></Button>}
+                {isMobile && <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>}
             </div>
             <div className="p-2 shrink-0">
                 <DropdownMenu>
@@ -227,22 +228,14 @@ export function StudioTreeSidebar({ onContentSelect }: StudioTreeSidebarProps) {
 
     return (
         <>
-            {/* Mobile-only menu button */}
-            {isMobile && (
-                <div className="fixed top-4 left-4 z-50">
-                    <Button variant="secondary" size="icon" onClick={() => setIsMobileOpen(true)}><Menu className="h-5 w-5" /></Button>
-                </div>
-            )}
-            
-            {/* Sidebar display logic */}
-            {isMobile ? (
-                <AnimatePresence>
-                    {isMobileOpen && (
+            <AnimatePresence>
+                {isOpen && (
+                    isMobile ? (
                         <>
                             <motion.div
                                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                 className="fixed inset-0 bg-black/60 z-40"
-                                onClick={() => setIsMobileOpen(false)}
+                                onClick={onClose}
                             />
                             <motion.aside
                                 initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
@@ -252,11 +245,19 @@ export function StudioTreeSidebar({ onContentSelect }: StudioTreeSidebarProps) {
                                 {sidebarContent}
                             </motion.aside>
                         </>
-                    )}
-                </AnimatePresence>
-            ) : (
-                <aside className="w-72 shrink-0">{sidebarContent}</aside>
-            )}
+                    ) : (
+                        <motion.aside
+                            initial={{ width: 0 }}
+                            animate={{ width: 288 }} // w-72
+                            exit={{ width: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="shrink-0 overflow-hidden"
+                        >
+                           {sidebarContent}
+                        </motion.aside>
+                    )
+                )}
+            </AnimatePresence>
 
             {/* Modals */}
             <BookModal open={modalState.isBookOpen} onOpenChange={(open) => setModalState(s => ({ ...s, isBookOpen: open }))} onSuccess={forceRefetch} parentId={modalState.parentForNew} />
