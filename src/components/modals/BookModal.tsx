@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FolderPlus, Tag, Loader2 } from 'lucide-react';
+import { FolderPlus, Loader2, AlertTriangle } from 'lucide-react';
 
 interface BookModalProps {
   open: boolean;
@@ -67,32 +67,44 @@ export const BookModal: React.FC<BookModalProps> = ({ open, onOpenChange, onSucc
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md bg-background border rounded-lg shadow-2xl">
-        <DialogHeader className="p-6">
-          <DialogTitle className="text-xl font-semibold text-foreground flex items-center gap-3">
-            <FolderPlus className="h-6 w-6 text-blue-500" />
+      <DialogContent className="sm:max-w-lg p-0">
+        <DialogHeader className="p-6 pb-4">
+          <DialogTitle className="text-2xl font-bold text-foreground flex items-center gap-3">
+            <FolderPlus className="h-7 w-7 text-blue-500" />
             Create New Book
           </DialogTitle>
           <DialogDescription className="text-muted-foreground pt-1">
             Books act like folders to help you organize your content.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="book-title" className="font-medium">Title</Label>
-            <Input id="book-title" placeholder="e.g., My Novel Drafts" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 space-y-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-2">
+              <Label htmlFor="book-title" className="font-medium text-sm">Title</Label>
+              <Input id="book-title" placeholder="e.g., My Novel Drafts" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="book-description" className="font-medium text-sm">Description (Optional)</Label>
+              <Textarea id="book-description" placeholder="A brief summary of what's inside..." value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="book-description" className="font-medium">Description (Optional)</Label>
-            <Textarea id="book-description" placeholder="A brief summary of what's inside..." value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
-          </div>
-          {error && <p className="text-sm text-destructive font-medium">{error}</p>}
-          <DialogFooter className="pt-4 !justify-between gap-2 flex-col-reverse sm:flex-row">
-            <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)} disabled={processing}>Cancel</Button>
-            <Button type="submit" disabled={processing || !title} className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600">
-              {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FolderPlus className="mr-2 h-4 w-4" />}
-              {processing ? "Creating..." : "Create Book"}
-            </Button>
+          
+          <DialogFooter className="p-6 mt-2 border-t flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div className="w-full sm:w-auto sm:max-w-xs">
+              {error && (
+                <div className="flex items-center gap-2 text-sm text-destructive font-medium p-2 rounded-md bg-destructive/10">
+                   <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                   <p>{error}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 justify-end w-full sm:w-auto">
+              <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)} disabled={processing}>Cancel</Button>
+              <Button type="submit" disabled={processing || !title} className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600">
+                {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FolderPlus className="mr-2 h-4 w-4" />}
+                {processing ? "Creating..." : "Create Book"}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

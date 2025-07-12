@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 
 // --- GET a single Content item by ID ---
 export const GET = withAuth(async (request, { params, userId }) => {
-  const { contentId } = params;
+  const { contentId } = await params;
 
   const content = await Content.findOne({
     _id: contentId,
@@ -69,7 +69,7 @@ export const PUT = withAuth(async (request, { params, userId }) => {
 
 // --- DELETE (Soft Delete) a Content item ---
 export const DELETE = withAuth(async (request, { params, userId }) => {
-  const { contentId } = params;
+  const { contentId } = await params;
 
   const result = await Content.updateOne(
     { _id: contentId, createdBy: new mongoose.Types.ObjectId(userId) },

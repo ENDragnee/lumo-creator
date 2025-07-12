@@ -4,12 +4,6 @@ import { getServerSession, Session } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import mongoose from "mongoose";
-
-// **THE FIX**: Import all your Mongoose models here to ensure they are registered.
-// Mongoose's model registration is global. Importing a model file anywhere
-// in the execution path makes it available to all other parts of the application
-// that share the same Mongoose instance. By putting them in this central handler,
-// you guarantee they are registered before any API logic runs.
 import "@/models/User"; // Assuming you have a User model used by auth
 import "@/models/Media";
 import "@/models/Book";
