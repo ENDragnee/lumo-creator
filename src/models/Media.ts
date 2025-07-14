@@ -1,8 +1,16 @@
-// models/Media.ts
+// @/models/Media.ts
 import mongoose, { Document, Model, Types } from 'mongoose';
+export interface IMediaData {
+  _id: string;
+  uploadedBy: string; // ObjectId is serialized to a string
+  mediaType: 'image' | 'video' | 'thumbnail';
+  filename: string;
+  path: string;
+  createdAt: string; // Date is serialized to an ISO string
+}
 
 export interface IMedia extends Document {
-  _id: string;
+  _id: Types.ObjectId;
   uploadedBy: Types.ObjectId;
   mediaType: 'image' | 'video' | 'thumbnail';
   filename: string;
@@ -14,7 +22,7 @@ const MediaSchema = new mongoose.Schema<IMedia>({
   uploadedBy: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
-    ref: 'User', // Adjust reference if your user model is named differently
+    ref: 'User',
   },
   mediaType: {
     type: String,

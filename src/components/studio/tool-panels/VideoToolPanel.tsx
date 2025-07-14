@@ -54,7 +54,11 @@ export function VideoToolPanel() {
           {videos.map(video => (
             <div key={video._id} className="relative group flex items-center gap-3 p-2 border rounded-lg">
               <div
-                ref={ref => ref && connectors.create(ref, <VideoComponent src={video.path} />)}
+                ref={(ref: HTMLDivElement) => {
+                  if(ref){
+                    connectors.create(ref, <VideoComponent src={video.path} />)
+                  }
+                }}
                 className="flex-1 flex items-center gap-3 cursor-grab"
               >
                 <div className="flex-shrink-0 h-10 w-10 bg-muted rounded flex items-center justify-center">

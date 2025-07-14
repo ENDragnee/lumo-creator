@@ -1,10 +1,8 @@
-// @/components/cards/BookCardList.tsx
 'use client';
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Folder, FileText, MoreVertical } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Folder, FileText } from 'lucide-react';
 
 interface IBook {
   _id: string;
@@ -17,10 +15,10 @@ interface BookCardListProps {
   item: IBook;
   index: number;
   onItemClick: (id: string) => void;
-  onOpenActions: (e: React.MouseEvent, item: IBook & { type: 'book' }) => void;
+  actionNode?: React.ReactNode; // New prop for action button
 }
 
-export function BookCardList({ item, index, onItemClick, onOpenActions }: BookCardListProps) {
+export function BookCardList({ item, index, onItemClick, actionNode }: BookCardListProps) {
   return (
     <motion.div
       initial={{ opacity: 0, x: -10 }}
@@ -49,15 +47,9 @@ export function BookCardList({ item, index, onItemClick, onOpenActions }: BookCa
             <span>{item.contentCount ?? 0} items</span>
           </div>
         </div>
+        {/* Action Button Slot */}
         <div className="ml-auto opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex-shrink-0">
-           <Button 
-                variant="ghost" 
-                size="icon" 
-                className="rounded-full h-8 w-8"
-                onClick={(e) => onOpenActions(e, { ...item, type: 'book' } )}
-            >
-              <MoreVertical className="h-4 w-4" />
-           </Button>
+           {actionNode}
         </div>
       </div>
     </motion.div>

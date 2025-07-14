@@ -5,7 +5,7 @@ import React from "react";
 import { useNode, useEditor, Node } from "@craftjs/core";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SimulationSettings } from "@/components/settings/SimulationSettings"; // Settings component (created below)
+import { SimulationSettings } from "@/components/editor-components/settings/SimulationSettings"; // Settings component (created below)
 import { StackResizableWrapper } from '@/components/StackResizableWrapper';
 
 // Props Interface

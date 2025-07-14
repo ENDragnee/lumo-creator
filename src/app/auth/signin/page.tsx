@@ -1,5 +1,5 @@
 import React from 'react'
-import Login from '@/components/login'
+import Login from '@/components/auth/Login'
 import { Suspense } from 'react';
 
 

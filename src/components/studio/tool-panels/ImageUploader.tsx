@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Upload } from "lucide-react";
 import { addMediaItem } from "@/app/store/slices/mediaSlice";
 import { AppDispatch } from "@/app/store/store";
-import { IMedia } from "@/models/Media";
+import { IMediaData } from "@/models/Media";
 
 export function ImageUploader() {
   const dispatch = useDispatch<AppDispatch>();
@@ -43,7 +43,7 @@ export function ImageUploader() {
       }
       
       // On success, add the new item to the Redux store
-      dispatch(addMediaItem(result.data as IMedia));
+      dispatch(addMediaItem(result.data as IMediaData));
 
     } catch (err: any) {
       setError(err.message);

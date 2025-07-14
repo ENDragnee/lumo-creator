@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Label } from "@/components/ui/label"
 import { AppDispatch, RootState } from "@/app/store/store"
 import { toggleRightSidebar, toggleTreeSidebar } from "@/app/store/slices/editorSlice"
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type NavbarProps = {
   contentId: string | null
@@ -96,6 +97,7 @@ export function Navbar({ contentId }: NavbarProps) {
 
           {/* Right Section - Actions & Settings */}
           <div className="flex items-center gap-2 md:gap-4">
+            <ThemeToggle />
             <div className="flex items-center space-x-2">
               <Label htmlFor="editor-mode" className="cursor-pointer flex items-center gap-2">
                 <Tooltip>

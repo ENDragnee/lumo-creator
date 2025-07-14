@@ -3,8 +3,7 @@
 import { useEffect, useCallback, useRef, memo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux"; // NEW: Import useDispatch
 import { Editor, Frame, Element, useEditor } from "@craftjs/core";
-import { ReduxProvider } from "@/app/store/ReduxProvider";
-import { renderCanvas } from "@/components/canvas/RenderCanvas";
+import { RenderCanvas } from "@/components/editor-components/RenderCanvas";
 import { Navbar } from "@/components/navigation/Navbar";
 import { Toolbar } from "@/components/Toolbar";
 import { RightSidebar } from "@/components/studio/RightSidebar";
@@ -46,7 +45,7 @@ function useDebounce(callback: (...args: any[]) => void, delay: number) {
 
 // --- Memoized Canvas (unchanged) ---
 const MemoizedCanvas = memo(({ children }: { children?: React.ReactNode }) => (
-    <Frame><Element is={renderCanvas} canvas>{children}</Element></Frame>
+    <Frame><Element is={RenderCanvas} canvas>{children}</Element></Frame>
 ));
 MemoizedCanvas.displayName = 'MemoizedCanvas';
 
@@ -178,8 +177,6 @@ function EditorAutoSaveHandler({ contentId, debouncedSave, deserializedRef }: an
 // --- Main Exported Component with Redux Provider (unchanged) ---
 export function StudioComponent({ contentId }: StudioComponentProps) {
     return (
-        <ReduxProvider>
             <EditorCore contentId={contentId} />
-        </ReduxProvider>
     );
 }

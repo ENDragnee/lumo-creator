@@ -1,14 +1,33 @@
 // @/app/api/media/[mediaId]/route.ts
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth"; // Standard path for NextAuth options
 import Media from "@/models/Media";
-import { withAuth } from "@/lib/api-handler";
+import connectDB from "@/lib/mongodb"; // Helper to connect to the database
 
+// Define the type for the dynamic route parameters, following the requested structure
+type MediaRouteParams = {
+  params: Promise<{
+    mediaId: string;
+  }>;
+};
 
 // --- GET a Single Media Item ---
-export const GET = withAuth(async (request, { params, userId }) => {
-  const { mediaId } = params;
+export async function GET(
+  request: NextRequest,
+  { params }: MediaRouteParams
+) {
+  // Handle authentication directly
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+  }
+
+  await connectDB();
+  const userId = session.user.id;
+  const { mediaId } = await params;
 
   // Find the media item ensuring it belongs to the authenticated user
   const media = await Media.findOne({ _id: mediaId, uploadedBy: userId });
@@ -21,87 +40,91 @@ export const GET = withAuth(async (request, { params, userId }) => {
   }
 
   return NextResponse.json({ success: true, data: media });
-});
+}
 
 // --- PUT (Update) a Media Item ---
-// Note: The current model has few updatable fields. This is a placeholder.
-// You could extend the Media model with 'title', 'altText', 'description' fields to make this more useful.
-export const PUT = withAuth(async (request, { params, userId }) => {
-    const { mediaId } = params;
-    const body = await request.json();
-
-    // Fields that are allowed to be updated. Avoid updating URL/filename here unless you also rename the file.
-    const { filename } = body; 
-
-    if (!filename) {
-        return NextResponse.json({ success: false, message: "No updateable fields provided." }, { status: 400 });
-    }
-
-    // Find the original media to get the old filename for renaming
-    const originalMedia = await Media.findOne({ _id: mediaId, uploadedBy: userId });
-    if (!originalMedia) {
-        return NextResponse.json({ success: false, message: "Media not found." }, { status: 404 });
-    }
-
-    // **Caution**: Renaming a file on the filesystem and DB must be an atomic transaction, which is hard.
-    // For simplicity, we'll just update the DB. A more robust solution might be needed for production.
-    // Let's assume the client knows what it's doing.
-    const updatedMedia = await Media.findOneAndUpdate(
-        { _id: mediaId, uploadedBy: userId },
-        { $set: { filename: filename } }, // Update only the 'filename' field
-        { new: true } // Return the updated document
-    );
-    
-    if (!updatedMedia) {
-        // This case is unlikely if originalMedia was found, but good practice.
-        return NextResponse.json({ success: false, message: "Update failed or media not found." }, { status: 404 });
-    }
-    
-    // Note: This does NOT rename the physical file. To do that, you'd add:
-    // const oldPath = path.join(process.cwd(), "public", originalMedia.url);
-    // const newPath = path.join(path.dirname(oldPath), filename);
-    // await fs.rename(oldPath, newPath);
-    // And also update the `url` field in the database.
-
-    return NextResponse.json({ success: true, data: updatedMedia });
-});
-
-
-// --- DELETE a Media Item ---
-export const DELETE = withAuth(async (request, { params, userId }) => {
-  const { mediaId } = await params;
-
-  if (!mediaId) {
-    return NextResponse.json({ success: false, message: "Media ID is required." }, { status: 400 });
+export async function PUT(
+  request: NextRequest,
+  { params }: MediaRouteParams
+) {
+  // Handle authentication directly
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
 
+  await connectDB();
+  const userId = session.user.id;
+  const { mediaId } = await params;
+  const body = await request.json();
+
+  const { filename } = body;
+
+  if (!filename) {
+    return NextResponse.json(
+      { success: false, message: "No updateable fields provided." },
+      { status: 400 }
+    );
+  }
+
+  const updatedMedia = await Media.findOneAndUpdate(
+    { _id: mediaId, uploadedBy: userId },
+    { $set: { filename: filename } },
+    { new: true }
+  );
+
+  if (!updatedMedia) {
+    return NextResponse.json(
+      { success: false, message: "Update failed or media not found." },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({ success: true, data: updatedMedia });
+}
+
+// --- DELETE a Media Item ---
+export async function DELETE(
+  request: NextRequest,
+  { params }: MediaRouteParams
+) {
+  // Handle authentication directly
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+  }
+
+  await connectDB();
+  const userId = session.user.id;
+  const { mediaId } = await params;
+
   try {
-    // Find the media item to ensure the user owns it and to get the file path
     const mediaItem = await Media.findOne({ _id: mediaId, uploadedBy: userId });
 
     if (!mediaItem) {
-      return NextResponse.json({ success: false, message: "Media not found or you do not have permission to delete it." }, { status: 404 });
+      return NextResponse.json(
+        { success: false, message: "Media not found or you do not have permission to delete it." },
+        { status: 404 }
+      );
     }
 
-    // Construct the full file path from the public URL
     const publicDir = path.join(process.cwd(), "public");
     const filePath = path.join(publicDir, mediaItem.path);
 
-    // Delete the file from the filesystem
     try {
-        await fs.unlink(filePath);
+      await fs.unlink(filePath);
     } catch (fileError: any) {
-        // Log the error but don't block DB deletion if file is already gone
-        console.warn(`Could not delete file ${filePath}: ${fileError.message}`);
+      console.warn(`Could not delete file ${filePath}: ${fileError.message}`);
     }
 
-    // Delete the media record from the database
     await Media.deleteOne({ _id: mediaId });
 
     return NextResponse.json({ success: true, message: "Media deleted successfully." });
-
   } catch (error) {
     console.error("Error deleting media:", error);
-    return NextResponse.json({ success: false, message: "An internal server error occurred." }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "An internal server error occurred." },
+      { status: 500 }
+    );
   }
-});
+}
