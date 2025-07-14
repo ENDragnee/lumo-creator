@@ -5,7 +5,7 @@ import React from "react";
 import { useNode, useEditor, Node } from "@craftjs/core";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { VideoSettings } from "@/components/settings/VideoSettings"; // Settings component (created below)
+import { VideoSettings } from "@/components/editor-components/settings/VideoSettings"; // Settings component (created below)
 import { StackResizableWrapper } from '@/components/StackResizableWrapper';
 
 // Props Interface

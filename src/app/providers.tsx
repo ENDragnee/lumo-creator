@@ -4,6 +4,7 @@
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { ReactNode } from "react";
+import { ReduxProvider } from "@/app/store/ReduxProvider";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -18,7 +19,9 @@ export function Providers({ children }: ProvidersProps) {
         enableSystem
         disableTransitionOnChange
       >
+      <ReduxProvider>
         {children}
+      </ReduxProvider>
       </ThemeProvider>
     </SessionProvider>
   );

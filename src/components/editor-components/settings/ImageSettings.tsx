@@ -6,7 +6,7 @@ import { useNode } from '@craftjs/core';
 import { Label } from '@/components/ui/label'; // Assuming shadcn/ui
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ImageProps } from '@/components/user/image'; // Import props interface
+import { ImageProps } from '../ImageComponent'; // Import props interface
 
 // Define a type for props handled by the generic input handler
 type InputChangePropNames = Exclude<keyof ImageProps, 'objectFit'>;

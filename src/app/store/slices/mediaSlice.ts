@@ -1,8 +1,11 @@
+// @/app/store/slices/mediaSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { IMedia } from '@/models/Media'; // Assuming this is your media type from the model
+// **THE FIX**: Import the plain data interface, not the Mongoose Document interface.
+import { IMediaData } from '@/models/Media';
 
 interface MediaState {
-  items: IMedia[];
+  // **THE FIX**: Use the serializable type for the state.
+  items: IMediaData[];
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
 }
@@ -24,7 +27,8 @@ export const fetchMedia = createAsyncThunk('media/fetchMedia', async (_, { rejec
     if (!data.success) {
       throw new Error(data.message || 'Failed to fetch media.');
     }
-    return data.data as IMedia[];
+    // **THE FIX**: The API returns plain JSON data, which matches IMediaData[].
+    return data.data as IMediaData[];
   } catch (error: any) {
     return rejectWithValue(error.message);
   }
@@ -34,11 +38,13 @@ const mediaSlice = createSlice({
   name: 'media',
   initialState,
   reducers: {
-    addMediaItem: (state, action: PayloadAction<IMedia>) => {
-        state.items.unshift(action.payload); // Add to the beginning of the list
+    // **THE FIX**: The payload action should be typed with the serializable interface.
+    addMediaItem: (state, action: PayloadAction<IMediaData>) => {
+      // This works now because action.payload is a plain object.
+      state.items.unshift(action.payload);
     },
     removeMediaItem: (state, action: PayloadAction<string>) => { // action.payload is the mediaId
-        state.items = state.items.filter(item => item._id !== action.payload);
+      state.items = state.items.filter(item => item._id !== action.payload);
     }
   },
   extraReducers: (builder) => {
@@ -46,8 +52,10 @@ const mediaSlice = createSlice({
       .addCase(fetchMedia.pending, (state) => {
         state.status = 'loading';
       })
-      .addCase(fetchMedia.fulfilled, (state, action: PayloadAction<IMedia[]>) => {
+      // **THE FIX**: The fulfilled action payload is an array of plain objects.
+      .addCase(fetchMedia.fulfilled, (state, action: PayloadAction<IMediaData[]>) => {
         state.status = 'succeeded';
+        // This is now safe because action.payload is serializable.
         state.items = action.payload;
       })
       .addCase(fetchMedia.rejected, (state, action) => {

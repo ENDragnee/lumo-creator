@@ -1,4 +1,4 @@
-// components/settings/VideoSettings.tsx
+// components/settings/SimulationSettings.tsx
 "use client"
 
 import React from 'react';
@@ -6,56 +6,55 @@ import { useNode } from '@craftjs/core';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { VideoComponentProps } from '../user/video'; // Import props interface
+import { SimulationProps } from '../SimulationComponent'; // Import props interface
 
 // Define a unique, non-empty value for the "None" option
-const NONE_VALUE = "__none__"; // Consistent value for "None"
+const NONE_VALUE = "__none__"; // Or "none", "manual", etc. - just not ""
 
-export const VideoSettings: React.FC = () => {
+export const SimulationSettings: React.FC = () => {
     const {
         actions: { setProp },
         src,
         width,
         aspectRatio,
         padding,
-    } = useNode<VideoComponentProps>((node) => node.data.props as VideoComponentProps);
+    } = useNode<SimulationProps>((node) => node.data.props as SimulationProps);
 
-    // Helper to handle input changes (excluding aspectRatio, handled by select)
     const handleInputChange = (
-        propName: Exclude<keyof VideoComponentProps, 'aspectRatio' | 'height'>,
-        value: string // Input elements provide string values
+        propName: Exclude<keyof SimulationProps, 'aspectRatio' | 'height'>,
+        value: string
     ) => {
-        // Use the immutable update pattern
-        setProp((currentProps: VideoComponentProps) => ({
+        setProp((currentProps: SimulationProps) => ({
             ...currentProps,
             [propName]: value,
-        }), 500); // Optional debounce
+        }), 500);
     };
 
-    // Helper for Select component change (specifically for aspectRatio)
     const handleSelectChange = (propName: 'aspectRatio', value: string) => {
-         // Use the immutable update pattern
-        setProp((currentProps: VideoComponentProps) => ({
+        setProp((currentProps: SimulationProps) => ({
             ...currentProps,
             // If the selected value is our special "none" value, set prop to undefined
             // Otherwise, use the selected value directly.
             [propName]: value === NONE_VALUE ? undefined : value,
-        }), 500); // Optional debounce
+        }), 500);
     };
 
     // Determine the value prop for the Select component.
+    // If aspectRatio is undefined, use our special NONE_VALUE.
+    // Otherwise, use the actual aspectRatio string.
     const selectValue = aspectRatio === undefined ? NONE_VALUE : aspectRatio;
 
     return (
         <div className="p-4 space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="src">YouTube/Vimeo URL</Label>
+            {/* ... other inputs remain the same ... */}
+             <div className="space-y-2">
+                <Label htmlFor="src">Simulation URL</Label>
                 <Input
                     id="src"
                     type="text"
-                    value={src || ''}
+                    value={src || ''} // Use destructured prop
                     onChange={(e) => handleInputChange('src', e.target.value)}
-                    placeholder="https://www.youtube.com/watch?v=..."
+                    placeholder="https://example.com/simulation/embed"
                 />
             </div>
 
@@ -63,21 +62,23 @@ export const VideoSettings: React.FC = () => {
                 <Label htmlFor="width">Width</Label>
                 <Input
                     id="width"
-                    type="text"
-                    value={width || ''}
+                    type="text" // Allow 'px' or '%'
+                    value={width || ''} // Use destructured prop
                     onChange={(e) => handleInputChange('width', e.target.value)}
-                    placeholder="e.g., 560px or 100%"
+                    placeholder="e.g., 400px or 100%"
                 />
             </div>
+
 
             <div className="space-y-2">
                 <Label htmlFor="aspectRatio">Aspect Ratio</Label>
                 <Select
-                    // Use the calculated selectValue
+                    // Use the calculated selectValue based on aspectRatio state
                     value={selectValue}
                     onValueChange={(value) => handleSelectChange('aspectRatio', value)}
                 >
                     <SelectTrigger id="aspectRatio">
+                        {/* Keep placeholder */}
                         <SelectValue placeholder="Select ratio (optional)" />
                     </SelectTrigger>
                     <SelectContent>
@@ -85,7 +86,7 @@ export const VideoSettings: React.FC = () => {
                         <SelectItem value="4/3">4:3 (Standard)</SelectItem>
                         <SelectItem value="1/1">1:1 (Square)</SelectItem>
                         <SelectItem value="9/16">9:16 (Vertical)</SelectItem>
-                        {/* Use the non-empty NONE_VALUE */}
+                        {/* Use the non-empty NONE_VALUE for the "None" option */}
                         <SelectItem value={NONE_VALUE}>None (Manual Height)</SelectItem>
                     </SelectContent>
                 </Select>
@@ -96,11 +97,12 @@ export const VideoSettings: React.FC = () => {
                 <Input
                     id="padding"
                     type="text"
-                    value={padding || ''}
+                    value={padding || ''} // Use destructured prop
                     onChange={(e) => handleInputChange('padding', e.target.value)}
                     placeholder="e.g., 0px or 8px"
                 />
             </div>
+            {/* Add any other simulation-specific settings here */}
         </div>
     );
 };

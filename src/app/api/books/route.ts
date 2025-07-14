@@ -1,17 +1,26 @@
 // @/app/api/books/route.ts
 import { NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-handler";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth"; // Standard path for NextAuth options
 import Book from "@/models/Book";
 import Content from "@/models/Content";
 import mongoose from "mongoose";
 
 // --- GET all Books for the authenticated user ---
-export const GET = withAuth(async (request, { userId }) => {
+export async function GET(request: Request) {
+  // Handle authentication directly
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+
+  // The rest of the logic remains the same
   const { searchParams } = new URL(request.url);
   const parentId = searchParams.get("parentId");
 
   const query: any = {
-    createdBy: new mongoose.Types.ObjectId(userId),
+    createdBy: new mongoose.Types.ObjectId(userId), // Use authenticated userId
     isTrash: false,
   };
 
@@ -20,29 +29,37 @@ export const GET = withAuth(async (request, { userId }) => {
   }
 
   const books = await Book.find(query)
-    // **THE FIX**: Populate 'path' from the Media model, not 'url'.
-    .populate<{ thumbnail: { path: string } }>('thumbnail', 'path')
+    .populate<{ thumbnail: { path: string } }>("thumbnail", "path")
     .sort({ updatedAt: -1 })
     .lean();
-    
+
   const booksWithDetails = await Promise.all(
     books.map(async (book) => {
-        const contentCount = await Content.countDocuments({ parentId: book._id, isTrash: false });
-        return { 
-            ...book, 
-            contentCount,
-            // **THE FIX**: Transform using '.path'. Books might not have a thumbnail, so default to null.
-            thumbnail: book.thumbnail?.path || null
-        };
+      const contentCount = await Content.countDocuments({
+        parentId: book._id,
+        isTrash: false,
+      });
+      return {
+        ...book,
+        contentCount,
+        thumbnail: book.thumbnail?.path || null,
+      };
     })
   );
 
   return NextResponse.json({ success: true, data: booksWithDetails });
-});
+}
 
 // --- POST (Create) a new Book ---
-// This handler does not populate, so no changes are needed, but it's included for completeness.
-export const POST = withAuth(async (request, { userId }) => {
+export async function POST(request: Request) {
+  // Handle authentication directly
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+
+  // The rest of the logic remains the same
   const body = await request.json();
   const { title, description, parentId } = body;
 
@@ -53,14 +70,14 @@ export const POST = withAuth(async (request, { userId }) => {
   const newBook = await Book.create({
     title,
     description,
-    createdBy: new mongoose.Types.ObjectId(userId),
+    createdBy: new mongoose.Types.ObjectId(userId), // Use authenticated userId
     parentId: parentId ? new mongoose.Types.ObjectId(parentId) : null,
   });
 
   const responseData = {
     ...newBook.toObject(),
-    thumbnail: null // Manually add null thumbnail for frontend consistency
-  }
+    thumbnail: null, // Manually add null thumbnail for frontend consistency
+  };
 
   return NextResponse.json({ success: true, data: responseData }, { status: 201 });
-});
+}

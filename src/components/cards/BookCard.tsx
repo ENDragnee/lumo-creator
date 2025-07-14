@@ -5,22 +5,21 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Folder, FileText } from "lucide-react";
 
-// This interface should match the book data structure used on your home page.
 interface BookCardProps {
   item: {
     _id: string;
     title: string;
-    updatedAt: string;
-    contentCount?: number; // The number of items inside the book
+    updatedAt: string | Date;
+    contentCount?: number;
   };
-  index: number; // For staggering animations
-  onItemClick: (id: string) => void; // Function to handle navigation into the book
+  index: number;
+  onItemClick: (id: string) => void;
+  actionNode?: React.ReactNode; // New prop for action button
 }
 
-export function BookCard({ item, index, onItemClick }: BookCardProps) {
+export function BookCard({ item, index, onItemClick, actionNode }: BookCardProps) {
   return (
     <motion.div
-      // Staggered animation for a pleasant loading effect
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.05 * index, duration: 0.3, ease: "easeOut" }}
@@ -37,7 +36,6 @@ export function BookCard({ item, index, onItemClick }: BookCardProps) {
         }}
       >
         <CardContent className="p-4 flex flex-col h-full justify-between">
-          {/* Top Section: Icon and Title */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-shrink-0 w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center border border-blue-200 dark:border-blue-800/50">
@@ -51,8 +49,6 @@ export function BookCard({ item, index, onItemClick }: BookCardProps) {
               </p>
             </div>
           </div>
-
-          {/* Bottom Section: Metadata */}
           <div className="mt-4 flex justify-between items-center text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5" title={`${item.contentCount ?? 0} items inside`}>
               <FileText className="w-3.5 h-3.5" />
@@ -63,6 +59,11 @@ export function BookCard({ item, index, onItemClick }: BookCardProps) {
             </span>
           </div>
         </CardContent>
+        
+        {/* Action Button Slot */}
+        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+            {actionNode}
+        </div>
       </Card>
     </motion.div>
   );

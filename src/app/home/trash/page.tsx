@@ -1,4 +1,4 @@
-// components/TrashPage.tsx
+// @/app/trash/page.tsx
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -11,7 +11,8 @@ import {
     AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from 'date-fns'; // For user-friendly dates
-
+import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
+import { RootState } from '@/app/store/store';
 // Interface matching the data structure returned by GET /api/trash
 interface TrashItem {
     _id: string;
@@ -23,11 +24,13 @@ interface TrashItem {
     parentId: string | null;
 }
 
-export function TrashPage() {
+export default function TrashPage() {
     const [items, setItems] = useState<TrashItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const dispatch = useAppDispatch();
+    const viewMode = useAppSelector((state: RootState) => state.view.viewMode);
 
     const fetchTrashedItems = useCallback(async () => {
         setLoading(true);
@@ -105,13 +108,12 @@ export function TrashPage() {
     };
 
     return (
-        <div className="flex-1 flex flex-col min-w-0 h-full bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-200">
-             <header className="h-16 px-4 sm:px-6 flex items-center justify-between border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
-                <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+        <div className="flex-1 flex flex-col min-w-0 h-full bg-background text-foreground">
+             <header className="h-16 px-4 sm:px-6 flex items-center justify-between border- flex-shrink-0">
+                <h1 className="text-xl font-semibold flex items-center gap-2">
                     <Trash2 className="h-5 w-5"/>
                     Trash
                 </h1>
-                 {/* Optional: Add "Empty Trash" button later */}
             </header>
 
              {error && (

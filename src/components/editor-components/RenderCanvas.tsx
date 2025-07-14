@@ -24,7 +24,7 @@ const defaultCanvasProps = {
 };
 
 
-export const renderCanvas: CanvasComponent = ({ children, gap = defaultCanvasProps.gap, padding = defaultCanvasProps.padding }) => {
+export const RenderCanvas: CanvasComponent = ({ children, gap = defaultCanvasProps.gap, padding = defaultCanvasProps.padding }) => {
   const {
     connectors: { connect /*Removed drag connector from canvas itself*/ }, // Usually, you don't drag the canvas root itself
     hasChildren // Check if there are child nodes
@@ -61,11 +61,11 @@ export const renderCanvas: CanvasComponent = ({ children, gap = defaultCanvasPro
   );
 }
 
-renderCanvas.displayName = "renderCanvas";
+RenderCanvas.displayName = "RenderCanvas";
 
-renderCanvas.craft = {
+RenderCanvas.craft = {
   props: defaultCanvasProps,
-  displayName: "Canvas", // Name shown in Layers panel
+  displayName: "Render Canvas", // Name shown in Layers panel
   rules: {
     canMoveIn: () => true, // Can drop elements into the canvas
   },
