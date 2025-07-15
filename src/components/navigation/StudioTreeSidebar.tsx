@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 
 // Import shared types and modals
 import { DriveItem } from '@/types/drive';
@@ -203,7 +204,9 @@ export function StudioTreeSidebar({ isOpen, onClose, onContentSelect }: StudioTr
             "flex flex-col h-full bg-background border-r w-72"
         )}>
             <div className="flex items-center justify-between p-2 border-b h-14 shrink-0">
+            <Link href='/home'>
                 <h2 className="font-semibold text-lg px-2">Studio Library</h2>
+            </Link>
                 {isMobile && <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>}
             </div>
             <div className="p-2 shrink-0">

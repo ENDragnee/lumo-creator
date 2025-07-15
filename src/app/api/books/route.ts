@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth"; // Standard path for NextAuth options
 import Book from "@/models/Book";
 import Content from "@/models/Content";
 import mongoose from "mongoose";
+import connectDB from "@/lib/mongodb";
 
 // --- GET all Books for the authenticated user ---
 export async function GET(request: Request) {
@@ -13,6 +14,7 @@ export async function GET(request: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
+  await connectDB();
   const userId = session.user.id;
 
   // The rest of the logic remains the same
