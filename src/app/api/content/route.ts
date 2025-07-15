@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth"; // Standard path for NextAuth options
 import Content from "@/models/Content";
 import mongoose from "mongoose";
+import connectDB from "@/lib/mongodb";
 // The 'isDraft' import from Redux Toolkit was unused and has been removed.
 
 // --- GET all Content for the authenticated user ---
@@ -13,6 +14,7 @@ export async function GET(request: Request) {
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
+  await connectDB();
   const userId = session.user.id;
 
   // The rest of the logic remains the same
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
 
   const newContent = await Content.create({
     ...body,
-    data: `{\"ROOT\":{\"type\":{\"resolvedName\":\"renderCanvas\"},\"isCanvas\":true,\"props\":{\"gap\":8,\"padding\":16},\"displayName\":\"Canvas\",\"custom\":{},\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}`,
+    data: `{\"ROOT\":{\"type\":{\"resolvedName\":\"RenderCanvas\"},\"isCanvas\":true,\"props\":{\"gap\":8,\"padding\":16},\"displayName\":\"Canvas\",\"custom\":{},\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}`,
     createdBy: new mongoose.Types.ObjectId(userId), // Use authenticated userId
     thumbnail: new mongoose.Types.ObjectId(thumbnail),
     isDraft: true,
