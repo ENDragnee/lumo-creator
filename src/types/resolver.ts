@@ -13,6 +13,8 @@ import { TableRowComponent } from '@/components/editor-components/TableRowCompon
 import { TableCellComponent } from '@/components/editor-components/TableCellComponent';
 import { FlashcardComponent } from '@/components/editor-components/FlashcardComponent';
 import { CalloutComponent } from '@/components/editor-components/CalloutComponent';
+import { TFQuizComponent } from '@/components/editor-components/TFQuizComponent';
+import { TrueFalseQuestionComponent } from '@/components/editor-components/TrueFalseQuestionComponent';
 
 
 
@@ -32,5 +34,7 @@ export const editorResolver = {
   TableCell: TableCellComponent,
   Flashcard: FlashcardComponent,
   Callout: CalloutComponent,
+  TFQuiz: TFQuizComponent, 
+  TrueFalseQuestion: TrueFalseQuestionComponent,
 
 };
