@@ -8,6 +8,9 @@ import { QuizComponent } from '@/components/editor-components/QuizComponent';
 import { ContainerComponent } from "@/components/editor-components/ContainerComponent";
 import { TabsComponent } from '@/components/editor-components/TabsComponent';
 import { TabPanelComponent } from '@/components/editor-components/TabPanelComponent';
+import { TableComponent } from '@/components/editor-components/TableComponent';
+import { TableRowComponent } from '@/components/editor-components/TableRowComponent';
+import { TableCellComponent } from '@/components/editor-components/TableCellComponent';
 
 export const editorResolver = {
   RenderCanvas: RenderCanvas,
@@ -20,4 +23,7 @@ export const editorResolver = {
   Slider: SliderComponent,
   TabsComponent: TabsComponent,
   TabPanelComponent: TabPanelComponent,
+  Table: TableComponent,
+  TableRow: TableRowComponent,
+  TableCell: TableCellComponent,
 };
