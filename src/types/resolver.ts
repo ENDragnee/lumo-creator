@@ -15,6 +15,8 @@ import { FlashcardComponent } from '@/components/editor-components/FlashcardComp
 import { CalloutComponent } from '@/components/editor-components/CalloutComponent';
 import { TFQuizComponent } from '@/components/editor-components/TFQuizComponent';
 import { TrueFalseQuestionComponent } from '@/components/editor-components/TrueFalseQuestionComponent';
+import { AccordionComponent } from '@/components/editor-components/AccordionComponent';
+
 
 
 
@@ -36,5 +38,6 @@ export const editorResolver = {
   Callout: CalloutComponent,
   TFQuiz: TFQuizComponent, 
   TrueFalseQuestion: TrueFalseQuestionComponent,
+  Accordion: AccordionComponent,
 
 };
