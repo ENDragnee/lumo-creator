@@ -18,7 +18,7 @@ import { TrueFalseQuestionComponent } from '@/components/editor-components/TrueF
 import { AccordionComponent } from '@/components/editor-components/AccordionComponent';
 import { CarouselComponent } from '@/components/editor-components/CarouselComponent';
 import { CarouselSlideComponent } from '@/components/editor-components/CarouselSlideComponent';
-
+import { MultipleChoiceQuestionComponent } from '@/components/editor-components/MultipleChoiceQuestionComponent';
 
 
 
