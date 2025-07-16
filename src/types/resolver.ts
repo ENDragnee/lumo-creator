@@ -11,6 +11,8 @@ import { TabPanelComponent } from '@/components/editor-components/TabPanelCompon
 import { TableComponent } from '@/components/editor-components/TableComponent';
 import { TableRowComponent } from '@/components/editor-components/TableRowComponent';
 import { TableCellComponent } from '@/components/editor-components/TableCellComponent';
+import { FlashcardComponent } from '@/components/editor-components/FlashcardComponent';
+
 
 export const editorResolver = {
   RenderCanvas: RenderCanvas,
@@ -26,4 +28,6 @@ export const editorResolver = {
   Table: TableComponent,
   TableRow: TableRowComponent,
   TableCell: TableCellComponent,
+  Flashcard: FlashcardComponent,
+
 };
