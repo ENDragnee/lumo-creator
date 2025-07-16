@@ -6,6 +6,8 @@ import { SimulationComponent } from "@/components/editor-components/SimulationCo
 import { SliderComponent } from '@/components/editor-components/SliderComponent';
 import { QuizComponent } from '@/components/editor-components/QuizComponent';
 import { ContainerComponent } from "@/components/editor-components/ContainerComponent";
+import { TabsComponent } from '@/components/editor-components/TabsComponent';
+import { TabPanelComponent } from '@/components/editor-components/TabPanelComponent';
 
 export const editorResolver = {
   RenderCanvas: RenderCanvas,
@@ -16,4 +18,6 @@ export const editorResolver = {
   Quiz: QuizComponent,
   Simulation: SimulationComponent,
   Slider: SliderComponent,
+  TabsComponent: TabsComponent,
+  TabPanelComponent: TabPanelComponent,
 };

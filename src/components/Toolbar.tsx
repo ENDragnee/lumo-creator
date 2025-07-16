@@ -94,6 +94,14 @@ export function Toolbar() {
                     <Type className="h-4 w-4" />
                     <span className="hidden md:inline">Text</span>
                 </Button>
+                                <Button
+                    onClick={() => handleToolClick('tab')}
+                    variant="ghost"
+                    className="gap-2 transform transition duration-300 ease-in-out hover:scale-105 rounded-full"
+                >
+                    <Type className="h-4 w-4" />
+                    <span className="hidden md:inline">Tab</span>
+                </Button>
             </div>
         </div>
     </div>

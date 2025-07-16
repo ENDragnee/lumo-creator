@@ -2,7 +2,7 @@
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type ToolType = 'text' | 'image' | 'video' | 'simulation' | 'container' | null;
+export type ToolType = 'text' | 'image' | 'video' | 'simulation' | 'container' | "tab" | null;
 
 interface EditorState {
   isTreeSidebarOpen: boolean;
