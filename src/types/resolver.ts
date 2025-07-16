@@ -16,6 +16,9 @@ import { CalloutComponent } from '@/components/editor-components/CalloutComponen
 import { TFQuizComponent } from '@/components/editor-components/TFQuizComponent';
 import { TrueFalseQuestionComponent } from '@/components/editor-components/TrueFalseQuestionComponent';
 import { AccordionComponent } from '@/components/editor-components/AccordionComponent';
+import { CarouselComponent } from '@/components/editor-components/CarouselComponent';
+import { CarouselSlideComponent } from '@/components/editor-components/CarouselSlideComponent';
+
 
 
 
@@ -39,5 +42,7 @@ export const editorResolver = {
   TFQuiz: TFQuizComponent, 
   TrueFalseQuestion: TrueFalseQuestionComponent,
   Accordion: AccordionComponent,
+  Carousel: CarouselComponent,
+  CarouselSlide: CarouselSlideComponent,
 
 };
