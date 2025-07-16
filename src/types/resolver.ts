@@ -12,6 +12,8 @@ import { TableComponent } from '@/components/editor-components/TableComponent';
 import { TableRowComponent } from '@/components/editor-components/TableRowComponent';
 import { TableCellComponent } from '@/components/editor-components/TableCellComponent';
 import { FlashcardComponent } from '@/components/editor-components/FlashcardComponent';
+import { CalloutComponent } from '@/components/editor-components/CalloutComponent';
+
 
 
 export const editorResolver = {
@@ -29,5 +31,6 @@ export const editorResolver = {
   TableRow: TableRowComponent,
   TableCell: TableCellComponent,
   Flashcard: FlashcardComponent,
+  Callout: CalloutComponent,
 
 };
