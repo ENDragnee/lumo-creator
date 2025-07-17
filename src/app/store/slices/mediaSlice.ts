@@ -19,7 +19,6 @@ const initialState: MediaState = {
   error: null,
 };
 
-// --- Updated Async Thunk for Fetching Media ---
 export const fetchMedia = createAsyncThunk<
   IMediaData[],
   // THE FIX (Part 1): We specify that the thunk can be called with `FetchMediaParams` or `undefined`.
@@ -28,14 +27,10 @@ export const fetchMedia = createAsyncThunk<
   { rejectValue: string }
 >(
   'media/fetchMedia',
-  // THE FIX (Part 2): We explicitly type `params` and provide a default value.
-  // This tells TypeScript that INSIDE this function, `params` will ALWAYS be an
-  // object of type `FetchMediaParams`, even if it's an empty one `{}`.
   async (params = {}, { rejectWithValue }) => {
     try {
       const searchParams = new URLSearchParams();
 
-      // Now this is type-safe because `params` is guaranteed to be an object.
       if (params.tag) {
         searchParams.append('tag', params.tag);
       }

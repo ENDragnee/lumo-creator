@@ -1,3 +1,4 @@
+// @/components/studio/tool-panels/CarouselToolPanel.tsx
 "use client";
 
 import React from "react";
@@ -21,17 +22,22 @@ export function CarouselToolPanel() {
         <div
           ref={(ref: HTMLDivElement | null) => {
             if(ref){
+              // Create a dragger for a pre-configured Carousel
               connectors.create(ref, 
                 <CarouselComponent>
                   <CarouselSlideComponent>
                      <ImageComponent />
                      <TextComponent text="Slide 1 Title" fontSize="24px" alignment="center" />
-                     <TextComponent text="Describe the first slide here." alignment="center" />
+                     <TextComponent text="Describe the first slide here. You can add more components." alignment="center" />
                   </CarouselSlideComponent>
                   <CarouselSlideComponent>
                      <ImageComponent />
                      <TextComponent text="Slide 2 Title" fontSize="24px" alignment="center" />
                      <TextComponent text="This is the second slide. Customize it freely." alignment="center" />
+                  </CarouselSlideComponent>
+                  <CarouselSlideComponent>
+                     <TextComponent text="Text-Only Slide" fontSize="24px" alignment="center" />
+                     <TextComponent text="Slides can contain any combination of components." alignment="center" />
                   </CarouselSlideComponent>
                 </CarouselComponent>
               )
@@ -42,7 +48,7 @@ export function CarouselToolPanel() {
           <SlidersHorizontal className="h-6 w-6 text-primary flex-shrink-0" />
           <div>
             <h3 className="font-semibold">Image & Text Carousel</h3>
-            <p className="text-xs text-muted-foreground">A pre-built slider.</p>
+            <p className="text-xs text-muted-foreground">A slider with 3 pre-built slides.</p>
           </div>
         </div>
       </div>

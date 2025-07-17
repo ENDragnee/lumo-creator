@@ -20,9 +20,6 @@ import { CarouselComponent } from '@/components/editor-components/CarouselCompon
 import { CarouselSlideComponent } from '@/components/editor-components/CarouselSlideComponent';
 import { MultipleChoiceQuestionComponent } from '@/components/editor-components/MultipleChoiceQuestionComponent';
 
-
-
-
 export const editorResolver = {
   RenderCanvas: RenderCanvas,
   Image: ImageComponent,
@@ -42,8 +39,8 @@ export const editorResolver = {
   TFQuiz: TFQuizComponent, 
   TrueFalseQuestion: TrueFalseQuestionComponent,
   Accordion: AccordionComponent,
-  Carousel: CarouselComponent,
-  CarouselSlide: CarouselSlideComponent,
+  CarouselComponent: CarouselComponent,
+  CarouselSlideComponent: CarouselSlideComponent,
   MultipleChoiceQuestionComponent: MultipleChoiceQuestionComponent,
 
 };

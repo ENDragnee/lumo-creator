@@ -175,9 +175,9 @@ export const TextComponent: CraftableComponent = ({
       className={`relative ${
         editorEnabled ? "cursor-grab" : ""
       } text-component-wrapper`}
-      onDoubleClick={selected && editorEnabled ? handleBeginEditing : undefined}
+      onClick={selected && editorEnabled ? handleBeginEditing : undefined}
       title={editorEnabled ? "Drag to reorder, double-click to edit" : ""}
-      onClick={(e) => {
+      onDoubleClick={(e) => {
         if (isEditing) e.stopPropagation();
         if (editorEnabled && !selected) editorActions.selectNode(id);
       }}
