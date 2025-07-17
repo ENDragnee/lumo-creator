@@ -2,6 +2,7 @@
 import mongoose, { Document, Model, Types } from 'mongoose';
 export interface IMediaData {
   _id: string;
+  tag?: string;
   uploadedBy: string; // ObjectId is serialized to a string
   mediaType: 'image' | 'video' | 'thumbnail';
   filename: string;
@@ -11,6 +12,7 @@ export interface IMediaData {
 
 export interface IMedia extends Document {
   _id: Types.ObjectId;
+  tag?: string;
   uploadedBy: Types.ObjectId;
   mediaType: 'image' | 'video' | 'thumbnail';
   filename: string;
@@ -23,6 +25,10 @@ const MediaSchema = new mongoose.Schema<IMedia>({
     type: mongoose.Schema.Types.ObjectId,
     required: true,
     ref: 'User',
+  },
+  tag: {
+    type: String,
+    required: false,
   },
   mediaType: {
     type: String,

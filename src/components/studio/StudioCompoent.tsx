@@ -1,3 +1,4 @@
+// @/components/studio/StudioComponent
 "use client";
 
 import { useEffect, useCallback, useRef, memo, useState } from "react";

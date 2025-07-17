@@ -1,127 +1,159 @@
-// components/settings/ImageSettings.tsx
 "use client"
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNode } from '@craftjs/core';
-import { Label } from '@/components/ui/label'; // Assuming shadcn/ui
+import Image from 'next/image';
+
+// Shadcn/UI Component Imports
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ImageProps } from '../ImageComponent'; // Import props interface
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
-// Define a type for props handled by the generic input handler
-type InputChangePropNames = Exclude<keyof ImageProps, 'objectFit'>;
+// Local Component Imports
+import { ImageProps } from '../ImageComponent'; // Make sure this path is correct
+import { MediaLibrary } from './MediaLibrary'; // Import the new Media Library
 
 export const ImageSettings: React.FC = () => {
     const {
         actions: { setProp },
-        // Destructure props
         src,
         alt,
         width,
         height,
         objectFit,
         padding,
-    } = useNode<ImageProps>((node) => node.data.props as ImageProps); // Added type assertion
+        lockAspectRatio,
+    } = useNode<ImageProps>((node) => node.data.props as ImageProps);
 
-    // Helper to handle input changes using immutable pattern
-    const handleInputChange = (propName: InputChangePropNames, value: string) => { // Input always provides string
-        // Use the immutable update pattern
-        setProp((currentProps: ImageProps) => ({
-            ...currentProps,
-            // Assign the string value from the input
-            // Type 'string' is assignable to 'string | number | undefined' for width/height/padding
-            [propName]: value,
-        }), 500); // Optional debounce
-    };
+    // State to control the visibility of the Media Library dialog
+    const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
-    // Helper for Select component change using immutable pattern
-    const handleSelectChange = (propName: 'objectFit', value: string) => {
-         // Use the immutable update pattern
-        setProp((currentProps: ImageProps) => ({
-            ...currentProps,
-            // Assert the value type as it comes from the Select component
-            [propName]: value as ImageProps['objectFit'], // Keep assertion as objectFit has specific values
-        }), 500); // Optional debounce
+    // This function will be called by the MediaLibrary when an image is selected
+    const handleSelectImage = (imagePath: string) => {
+        // Update the 'src' prop of the Craft.js node
+        setProp((props: ImageProps) => {
+            props.src = imagePath;
+        });
+        // Close the dialog after selection
+        setIsLibraryOpen(false);
     };
 
     return (
-        <div className="p-4 space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="src">Image URL</Label>
-                <Input
-                    id="src"
-                    type="text"
-                    value={src || ''}
-                    onChange={(e) => handleInputChange('src', e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                />
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="alt">Alt Text</Label>
-                <Input
-                    id="alt"
-                    type="text"
-                    value={alt || ''}
-                    onChange={(e) => handleInputChange('alt', e.target.value)}
-                    placeholder="Descriptive text for accessibility"
-                />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+        // Use a React Fragment to wrap the settings panel and the dialog
+        <>
+            <div className="p-4 space-y-4">
+                {/* --- IMAGE PREVIEW & REPLACE BUTTON --- */}
                 <div className="space-y-2">
-                    <Label htmlFor="width">Width</Label>
+                    <Label>Current Image</Label>
+                    <div className="flex items-center gap-4">
+                        <div className="relative w-16 h-16 rounded-md overflow-hidden border bg-muted flex-shrink-0">
+                            {src ? (
+                                <Image
+                                    src={src}
+                                    alt={alt || 'Current image preview'}
+                                    fill
+                                    className="object-cover"
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs text-center p-1">
+                                  No Image
+                                </div>
+                            )}
+                        </div>
+                        <Button variant="outline" onClick={() => setIsLibraryOpen(true)} className="w-full">
+                            Replace Image
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="alt">Alt Text</Label>
                     <Input
-                        id="width"
-                        type="text" // Stays text type
-                        value={width || ''}
-                        onChange={(e) => handleInputChange('width', e.target.value)}
-                        placeholder="e.g., 300px or 100%"
+                        id="alt"
+                        value={alt || ''}
+                        onChange={(e) => setProp((props: ImageProps) => { props.alt = e.target.value; }, 500)}
+                        placeholder="Descriptive text for accessibility"
                     />
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="width">Width</Label>
+                        <Input
+                            id="width"
+                            value={width || ''}
+                            onChange={(e) => setProp((props: ImageProps) => { props.width = e.target.value; }, 500)}
+                            placeholder="e.g., 300px"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="height">Height</Label>
+                        <Input
+                            id="height"
+                            value={height || ''}
+                            onChange={(e) => setProp((props: ImageProps) => { props.height = e.target.value; }, 500)}
+                            placeholder="e.g., 200px"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="lockAspectRatio">Lock Aspect Ratio</Label>
+                        <p className="text-xs text-muted-foreground">
+                            Maintain ratio when resizing.
+                        </p>
+                    </div>
+                    <Switch
+                        id="lockAspectRatio"
+                        checked={lockAspectRatio || false}
+                        onCheckedChange={(checked) => setProp((props: ImageProps) => { props.lockAspectRatio = checked; })}
+                    />
+                </div>
+
                 <div className="space-y-2">
-                    <Label htmlFor="height">Height</Label>
+                    <Label htmlFor="objectFit">Image Fit</Label>
+                    <Select
+                        value={objectFit || 'cover'}
+                        onValueChange={(value) => setProp((props: ImageProps) => { props.objectFit = value as ImageProps['objectFit']; })}
+                    >
+                        <SelectTrigger id="objectFit"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="cover">Cover</SelectItem>
+                            <SelectItem value="contain">Contain</SelectItem>
+                            <SelectItem value="fill">Fill</SelectItem>
+                            <SelectItem value="none">None</SelectItem>
+                            <SelectItem value="scale-down">Scale Down</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="padding">Padding</Label>
                     <Input
-                        id="height"
-                        type="text" // Stays text type
-                        value={height || ''}
-                        onChange={(e) => handleInputChange('height', e.target.value)}
-                        placeholder="e.g., 200px or auto"
+                        id="padding"
+                        value={padding || ''}
+                        onChange={(e) => setProp((props: ImageProps) => { props.padding = e.target.value; }, 500)}
+                        placeholder="e.g., 8px"
                     />
                 </div>
             </div>
 
-            <div className="space-y-2">
-                <Label htmlFor="objectFit">Object Fit</Label>
-                <Select
-                    // Default to 'contain' if objectFit is undefined/nullish
-                    value={objectFit || 'contain'}
-                    onValueChange={(value) => handleSelectChange('objectFit', value)}
-                >
-                    <SelectTrigger id="objectFit">
-                        <SelectValue placeholder="Select fit" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {/* These values are fine as they are non-empty */}
-                        <SelectItem value="contain">Contain</SelectItem>
-                        <SelectItem value="cover">Cover</SelectItem>
-                        <SelectItem value="fill">Fill</SelectItem>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="scale-down">Scale Down</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="padding">Padding</Label>
-                <Input
-                    id="padding"
-                    type="text" // Stays text type
-                    value={padding || ''}
-                    onChange={(e) => handleInputChange('padding', e.target.value)}
-                    placeholder="e.g., 0px or 8px"
-                />
-            </div>
-        </div>
+            {/* --- MEDIA LIBRARY DIALOG (MODAL) --- */}
+            <Dialog open={isLibraryOpen} onOpenChange={setIsLibraryOpen}>
+              <DialogTitle title='Replace current image'>
+                <DialogContent className="max-w-4xl w-full h-[85vh] p-0 flex flex-col">
+                    {/* Render the library inside the dialog, passing the required props */}
+                    <MediaLibrary
+                        onSelectImage={handleSelectImage}
+                        currentImageSrc={src}
+                    />
+                </DialogContent>
+              </DialogTitle>
+            </Dialog>
+        </>
     );
 };

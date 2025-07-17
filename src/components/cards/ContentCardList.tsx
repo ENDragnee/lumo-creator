@@ -28,20 +28,6 @@ interface ContentCardListProps {
 export function ContentCardList({ item, index, actionNode }: ContentCardListProps) {
   const router = useRouter();
 
-  const [imgSrc, setImgSrc] = useState(
-    item.thumbnail
-      ? `${process.env.NEXT_PUBLIC_CREATOR_URL}${item.thumbnail}`
-      : PLACEHOLDER_SVG_PATH
-  );
-  
-  useEffect(() => {
-    setImgSrc(
-      item.thumbnail
-        ? `${process.env.NEXT_PUBLIC_CREATOR_URL}${item.thumbnail}`
-        : PLACEHOLDER_SVG_PATH
-    );
-  }, [item.thumbnail]);
-
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
     router.push(`/studio/${item._id}`);
@@ -60,13 +46,13 @@ export function ContentCardList({ item, index, actionNode }: ContentCardListProp
       >
         <div className="relative h-16 w-28 flex-shrink-0 overflow-hidden rounded-md bg-gray-200 dark:bg-gray-700">
           <Image
-            src={imgSrc}
+            src={item.thumbnail}
             alt={item.title}
             layout="fill"
             objectFit="cover"
             loading="lazy"
             onError={() => {
-              setImgSrc(PLACEHOLDER_SVG_PATH);
+              item.thumbnail = PLACEHOLDER_SVG_PATH
             }}
           />
         </div>

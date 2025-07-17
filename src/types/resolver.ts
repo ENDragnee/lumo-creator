@@ -44,5 +44,6 @@ export const editorResolver = {
   Accordion: AccordionComponent,
   Carousel: CarouselComponent,
   CarouselSlide: CarouselSlideComponent,
+  MultipleChoiceQuestionComponent: MultipleChoiceQuestionComponent,
 
 };

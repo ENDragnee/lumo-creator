@@ -31,22 +31,6 @@ interface ContentCardProps {
 export function ContentCard({ item, index, actionNode }: ContentCardProps) {
   const router = useRouter();
   const isMobile = useMediaQuery({ maxWidth: 768 });
-
-  const [imgSrc, setImgSrc] = useState(
-    item.thumbnail 
-      ? `${process.env.NEXT_PUBLIC_CREATOR_URL}${item.thumbnail}` 
-      : PLACEHOLDER_SVG_PATH
-  );
-
-  useEffect(() => {
-    setImgSrc(
-      item.thumbnail 
-        ? `${process.env.NEXT_PUBLIC_CREATOR_URL}${item.thumbnail}` 
-        : PLACEHOLDER_SVG_PATH
-    );
-  }, [item.thumbnail]);
-
-
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
     router.push(`/studio/${item._id}`);
@@ -69,14 +53,14 @@ export function ContentCard({ item, index, actionNode }: ContentCardProps) {
       >
         <div className="relative aspect-video w-full overflow-hidden rounded-t-lg bg-gray-200 dark:bg-gray-700 flex-shrink-0">
           <Image
-            src={imgSrc}
+            src={item.thumbnail}
             alt={item.title}
             layout="fill"
             objectFit="cover"
             className="transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
             onError={() => {
-              setImgSrc(PLACEHOLDER_SVG_PATH);
+              item.thumbnail = PLACEHOLDER_SVG_PATH;
             }}
           />
           <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

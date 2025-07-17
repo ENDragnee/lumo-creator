@@ -1,11 +1,11 @@
-
+// components/editor-components/ImageComponent.tsx
 "use client"
 
 import React from "react"
 import { useNode, useEditor, Node } from "@craftjs/core"
-import { Button } from "@/components/ui/button"; // Assuming shadcn/ui
+import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { ImageSettings } from "@/components/editor-components/settings/ImageSettings"; // Settings component (created below)
+import { ImageSettings } from "@/components/editor-components/settings/ImageSettings";
 import { StackResizableWrapper } from '@/components/StackResizableWrapper';
 
 // Props Interface
@@ -13,9 +13,11 @@ export interface ImageProps {
   src?: string;
   alt?: string;
   width?: string | number;
-  height?: string | number; // Allow specific height for images
+  height?: string | number;
   objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
   padding?: string | number;
+  // New prop to lock aspect ratio from settings panel
+  lockAspectRatio?: boolean;
 }
 
 // Craftable Component Interface
@@ -33,22 +35,26 @@ interface CraftableImageComponent extends React.FC<ImageProps> {
 }
 
 export const ImageComponent: CraftableImageComponent = ({
-  src = "/placeholder.svg",
+  src = "/placeholder.png",
   alt = "Image placeholder",
   objectFit = 'contain',
   padding = "0px",
-  // width/height props are read by useNode/StackResizableWrapper
+  width,   // Read directly for aspect ratio calculation
+  height,  // Read directly for aspect ratio calculation
+  lockAspectRatio = false,
 }) => {
   const {
-    connectors: { connect, drag }, // Connectors applied to the draggable root
+    connectors: { connect, drag },
     id,
+    actions: { setProp }
   } = useNode((node) => ({
     id: node.id,
+    width: node.data.props.width,
+    height: node.data.props.height,
   }));
 
-  // Use useEditor hook to get selected state and editor actions/state
-   const { selected, actions: editorActions, enabled: editorEnabled } = useEditor((state, query) => ({
-      selected: query.getEvent('selected').contains(id), // Check if this specific node is selected
+  const { selected, actions: editorActions, enabled: editorEnabled } = useEditor((state, query) => ({
+      selected: query.getEvent('selected').contains(id),
       enabled: state.options.enabled,
   }));
 
@@ -56,10 +62,23 @@ export const ImageComponent: CraftableImageComponent = ({
     e.stopPropagation();
     editorActions.delete(id);
   };
+  
+  // Calculate aspect ratio from the node's current props if locked
+  const calculateAspectRatio = (): string | null => {
+    if (!lockAspectRatio || !width || !height) return null;
+    const w = parseFloat(String(width));
+    const h = parseFloat(String(height));
+    if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
+      // You can simplify to a raw ratio, but returning as string is safer for the prop
+      return `${w}/${h}`; 
+    }
+    return null;
+  }
+  const aspectRatio = calculateAspectRatio();
 
   // Styles
   const rootStyle: React.CSSProperties = {
-      position: 'relative', // Base positioning context
+      position: 'relative',
   };
 
   const contentStyle: React.CSSProperties = {
@@ -70,20 +89,23 @@ export const ImageComponent: CraftableImageComponent = ({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    position: 'relative', // Position context for image and button
+    position: 'relative',
   };
 
+  // --- CRITICAL CHANGE HERE ---
+  // The style of the <img> tag must change based on the objectFit prop.
   const imageStyle: React.CSSProperties = {
     display: 'block',
-    maxWidth: '100%',
-    maxHeight: '100%',
-    width: 'auto',
-    height: 'auto',
     objectFit: objectFit,
+    // When 'cover' or 'fill', the image MUST expand to the container's bounds.
+    // Otherwise, it should scale naturally within the container.
+    ...(objectFit === 'cover' || objectFit === 'fill'
+      ? { width: '100%', height: '100%' }
+      : { width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }
+    ),
   };
 
   return (
-    // Apply connectors to the outermost div that should be dragged
     <div ref={(ref) => { if (ref) connect(drag(ref)); }} style={rootStyle}
          className={`relative ${editorEnabled ? 'cursor-grab' : 'cursor-default'}`}
          title={editorEnabled ? "Drag to reorder" : ""}
@@ -91,31 +113,40 @@ export const ImageComponent: CraftableImageComponent = ({
       <StackResizableWrapper
           nodeId={id}
           enableWidthResize={true}
-          enableHeightResize={true} // Allow arbitrary height for images
-          aspectRatio={null} // No forced aspect ratio
+          enableHeightResize={true}
+          aspectRatio={aspectRatio} // Pass the calculated aspect ratio
           minWidth={50}
           minHeight={50}
       >
-        {/* This div receives the 100% width/height from wrapper */}
-        <div style={contentStyle} className="rounded"> {/* Added rounded class */}
+        <div style={contentStyle} className="rounded">
             <img
               src={src || "/placeholder.svg"}
               alt={alt}
               style={imageStyle}
               draggable={false}
+              // Set the initial dimensions of the image itself when it loads
+              // This helps the resizer determine an initial aspect ratio if needed
+              onLoad={(e) => {
+                  if (lockAspectRatio && (!width || !height)) {
+                      const img = e.currentTarget;
+                      // Set initial props based on image's natural dimensions
+                      setProp((props: ImageProps) => {
+                          props.width = `${img.naturalWidth}px`;
+                          props.height = `${img.naturalHeight}px`;
+                      });
+                  }
+              }}
             />
-
-            {/* Delete Button - Positioned relative to the content div */}
             {selected && editorEnabled && (
                 <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-1 right-1 z-20 h-5 w-5 opacity-80 hover:opacity-100"
-                onMouseDown={(e) => e.stopPropagation()} // Prevent starting drag/resize
-                onClick={handleRemove}
-                aria-label="Delete Image Element"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-1 right-1 z-20 h-5 w-5 opacity-80 hover:opacity-100"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={handleRemove}
+                    aria-label="Delete Image Element"
                 >
-                <Trash2 />
+                <Trash2 size={16} /> 
                 </Button>
             )}
         </div>
@@ -129,15 +160,16 @@ ImageComponent.craft = {
   props: {
     src: "/placeholder.svg",
     alt: "Placeholder Image",
-    width: "300px", // Initial pixel width
-    height: "200px", // Initial pixel height
-    objectFit: 'contain',
+    width: "300px",
+    height: "200px",
+    objectFit: 'cover', // Default to cover, a more common use case
     padding: "0px",
+    lockAspectRatio: false, // Add new prop to defaults
   } satisfies Partial<ImageProps>,
   related: {
-      settings: ImageSettings, // Link to the Settings component
+      settings: ImageSettings,
   },
   rules: {
-    canDrag: () => true, // Allow dragging this component
+    canDrag: () => true,
   },
 };

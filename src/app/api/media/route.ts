@@ -4,90 +4,136 @@ import fs, { mkdir } from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth"; // Standard path for NextAuth options
+import { authOptions } from "@/lib/auth";
 import Media from "@/models/Media";
 import mongoose from "mongoose";
 
-// --- GET All Media for the Authenticated User ---
-export async function GET(request: NextRequest) {
-  // Handle authentication directly
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
-  const userId = session.user.id;
+const MAX_IMAGES_PER_USER = 20;
 
-  // Find media items belonging to the authenticated user
-  const mediaItems = await Media.find({ uploadedBy: userId }).sort({ createdAt: -1 });
-  return NextResponse.json({ success: true, data: mediaItems });
+// --- GET All Media with Filtering ---
+export async function GET(request: NextRequest) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+    const userId = new mongoose.Types.ObjectId(session.user.id);
+
+    const { searchParams } = new URL(request.url);
+    const tag = searchParams.get('tag');
+    const limit = searchParams.get('limit');
+
+    // Build the query object
+    const query: { uploadedBy: mongoose.Types.ObjectId; tag?: { $regex: string; $options: 'i' } } = {
+        uploadedBy: userId
+    };
+
+    if (tag) {
+        // Use regex for partial, case-insensitive tag matching
+        query.tag = { $regex: tag, $options: 'i' };
+    }
+
+    try {
+        let mediaQuery = Media.find(query).sort({ createdAt: -1 });
+
+        if (limit && !isNaN(parseInt(limit))) {
+            mediaQuery = mediaQuery.limit(parseInt(limit));
+        }
+
+        const mediaItems = await mediaQuery.exec();
+        return NextResponse.json({ success: true, data: mediaItems });
+
+    } catch (error) {
+        console.error("Error fetching media:", error);
+        return NextResponse.json({ success: false, message: "Server error while fetching media." }, { status: 500 });
+    }
 }
 
-// --- POST (Upload) New Media ---
+// --- POST (Upload) New Media with Limit Enforcement ---
 export async function POST(request: NextRequest) {
-  // Handle authentication directly
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
-  const userId = session.user.id;
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+        return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+    const userId = new mongoose.Types.ObjectId(session.user.id);
 
-  // The rest of the logic remains the same
-  const data = await request.formData();
-  const file: File | null = data.get("file") as unknown as File;
+    const data = await request.formData();
+    const file: File | null = data.get("file") as unknown as File;
+    const tag: string | null = data.get("tag") as string; // Get the tag from form data
 
-  if (!file) {
-    return NextResponse.json({ success: false, message: "No file provided" }, { status: 400 });
-  }
+    if (!file) {
+        return NextResponse.json({ success: false, message: "No file provided" }, { status: 400 });
+    }
 
-  const contentType = file.type;
-  let mediaType: 'image' | 'video';
-  let targetSubDir: string;
-  let fileExtension: string;
+    // --- ENFORCE 20 IMAGE LIMIT ---
+    try {
+        const imageCount = await Media.countDocuments({ uploadedBy: userId, mediaType: 'image' });
 
-  if (contentType.startsWith("image/")) {
-    mediaType = 'image';
-    targetSubDir = 'images';
-    fileExtension = '.webp';
-  } else if (contentType.startsWith("video/")) {
-    mediaType = 'video';
-    targetSubDir = 'videos';
-    fileExtension = path.extname(file.name);
-  } else {
-    return NextResponse.json(
-      { success: false, message: `Unsupported file type: ${contentType}` },
-      { status: 415 }
-    );
-  }
+        if (imageCount >= MAX_IMAGES_PER_USER) {
+            // Find the oldest image for this user
+            const oldestImage = await Media.findOne({ uploadedBy: userId, mediaType: 'image' }).sort({ createdAt: 1 });
 
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
+            if (oldestImage) {
+                // 1. Delete the physical file
+                const filePathOnServer = path.join(process.cwd(), "public", oldestImage.path);
+                try {
+                    await fs.unlink(filePathOnServer);
+                } catch (unlinkError: any) {
+                    // Log the error but continue, as the DB record is more important to remove
+                    console.warn(`Could not delete old file from disk: ${filePathOnServer}`, unlinkError.message);
+                }
+                
+                // 2. Delete the database record
+                await Media.findByIdAndDelete(oldestImage._id);
+            }
+        }
+    } catch (error) {
+        console.error("Error enforcing media limit:", error);
+        return NextResponse.json({ success: false, message: "Server error during media limit enforcement." }, { status: 500 });
+    }
+    // ----------------------------
 
-  const uniqueId = new mongoose.Types.ObjectId();
-  // Use the authenticated userId to construct the filename
-  const filename = `${userId}_${uniqueId}${fileExtension}`;
-  
-  // Use the authenticated userId for the directory path
-  const targetDir = path.join(process.cwd(), "public", "LumoCreators", userId, targetSubDir);
-  await mkdir(targetDir, { recursive: true });
-  const filepath = path.join(targetDir, filename);
-  const publicUrl = `/LumoCreators/${userId}/${targetSubDir}/${filename}`;
+    // The rest of the upload logic
+    const contentType = file.type;
+    let mediaType: 'image' | 'video';
+    let fileExtension: string;
+    
+    if (contentType.startsWith("image/")) {
+        mediaType = 'image';
+        fileExtension = '.webp';
+    } else {
+        return NextResponse.json({ success: false, message: "Unsupported file type. Only images are allowed." }, { status: 415 });
+    }
 
-  if (mediaType === 'image') {
-    await sharp(buffer)
-      .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 80 })
-      .toFile(filepath);
-  } else {
-    await fs.writeFile(filepath, buffer);
-  }
-  
-  const newMedia = await Media.create({
-    _id: uniqueId,
-    uploadedBy: new mongoose.Types.ObjectId(userId), // Use the authenticated userId
-    mediaType,
-    filename,
-    path: publicUrl,
-  });
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-  return NextResponse.json({ success: true, data: newMedia }, { status: 201 });
+    const uniqueId = new mongoose.Types.ObjectId();
+    const filename = `${userId}_${uniqueId}${fileExtension}`;
+    
+    const targetDir = path.join(process.cwd(), "public", "LumoCreators", session.user.id, "images");
+    await mkdir(targetDir, { recursive: true });
+    const filepath = path.join(targetDir, filename);
+    const publicUrl = `/LumoCreators/${session.user.id}/images/${filename}`;
+
+    try {
+        await sharp(buffer)
+            .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
+            .webp({ quality: 80 })
+            .toFile(filepath);
+
+        const newMedia = await Media.create({
+            _id: uniqueId,
+            uploadedBy: userId,
+            mediaType,
+            filename,
+            path: publicUrl,
+            tag: tag || undefined, // Save the tag, or undefined if not provided
+        });
+
+        return NextResponse.json({ success: true, data: newMedia }, { status: 201 });
+
+    } catch (error) {
+        console.error("Error processing or saving media:", error);
+        return NextResponse.json({ success: false, message: "Server error while processing the file." }, { status: 500 });
+    }
 }

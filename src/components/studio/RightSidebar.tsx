@@ -22,8 +22,7 @@ import { ImageToolPanel } from './tool-panels/ImageToolPanel';
 import { VideoToolPanel } from './tool-panels/VideoToolPanel';
 import { SimulationToolPanel } from './tool-panels/SimulationToolPanel';
 import { ContainerToolPanel } from './tool-panels/ContainerToolPanel';
-import { TabsToolPanel } from './tool-panels/TabsToolPanel';
-
+import { CarouselToolPanel } from './tool-panels/CarouselToolPanel';
 const SHEET_HEIGHT_VH = 60;
 
 export function RightSidebar() {
@@ -131,7 +130,7 @@ export function RightSidebar() {
       case 'container':
         return <ContainerToolPanel />;
       case 'tab':
-        return <TabsToolPanel />;
+        return <CarouselToolPanel />;
       default:
         // Show this when the sidebar is open but no tool is selected
         return <div className="p-4 pt-8 text-center text-muted-foreground">Select a tool from the toolbar below.</div>;

@@ -3,7 +3,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useEditor, useNode, UserComponent } from '@craftjs/core';
 import { CarouselSettings } from './settings/CarouselSettings';
-import { CarouselSlideComponent } from './CarouselSlideComponent';
 import { Button } from '@/components/ui/button';
 import { Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';

@@ -1,13 +1,16 @@
 // components/StackResizableWrapper.tsx
 "use client";
 
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import { useNode, useEditor } from '@craftjs/core';
 import { throttle } from 'lodash-es';
+import clsx from 'clsx'; // Utility for conditional classes, install with `npm install clsx`
 
 // --- Constants ---
-const THROTTLE_WAIT = 30; // Update Craft state roughly 33 times per second (adjust as needed)
+const THROTTLE_WAIT = 16; // ~60fps updates
 
+// --- Types ---
+type Handle = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 interface StackResizableWrapperProps {
     children: React.ReactNode;
     nodeId: string;
@@ -15,55 +18,47 @@ interface StackResizableWrapperProps {
     enableHeightResize?: boolean;
     minWidth?: number;
     minHeight?: number;
-    aspectRatio?: string | null;
+    aspectRatio?: string | null; // e.g., "16/9", "1/1"
 }
 
-// Helper to parse dimension string/number to number for calculations
-const parseSize = (size: string | number | undefined, elementSize: number): number => {
-    if (typeof size === 'number') return size;
-    if (typeof size === 'string') {
-        const parsed = parseFloat(size);
-        // Prefer pixel values from props if available and valid
-        if (!isNaN(parsed) && (size.endsWith('px') || /^\d+(\.\d+)?$/.test(size))) {
-             return parsed;
-        }
-        // Ignore other units like %, vw, etc., for drag calculations, use measured size
-    }
-    // Fallback to the measured element size if props are invalid/unsuitable
-    return elementSize;
-};
-
-// Helper to parse aspect ratio string
+// --- Helper Functions ---
 const parseAspectRatio = (ratioStr: string | null): number | null => {
     if (!ratioStr || typeof ratioStr !== 'string') return null;
     const parts = ratioStr.split(/[/:]/);
     if (parts.length === 2) {
         const w = parseFloat(parts[0]);
         const h = parseFloat(parts[1]);
-        if (!isNaN(w) && !isNaN(h) && h !== 0 && w > 0 && h > 0) {
-            return w / h; // width / height ratio
+        if (!isNaN(w) && !isNaN(h) && w > 0 && h > 0) {
+            return w / h; // width / height
         }
     }
-    console.warn(`Invalid aspect ratio format: "${ratioStr}". Use "W:H" or "W/H".`);
     return null;
 };
 
+// Define the 8 resize handles
+const handles: { id: Handle; cursor: string }[] = [
+    { id: 'n', cursor: 'ns-resize' },
+    { id: 's', cursor: 'ns-resize' },
+    { id: 'e', cursor: 'ew-resize' },
+    { id: 'w', cursor: 'ew-resize' },
+    { id: 'ne', cursor: 'nesw-resize' },
+    { id: 'nw', cursor: 'nwse-resize' },
+    { id: 'se', cursor: 'nwse-resize' },
+    { id: 'sw', cursor: 'nesw-resize' },
+];
 
 export const StackResizableWrapper: React.FC<StackResizableWrapperProps> = ({
     children,
     nodeId,
     enableWidthResize = true,
     enableHeightResize = true,
-    minWidth = 50,
-    minHeight = 30,
+    minWidth = 20,
+    minHeight = 20,
     aspectRatio = null,
 }) => {
     const { actions, props: nodeProps } = useNode((node) => ({
         props: node.data.props,
     }));
-    const nodeWidth = nodeProps.width;
-    const nodeHeight = nodeProps.height;
-
 
     const { enabled: editorEnabled, selected } = useEditor((state, query) => ({
         enabled: state.options.enabled,
@@ -71,31 +66,28 @@ export const StackResizableWrapper: React.FC<StackResizableWrapperProps> = ({
     }));
 
     const wrapperRef = useRef<HTMLDivElement>(null);
-    const [isResizing, setIsResizing] = useState(false);
-    const [handleInUse, setHandleInUse] = useState<'right' | 'bottom' | null>(null);
     const startPos = useRef({ x: 0, y: 0 });
     const startSize = useRef({ width: 0, height: 0 });
+    const activeHandle = useRef<Handle | null>(null);
+
     const numericAspectRatio = parseAspectRatio(aspectRatio);
 
-    // --- Throttled Prop Update ---
-    // This function updates the actual Craft.js state
     const throttledSetProp = useCallback(
-        throttle((newProps: { width?: number; height?: number }) => {
-            actions.setProp((props: { width?: string; height?: string }) => {
-                // Always set as pixels after resizing
-                if (newProps.width !== undefined) props.width = `${newProps.width}px`;
-                if (newProps.height !== undefined) props.height = `${newProps.height}px`;
-            }, 50); // Add a small debounce time to the setProp itself if needed
-        }, THROTTLE_WAIT, { leading: true, trailing: true }), // Ensure leading and trailing calls
-        [actions] // Dependency: only actions needed
+        throttle(
+            (newProps: { width?: number; height?: number }) => {
+                actions.setProp((props: any) => {
+                    if (newProps.width !== undefined) props.width = `${Math.round(newProps.width)}px`;
+                    if (newProps.height !== undefined) props.height = `${Math.round(newProps.height)}px`;
+                }, 50);
+            },
+            THROTTLE_WAIT,
+            { leading: true, trailing: true }
+        ),
+        [actions]
     );
 
-    // --- Mouse Move Handler (wrapped in useCallback) ---
     const handleMouseMove = useCallback((e: MouseEvent) => {
-        // Guard clauses
-        if (!isResizing || !handleInUse || !wrapperRef.current) return;
-
-        // Prevent default browser behavior during drag
+        if (!activeHandle.current || !wrapperRef.current) return;
         e.preventDefault();
 
         const currentPos = { x: e.clientX, y: e.clientY };
@@ -105,166 +97,143 @@ export const StackResizableWrapper: React.FC<StackResizableWrapperProps> = ({
         let newWidth = startSize.current.width;
         let newHeight = startSize.current.height;
 
-        // Calculate new dimensions based on the handle used
-        if (handleInUse === 'right' && enableWidthResize) {
-            newWidth = startSize.current.width + deltaX;
-            // Apply aspect ratio if locked
-            if (numericAspectRatio) {
+        const handle = activeHandle.current;
+
+        // Calculate new dimensions based on handle
+        if (handle.includes('e')) newWidth = startSize.current.width + deltaX;
+        if (handle.includes('w')) newWidth = startSize.current.width - deltaX;
+        if (handle.includes('s')) newHeight = startSize.current.height + deltaY;
+        if (handle.includes('n')) newHeight = startSize.current.height - deltaY;
+
+        // Apply aspect ratio constraints
+        if (numericAspectRatio) {
+            if (handle.includes('n') || handle.includes('s')) {
+                // Height is the driver
+                newWidth = newHeight * numericAspectRatio;
+            } else {
+                // Width is the driver (or corner, where width takes precedence)
                 newHeight = newWidth / numericAspectRatio;
             }
-        } else if (handleInUse === 'bottom' && enableHeightResize) {
-            // Only allow independent height resize if aspect ratio is NOT locked
-            if (!numericAspectRatio) {
-                 newHeight = startSize.current.height + deltaY;
-            }
-            // If aspect ratio WAS locked, dragging bottom handle should ideally adjust width too
-            // else {
-            //    newHeight = startSize.current.height + deltaY; // Calculate height first
-            //    newWidth = newHeight * numericAspectRatio; // Then adjust width
-            //}
-            // Keep it simple: For now, bottom handle only works if AR is not locked.
         }
 
         // Apply minimum size constraints
         newWidth = Math.max(minWidth, newWidth);
         newHeight = Math.max(minHeight, newHeight);
 
-        // --- CRITICAL FOR FLUIDITY: Apply styles directly for immediate feedback ---
+        // Apply styles directly for immediate feedback
         wrapperRef.current.style.width = `${newWidth}px`;
         wrapperRef.current.style.height = `${newHeight}px`;
-        // --------------------------------------------------------------------------
 
         // Throttle the update to Craft.js state
         throttledSetProp({ width: newWidth, height: newHeight });
+    }, [minWidth, minHeight, numericAspectRatio, throttledSetProp]);
 
-    }, [
-        isResizing,
-        handleInUse,
-        enableWidthResize,
-        enableHeightResize,
-        numericAspectRatio,
-        minWidth,
-        minHeight,
-        throttledSetProp // Include throttled function in dependencies
-        // startPos and startSize are refs, they don't need to be dependencies
-    ]);
-
-    // --- Mouse Up Handler (wrapped in useCallback) ---
     const handleMouseUp = useCallback(() => {
-        if (!isResizing) return;
+        if (!activeHandle.current) return;
 
-        // Ensure the final state is definitely set
-        throttledSetProp.flush(); // Send any pending throttled update immediately
+        // Flush any pending updates
+        throttledSetProp.flush();
 
-        setIsResizing(false);
-        setHandleInUse(null);
+        activeHandle.current = null;
+        document.body.style.cursor = ''; // Reset body cursor
+        document.body.classList.remove('is-resizing'); // Remove helper class
 
-        // Remove global listeners
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
+    }, [handleMouseMove, throttledSetProp]);
 
-        // Optional: Slightly delay removing inline styles if needed,
-        // but usually Craft's re-render with final props takes over correctly.
-        // setTimeout(() => {
-        //   if (wrapperRef.current) {
-        //      wrapperRef.current.style.width = ''; // Let CSS/props take over again
-        //      wrapperRef.current.style.height = '';
-        //    }
-        // }, 0);
-
-    }, [isResizing, handleMouseMove, throttledSetProp]); // handleMouseMove is stable due to its own useCallback
-
-
-    // --- Mouse Down Handler ---
-    const handleMouseDown = useCallback((
-        e: React.MouseEvent<HTMLDivElement>,
-        handle: 'right' | 'bottom'
-    ) => {
+    const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>, handle: Handle) => {
         if (!editorEnabled || !wrapperRef.current) return;
-
         e.preventDefault();
         e.stopPropagation();
 
-        setIsResizing(true);
-        setHandleInUse(handle);
+        activeHandle.current = handle;
         startPos.current = { x: e.clientX, y: e.clientY };
+        const rect = wrapperRef.current.getBoundingClientRect();
+        startSize.current = { width: rect.width, height: rect.height };
+        
+        // Improve UX by setting a global cursor during resize
+        const handleDef = handles.find(h => h.id === handle);
+        if (handleDef) {
+            document.body.style.cursor = handleDef.cursor;
+            document.body.classList.add('is-resizing'); // For global styles if needed
+        }
 
-        // Get initial size accurately from the element's current dimensions
-        const currentRect = wrapperRef.current.getBoundingClientRect();
-        startSize.current = { width: currentRect.width, height: currentRect.height };
-        // Note: Using getBoundingClientRect is more reliable here than offsetWidth/Height
-        // especially if transforms or box-sizing are involved.
-
-        // Add global listeners
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
-    }, [editorEnabled, handleMouseMove, handleMouseUp]); // Add dependent callbacks
+    }, [editorEnabled, handleMouseMove, handleMouseUp]);
 
-
-    // --- Cleanup Effect ---
     useEffect(() => {
         // Cleanup global listeners if component unmounts while resizing
         return () => {
-            if (isResizing) { // Check isResizing state on cleanup
-                throttledSetProp.cancel(); // Cancel any pending throttled calls
+            if (activeHandle.current) {
+                throttledSetProp.cancel();
                 window.removeEventListener('mousemove', handleMouseMove);
                 window.removeEventListener('mouseup', handleMouseUp);
+                document.body.style.cursor = '';
+                document.body.classList.remove('is-resizing');
             }
         };
-    }, [isResizing, handleMouseMove, handleMouseUp, throttledSetProp]);
+    }, [handleMouseMove, handleMouseUp, throttledSetProp]);
 
-
-    // --- Render Handles ---
     const renderHandles = () => {
         if (!selected || !editorEnabled) return null;
 
-        // Conditionally disable bottom handle if aspect ratio is set AND we only want
-        // resizing from the width-controlling handle (right handle in this case).
-        // If you wanted the bottom handle to *also* work with aspect ratio, you'd adjust logic here and in handleMouseMove.
-        const showBottomHandle = enableHeightResize && !numericAspectRatio;
-
         return (
             <>
-                {enableWidthResize && (
-                    <div
-                        className="absolute -right-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-blue-500 border border-white rounded-full cursor-ew-resize z-10 shadow-md" // rounded-full might look nicer
-                        style={{ touchAction: 'none' }} // Prevent scrolling on touch devices
-                        onMouseDown={(e) => handleMouseDown(e, 'right')} // Corrected line
-                        title="Resize width"
-                    />
-                )}
-                {showBottomHandle && (
-                    <div
-                        className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-blue-500 border border-white rounded-full cursor-ns-resize z-10 shadow-md" // rounded-full
-                        style={{ touchAction: 'none' }} // Prevent scrolling on touch devices
-                        onMouseDown={(e) => handleMouseDown(e, 'bottom')} // Corrected line
-                        title="Resize height"
-                    />
-                )}
-                {/* Consider adding a bottom-right corner handle for aspect ratio resizing */}
-                {/* {enableWidthResize && enableHeightResize && numericAspectRatio && ( ... corner handle ... )} */}
+                {handles.map(({ id, cursor }) => {
+                    const isEdge = id.length === 1;
+                    const isVertical = id === 'n' || id === 's';
+                    const isHorizontal = id === 'w' || id === 'e';
+                    
+                    if (!enableWidthResize && (isHorizontal || !isEdge)) return null;
+                    if (!enableHeightResize && (isVertical || !isEdge)) return null;
+                    
+                    // If aspect ratio is locked, only show corner handles for simplicity and better UX
+                    if (numericAspectRatio && isEdge) return null;
 
+                    return (
+                        <div
+                            key={id}
+                            onMouseDown={(e) => handleMouseDown(e, id)}
+                            style={{ cursor, touchAction: 'none' }}
+                            className={clsx(
+                                'absolute bg-blue-500 border-2 border-white rounded-full shadow-md z-10',
+                                {
+                                    'w-3 h-3 -m-1.5': !isEdge, // Corner handle size
+                                    'w-2 h-4 -my-2 -mx-1': isVertical, // Vertical handle size
+                                    'w-4 h-2 -mx-2 -my-1': isHorizontal, // Horizontal handle size
+                                    'top-0': id.includes('n'),
+                                    'bottom-0': id.includes('s'),
+                                    'left-0': id.includes('w'),
+                                    'right-0': id.includes('e'),
+                                    'left-1/2 -translate-x-1/2': isVertical,
+                                    'top-1/2 -translate-y-1/2': isHorizontal,
+                                }
+                            )}
+                            title={`Resize (${id.toUpperCase()})`}
+                        />
+                    );
+                })}
             </>
         );
     };
 
-    // --- Wrapper Style ---
-    // Let Craft's props drive the initial/final size. Inline styles are applied *during* resize for fluidity.
     const wrapperStyle: React.CSSProperties = {
-        position: 'relative', // Crucial for absolute positioning of handles
-        width: nodeWidth ?? 'auto',
-        height: nodeHeight ?? 'auto',
-        outline: selected && editorEnabled ? '2px dashed blue' : 'none',
-        outlineOffset: '3px',
-        transition: isResizing ? 'none' : 'outline 0.1s ease-in-out', // Disable outline transition during resize
-        boxSizing: 'border-box', // Usually desired for layout consistency
+        position: 'relative',
+        width: nodeProps.width ?? 'auto',
+        height: nodeProps.height ?? 'auto',
+        outline: selected && editorEnabled ? '2px dashed #3b82f6' : 'none',
+        outlineOffset: '2px',
+        // Resizing is now managed by direct style manipulation for performance
+        transition: activeHandle.current ? 'none' : 'outline 0.1s ease-in-out',
+        boxSizing: 'border-box',
     };
 
     return (
         <div ref={wrapperRef} style={wrapperStyle} className="craft-resizable-wrapper">
-            {/* Inner div ensures children are constrained by the wrapper size */}
             <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
-                 {children}
+                {children}
             </div>
             {renderHandles()}
         </div>

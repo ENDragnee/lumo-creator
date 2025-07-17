@@ -1,10 +1,13 @@
-// @/app/store/slices/mediaSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-// **THE FIX**: Import the plain data interface, not the Mongoose Document interface.
 import { IMediaData } from '@/models/Media';
 
+// Interface for the thunk arguments
+export interface FetchMediaParams {
+  tag?: string;
+  limit?: number;
+}
+
 interface MediaState {
-  // **THE FIX**: Use the serializable type for the state.
   items: IMediaData[];
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
@@ -16,34 +19,63 @@ const initialState: MediaState = {
   error: null,
 };
 
-// Async thunk for fetching media
-export const fetchMedia = createAsyncThunk('media/fetchMedia', async (_, { rejectWithValue }) => {
-  try {
-    const response = await fetch('/api/media');
-    if (!response.ok) {
-      throw new Error('Server responded with an error!');
+// --- Updated Async Thunk for Fetching Media ---
+export const fetchMedia = createAsyncThunk<
+  IMediaData[],
+  // THE FIX (Part 1): We specify that the thunk can be called with `FetchMediaParams` or `undefined`.
+  // Using `undefined` is more standard for optional arguments than `void`.
+  FetchMediaParams | undefined,
+  { rejectValue: string }
+>(
+  'media/fetchMedia',
+  // THE FIX (Part 2): We explicitly type `params` and provide a default value.
+  // This tells TypeScript that INSIDE this function, `params` will ALWAYS be an
+  // object of type `FetchMediaParams`, even if it's an empty one `{}`.
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const searchParams = new URLSearchParams();
+
+      // Now this is type-safe because `params` is guaranteed to be an object.
+      if (params.tag) {
+        searchParams.append('tag', params.tag);
+      }
+      if (params.limit) {
+        searchParams.append('limit', String(params.limit));
+      }
+
+      const queryString = searchParams.toString();
+      const apiUrl = `/api/media${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(apiUrl);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Server responded with an error!');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch media.');
+      }
+
+      return data.data as IMediaData[];
+    } catch (error: any) {
+      return rejectWithValue(error.message);
     }
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error(data.message || 'Failed to fetch media.');
-    }
-    // **THE FIX**: The API returns plain JSON data, which matches IMediaData[].
-    return data.data as IMediaData[];
-  } catch (error: any) {
-    return rejectWithValue(error.message);
   }
-});
+);
 
 const mediaSlice = createSlice({
   name: 'media',
   initialState,
   reducers: {
-    // **THE FIX**: The payload action should be typed with the serializable interface.
     addMediaItem: (state, action: PayloadAction<IMediaData>) => {
-      // This works now because action.payload is a plain object.
       state.items.unshift(action.payload);
+      if (state.items.length > 20) {
+        state.items.pop();
+      }
     },
-    removeMediaItem: (state, action: PayloadAction<string>) => { // action.payload is the mediaId
+    removeMediaItem: (state, action: PayloadAction<string>) => {
       state.items = state.items.filter(item => item._id !== action.payload);
     }
   },
@@ -52,10 +84,8 @@ const mediaSlice = createSlice({
       .addCase(fetchMedia.pending, (state) => {
         state.status = 'loading';
       })
-      // **THE FIX**: The fulfilled action payload is an array of plain objects.
       .addCase(fetchMedia.fulfilled, (state, action: PayloadAction<IMediaData[]>) => {
         state.status = 'succeeded';
-        // This is now safe because action.payload is serializable.
         state.items = action.payload;
       })
       .addCase(fetchMedia.rejected, (state, action) => {
