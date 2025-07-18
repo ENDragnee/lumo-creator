@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { editorResolver } from "@/types/resolver";
 import { RootState, AppDispatch } from "@/app/store/store"; // NEW: Import AppDispatch
 import { toggleTreeSidebar } from "@/app/store/slices/editorSlice"; // NEW: Import the toggle action
+import { FontProvider } from "@/contexts/FontProvider";
 
 // --- API Interfaces (unchanged) ---
 interface ContentItem {
@@ -118,6 +119,7 @@ function EditorCore({ contentId }: StudioComponentProps) {
     }
 
     return (
+      <FontProvider>
         <Editor
             key={contentId}
             resolver={{
@@ -148,6 +150,7 @@ function EditorCore({ contentId }: StudioComponentProps) {
                 </div>
             </div>
         </Editor>
+      </FontProvider>
     );
 }
 

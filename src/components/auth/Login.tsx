@@ -334,7 +334,7 @@ export default function SignIn() {
 
   // Get callbackUrl from query parameters, default to /dashboard
   const callbackUrl = searchParams.get("callbackUrl");
-  const defaultRedirectUrl = "/dashboard";
+  const defaultRedirectUrl = "/home";
   
   // Ensure the callbackUrl is a relative path to prevent open redirect vulnerabilities
   const safeCallbackUrl = (callbackUrl && callbackUrl.startsWith("/"))
@@ -461,7 +461,7 @@ export default function SignIn() {
           Don't have an account?
           <SignUpLink
              type="button"
-             onClick={() => !isLoading && router.push(`/auth/signup?callbackUrl=${encodeURIComponent(safeCallbackUrl)}`)}
+             onClick={() => !isLoading && router.push(`https://easy-learning-two.vercel.app/auth/signup?callbackUrl=${encodeURIComponent(safeCallbackUrl)}`)}
              disabled={isLoading}
           >
             Sign Up

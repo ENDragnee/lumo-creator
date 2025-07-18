@@ -8,7 +8,7 @@ import { useMediaQuery } from 'react-responsive';
 import { Card, CardContent } from '@/components/ui/card';
 import { MobileCard, MobileCardContent } from '@/components/ui/mobile-card';
 import { formatRelativeDate } from '@/lib/format-date';
-import Link from 'next/link';
+import { PenIcon, Book } from 'lucide-react';
 
 const PLACEHOLDER_SVG_PATH = '/icons/default-content.png';
 
@@ -18,7 +18,9 @@ interface ContentCardProps {
     title: string;
     thumbnail: string;
     tags?: string[];
-    lastAccessedAt?: string | Date;
+    isDraft: boolean;
+    lastModifiedAt?: string | Date;
+    createdAt?: string | Date;
     createdBy?: {
         _id: string;
         name: string;
@@ -68,27 +70,20 @@ export function ContentCard({ item, index, actionNode }: ContentCardProps) {
            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                 {actionNode}
            </div>
+
+            <div className="absolute top-1 left-1 bg-secondary rounded-full">
+              {
+                item.isDraft ? <PenIcon /> : <Book />
+              }
+            </div>
+
         </div>
         <CardComponentContent className="p-3 md:p-4 flex flex-col flex-grow justify-between bg-gray-50 dark:bg-slate-800">
           <div className="flex-grow flex flex-col">
             <p title={item.title} className="text-sm md:text-base font-semibold line-clamp-2 group-hover:text-primary transition-colors duration-300 dark:text-gray-100 mb-1">
               {item.title}
             </p>
-            {item.createdBy && (
-              <Link
-                href={`/studio/${item.createdBy._id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-sky-400 transition-colors w-fit"
-              >
-                by {item.createdBy.name}
-              </Link>
-            )}
-            {item.lastAccessedAt && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Last accessed: {formatRelativeDate(item.lastAccessedAt)}
-              </p>
-            )}
-            <div className="flex flex-row items-end justify-between mt-auto pt-2">
+<div className="flex flex-row items-end justify-between mt-auto pt-2">
               {item.tags && item.tags.length > 0 && (
                 <div className="flex flex-row flex-wrap gap-x-1.5 gap-y-1 mr-2 flex-grow flex-shrink basis-0 min-w-0">
                   {item.tags.slice(0, isMobile ? 1 : 2).map((tag, tagIndex) => (
@@ -99,6 +94,12 @@ export function ContentCard({ item, index, actionNode }: ContentCardProps) {
                 </div>
               )}
             </div>
+
+            {item.lastModifiedAt && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                Last modified: {formatRelativeDate(item.lastModifiedAt)}
+              </p>
+            )}
           </div>
         </CardComponentContent>
       </CardComponent>
