@@ -26,11 +26,11 @@ import {
 } from "@/components/ui/popover";
 
 // --- Redux Imports ---
-// FIX: Corrected the typo in the import path from "toolbatSlice" to "toolbarSlice"
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
 import { setLockedOpen } from "@/app/store/slices/toolbarSlice";
+import { setActiveTool, ToolType } from "@/app/store/slices/editorSlice";
 
-// --- Component Imports & Placeholders ---
+// --- Component Imports (Replaced Placeholders) ---
 type ContainerProps = { children?: ReactNode; padding?: number };
 const Container = ({ children, padding = 20 }: ContainerProps) => (
   <div style={{ padding: `${padding}px`, border: '1px dashed #ddd', minHeight: '50px' }}>
@@ -40,15 +40,13 @@ const Container = ({ children, padding = 20 }: ContainerProps) => (
 
 import { SliderComponent } from "@/components/editor-components/SliderComponent";
 import { QuizComponent } from "@/components/editor-components/QuizComponent";
-
-const createPlaceholder = (name: string) => () => (
-    <div className="p-4 border border-dashed text-center text-muted-foreground">
-        <p>{name} Component</p>
-    </div>
-);
-const TabsComponent = createPlaceholder("Tabs");
-const CalloutComponent = createPlaceholder("Callout/Info Box");
-const FlashcardComponent = createPlaceholder("Flashcard");
+import { TextComponent } from "@/components/editor-components/TextComponent";
+import { ImageComponent } from "@/components/editor-components/ImageComponent";
+import { VideoComponent } from "@/components/editor-components/VideoComponent";
+import { SimulationComponent } from "@/components/editor-components/SimulationComponent";
+import { TabsComponent } from "@/components/editor-components/TabsComponent";
+import { CalloutComponent } from "@/components/editor-components/CalloutComponent";
+import { FlashcardComponent } from "@/components/editor-components/FlashcardComponent";
 
 
 // --- Reusable Draggable Tool Button ---
@@ -56,15 +54,23 @@ type DraggableToolButtonProps = {
   name: string;
   icon: React.ReactNode;
   component: React.ReactElement;
+  tool: ToolType;
 };
-const DraggableToolButton = ({ name, icon, component }: DraggableToolButtonProps) => {
+const DraggableToolButton = ({ name, icon, component, tool }: DraggableToolButtonProps) => {
   const { connectors } = useEditor();
+  const dispatch = useAppDispatch();
+
+  const handleToolClick = (selectedTool: ToolType) => {
+    dispatch(setActiveTool(selectedTool));
+  };
+  
   return (
     <div
       ref={(ref: HTMLDivElement | null) => {
         if (ref) connectors.create(ref, component);
       }}
       className="flex flex-col items-center justify-center p-2 rounded-lg cursor-grab hover:bg-accent transition-colors text-center w-24"
+      onClick={() => handleToolClick(tool)}
     >
       {icon}
       <span className="text-xs mt-1">{name}</span>
@@ -76,22 +82,39 @@ const DraggableToolButton = ({ name, icon, component }: DraggableToolButtonProps
 // --- The Main Toolbar Component ---
 export function Toolbar() {
   const dispatch = useAppDispatch();
-  // This selector will now work correctly
   const isLocked = useAppSelector((state) => state.toolbar.isLockedOpen);
   const [isHovered, setIsHovered] = useState(false);
 
   const isExpanded = isHovered || isLocked;
 
   const handlePopoverOpenChange = (isOpen: boolean) => {
-    // This dispatch will now work correctly
     dispatch(setLockedOpen(isOpen));
   };
 
+  // UPDATED: Using actual components instead of placeholders
   const toolCategories = [
-    { name: "Layout", icon: <LayoutDashboard className="h-5 w-5" />, tools: [ { name: "Container", icon: <Square className="h-5 w-5" />, component: <Element is={Container} padding={20} canvas /> }, { name: "Tabs", icon: <Layers3 className="h-5 w-5" />, component: <TabsComponent /> }, ], },
-    { name: "Media", icon: <GalleryHorizontal className="h-5 w-5" />, tools: [ { name: "Carousel", icon: <SlidersHorizontal className="h-5 w-5" />, component: <SliderComponent /> }, { name: "Image", icon: <ImageIcon className="h-5 w-5" />, component: <p>Image</p> }, { name: "Video", icon: <Play className="h-5 w-5" />, component: <p>Video</p> }, ], },
-    { name: "Interactive", icon: <MousePointerClick className="h-5 w-5" />, tools: [ { name: "MCQ Quiz", icon: <HelpCircle className="h-5 w-5" />, component: <QuizComponent /> }, { name: "Flashcard", icon: <FlipVertical className="h-5 w-5" />, component: <FlashcardComponent /> }, { name: "Simulation", icon: <Monitor className="h-5 w-5" />, component: <p>Sim</p> }, ], },
-    { name: "Content", icon: <Type className="h-5 w-5" />, tools: [ { name: "Text", icon: <Type className="h-5 w-5" />, component: <p>Text</p> }, { name: "Callout Box", icon: <Info className="h-5 w-5" />, component: <CalloutComponent /> }, ], },
+    { name: "Layout", icon: <LayoutDashboard className="h-5 w-5" />, 
+      tools: [ 
+        { name: "Container", icon: <Square className="h-5 w-5" />, component: <Element is={Container} padding={20} canvas />, tool: "container" as ToolType },
+        { name: "Tabs", icon: <Layers3 className="h-5 w-5" />, component: <TabsComponent />, tool: "tab" as ToolType }, 
+    ], },
+    { name: "Media", icon: <GalleryHorizontal className="h-5 w-5" />, 
+      tools: [ 
+        { name: "Carousel", icon: <SlidersHorizontal className="h-5 w-5" />, component: <SliderComponent />, tool: "carousel" as ToolType }, 
+        { name: "Image", icon: <ImageIcon className="h-5 w-5" />, component: <ImageComponent />, tool: "image" as ToolType },
+        { name: "Video", icon: <Play className="h-5 w-5" />, component: <VideoComponent src="" />, tool: "video" as ToolType },
+    ], },
+    { name: "Interactive", icon: <MousePointerClick className="h-5 w-5" />, 
+      tools: [ 
+        { name: "MCQ Quiz", icon: <HelpCircle className="h-5 w-5" />, component: <QuizComponent />, tool: "quiz" as ToolType },
+        { name: "Flashcard", icon: <FlipVertical className="h-5 w-5" />, component: <FlashcardComponent />, tool: "flashcard" as ToolType },
+        { name: "Simulation", icon: <Monitor className="h-5 w-5" />, component: <SimulationComponent src="" />, tool: "simulation" as ToolType }, 
+    ], },
+    { name: "Content", icon: <Type className="h-5 w-5" />, 
+      tools: [ 
+        { name: "Text", icon: <Type className="h-5 w-5" />, component: <TextComponent text="This is a new text block. Click to edit." />, tool: "text" as ToolType },
+        { name: "Callout Box", icon: <Info className="h-5 w-5" />, component: <CalloutComponent />, tool: "callout" as ToolType }, 
+    ], },
   ];
 
   return (
@@ -100,26 +123,33 @@ export function Toolbar() {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* UPDATED: Using new UI classes for animation */}
         <div
-          className={cn( "flex items-center p-1 bg-card border rounded-full shadow-lg transition-all duration-300 ease-in-out", isExpanded && "p-2 gap-1" )}
+          className={cn(
+            "flex items-center bg-card border rounded-full shadow-lg transition-all duration-300 ease-in-out",
+            isExpanded ? "p-2 gap-1" : "p-1"
+          )}
         >
           {toolCategories.map((category) => (
             <Popover key={category.name} onOpenChange={handlePopoverOpenChange}>
               <PopoverTrigger asChild>
+                {/* UPDATED: Using new UI classes for button animation */}
                 <Button
-                    variant="ghost"
-                    className={cn(
-                        // Base styles: transition max-width, set fixed height, and clip overflow.
-                        "flex items-center justify-center rounded-full h-10 p-0 overflow-hidden transition-all duration-300 ease-in-out",
-                        // Collapsed state: Constrain the width with max-width.
-                        "max-w-10", 
-                        // Expanded state: Set a large max-width to allow smooth expansion, and adjust height/padding.
-                        isExpanded && "max-w-40 h-12 px-4" 
-                    )}
-                    >
+                  variant="ghost"
+                  className={cn(
+                    "flex items-center rounded-full overflow-hidden transition-all duration-300 ease-in-out",
+                    isExpanded
+                      ? "w-32 h-12 px-4 justify-start"
+                      : "w-10 h-10 justify-center"
+                  )}
+                >
                   {category.icon}
+                  {/* UPDATED: Using new UI classes for text animation */}
                   <span
-                    className={cn( "ml-2 whitespace-nowrap text-sm font-medium transform-gpu transition-transform transition-opacity duration-200 ease-in-out", isExpanded ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0 origin-left" )}
+                    className={cn(
+                      "whitespace-nowrap text-sm font-medium transition-all duration-200 ease-in-out",
+                      isExpanded ? "ml-2 w-auto opacity-100" : "w-0 opacity-0"
+                    )}
                   >
                     {category.name}
                   </span>
@@ -133,6 +163,7 @@ export function Toolbar() {
                       name={tool.name}
                       icon={tool.icon}
                       component={tool.component}
+                      tool={tool.tool}
                     />
                   ))}
                 </div>

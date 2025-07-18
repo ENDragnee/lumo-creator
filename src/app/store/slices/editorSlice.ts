@@ -2,7 +2,19 @@
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type ToolType = 'text' | 'image' | 'video' | 'simulation' | 'container' | "tab" | null;
+// UPDATE: Added all tool types from the toolbar to this union type.
+export type ToolType =
+  | 'text'
+  | 'image'
+  | 'video'
+  | 'simulation'
+  | 'container'
+  | 'tab'
+  | 'carousel'
+  | 'quiz'
+  | 'flashcard'
+  | 'callout'
+  | null;
 
 interface EditorState {
   isTreeSidebarOpen: boolean;
@@ -11,9 +23,9 @@ interface EditorState {
 }
 
 const initialState: EditorState = {
-  isTreeSidebarOpen: true, // Add this line
-  isRightSidebarOpen: true, // Start with the sidebar open
-  activeTool: 'text', // Default to the text tool
+  isTreeSidebarOpen: true,
+  isRightSidebarOpen: true,
+  activeTool: null, // Default to no active tool
 };
 
 export const editorSlice = createSlice({
@@ -23,15 +35,13 @@ export const editorSlice = createSlice({
     toggleRightSidebar: (state) => {
       state.isRightSidebarOpen = !state.isRightSidebarOpen;
     },
-    toggleTreeSidebar: (state) => { // Add this reducer
+    toggleTreeSidebar: (state) => {
       state.isTreeSidebarOpen = !state.isTreeSidebarOpen;
     },
     setActiveTool: (state, action: PayloadAction<ToolType>) => {
       // If the same tool is clicked again, toggle it off.
       if (state.activeTool === action.payload) {
         state.activeTool = null;
-        // Optional: you could decide to close the sidebar here too if you want
-        // state.isRightSidebarOpen = false;
       } else {
         // A new tool is selected
         state.activeTool = action.payload;
