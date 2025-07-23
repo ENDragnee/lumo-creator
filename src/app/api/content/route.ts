@@ -1,15 +1,13 @@
 // @/app/api/content/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth"; // Standard path for NextAuth options
+import { authOptions } from "@/lib/auth";
 import Content from "@/models/Content";
 import mongoose from "mongoose";
 import connectDB from "@/lib/mongodb";
-// The 'isDraft' import from Redux Toolkit was unused and has been removed.
 
-// --- GET all Content for the authenticated user ---
+// --- GET all Content for the authenticated user (for Drive/List view) ---
 export async function GET(request: Request) {
-  // Handle authentication directly
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
@@ -17,12 +15,11 @@ export async function GET(request: Request) {
   await connectDB();
   const userId = session.user.id;
 
-  // The rest of the logic remains the same
   const { searchParams } = new URL(request.url);
   const parentId = searchParams.get("parentId");
 
   const query: any = {
-    createdBy: new mongoose.Types.ObjectId(userId), // Use authenticated userId
+    createdBy: new mongoose.Types.ObjectId(userId),
     isTrash: false,
   };
 
@@ -32,31 +29,29 @@ export async function GET(request: Request) {
 
   const contents = await Content.find(query)
     .populate<{ thumbnail: { path: string } }>("thumbnail", "path")
+    .select("-data") // Exclude the 'data' field
     .sort({ lastModifiedAt: -1 })
     .lean();
 
-  const transformedContents = contents.map((content) => {
-    return {
-      ...content,
-      thumbnail: content.thumbnail?.path || "/default-thumbnail.png",
-    };
-  });
+  const transformedContents = contents.map((content) => ({
+    ...content,
+    thumbnail: content.thumbnail?.path || "/default-thumbnail.png",
+  }));
 
   return NextResponse.json({ success: true, data: transformedContents });
 }
 
 // --- POST (Create) a new Content item ---
 export async function POST(request: Request) {
-  // Handle authentication directly
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
   const userId = session.user.id;
 
-  // The rest of the logic remains the same
+  await connectDB();
   const body = await request.json();
-  const { title, thumbnail, parentId, contentType } = body;
+  const { title, thumbnail, contentType, parentId } = body;
 
   if (!title || !thumbnail || !contentType) {
     return NextResponse.json(
@@ -65,15 +60,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const newContent = await Content.create({
-    ...body,
-    data: `{\"ROOT\":{\"type\":{\"resolvedName\":\"RenderCanvas\"},\"isCanvas\":true,\"props\":{\"gap\":8,\"padding\":16},\"displayName\":\"Canvas\",\"custom\":{},\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}`,
-    createdBy: new mongoose.Types.ObjectId(userId), // Use authenticated userId
-    thumbnail: new mongoose.Types.ObjectId(thumbnail),
-    isDraft: true,
+  // --- REFACTOR: More flexible creation ---
+  // Use the spread operator on the body to allow passing other fields
+  // like 'description', 'tags', etc., upon creation.
+  const newContent = new Content({
+    ...body, // Pass all valid fields from the request
+    createdBy: new mongoose.Types.ObjectId(userId),
     parentId: parentId ? new mongoose.Types.ObjectId(parentId) : null,
+    // The default `data` from the model schema will be used here.
   });
 
+  await newContent.save();
+
+  // Re-fetch to populate the thumbnail for the response
   const populatedNewContent = await Content.findById(newContent._id)
     .populate<{ thumbnail: { path: string } }>("thumbnail", "path")
     .lean();
