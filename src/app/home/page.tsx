@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Folder, Loader2, Edit, Trash2, MoreVertical } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Folder, Loader2, Edit, Trash2, MoreVertical, FileText, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,7 +24,8 @@ import { DriveHeader } from "@/components/layout/DriveHeader";
 import { useAppSelector } from "@/app/store/hooks";
 import { RootState } from "@/app/store/store";
 import { ErrorFallback } from "@/components/error-fallback";
-import { toast } from "sonner"; // Assuming you use a toast library for notifications
+import { StatCard } from "@/components/layout/StatCard";
+import { AlphabetNav } from "@/components/layout/AlphabetNav";
 
 interface Breadcrumb {
   id: string | null;
@@ -36,13 +37,12 @@ const fetchDriveItems = async (parentId: string | null): Promise<{ collections: 
   if (parentId) {
     const res = await fetch(`/api/collections/${parentId}`);
     if (!res.ok) throw new Error("Failed to fetch collection contents.");
-    const collectionData = await res.json();
+    const { data } = await res.json();
     return {
-      collections: collectionData.data.childCollections || [],
-      content: collectionData.data.childContent || [],
+      collections: data.childCollections || [],
+      content: data.childContent || [],
     };
   } else {
-    // For the root view, fetch top-level items in parallel
     const [collectionRes, contentRes] = await Promise.all([
       fetch(`/api/collections?parentId=null`),
       fetch(`/api/content?parentId=null`),
@@ -61,220 +61,226 @@ export default function HomePage() {
   const { status } = useSession();
   const queryClient = useQueryClient();
 
+  // State for Search, Filter, and Sort
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterTerm, setFilterTerm] = useState("all");
+  const [sortTerm, setSortTerm] = useState("updatedAt-desc");
+
+  // UI State management
   const [currentParentId, setCurrentParentId] = useState<string | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([{ id: null, title: "My Home" }]);
-
   const viewMode = useAppSelector((state: RootState) => state.view.viewMode);
-
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isContentModalOpen, setIsContentModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DriveItem | null>(null);
 
-  // --- REFACTOR: Data fetching is now managed by useQuery ---
-  const {
-    data,
-    isLoading,
-    isError,
-    error,
-    isFetching, // useful for showing loading indicators on refetches
-  } = useQuery({
-    queryKey: ["driveItems", currentParentId], // Unique key for this query
+  // Data fetching hook
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["driveItems", currentParentId],
     queryFn: () => fetchDriveItems(currentParentId),
-    enabled: status === "authenticated", // Only run the query when the user is logged in
-    staleTime: 5 * 60 * 1000, // Data is considered fresh for 5 minutes
+    enabled: status === "authenticated",
+    staleTime: 5 * 60 * 1000,
   });
 
-  // --- REFACTOR: Deletion is handled by useMutation ---
-  const deleteMutation = useMutation({
-    mutationFn: async (item: DriveItem) => {
-      const endpoint = item.type === "collection" ? `/api/collections/${item._id}` : `/api/content/${item._id}`;
-      const res = await fetch(endpoint, { method: "DELETE" });
-      if (!res.ok) {
-        throw new Error(`Failed to delete ${item.type}.`);
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      toast.success("Item moved to trash.");
-      // Invalidate the query to trigger a refetch of the current folder's content
-      queryClient.invalidateQueries({ queryKey: ["driveItems", currentParentId] });
-    },
-    onError: (err: Error) => {
-      toast.error(`Could not delete item: ${err.message}`);
-    },
-  });
+  // Client-side processing of fetched data for performance
+  const { processedCollections, processedContent } = useMemo(() => {
+    if (!data) return { processedCollections: [], processedContent: [] };
 
-  // Derived state from query data
-  const collections = data?.collections || [];
-  const content = data?.content || [];
+    const sortItems = (items: DriveItem[]) => {
+      return items.sort((a, b) => {
+        switch (sortTerm) {
+          case 'title-asc':
+            return a.title.localeCompare(b.title);
+          case 'title-desc':
+            return b.title.localeCompare(a.title);
+          case 'createdAt-asc':
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          case 'updatedAt-desc':
+          default:
+            const modDateA = new Date(a.type === 'collection' ? a.updatedAt : a.lastModifiedAt || a.createdAt).getTime();
+            const modDateB = new Date(b.type === 'collection' ? b.updatedAt : b.lastModifiedAt || b.createdAt).getTime();
+            return modDateB - modDateA;
+        }
+      });
+    };
 
-  const combinedItems: DriveItem[] = [
-    ...collections.map((c) => ({ ...c, type: "collection" as const })),
-    ...content.map((c) => ({ ...c, type: "content" as const })),
-  ].sort((a, b) => {
-    const dateA = a.type === "collection" ? a.updatedAt : a.lastModifiedAt || a.createdAt;
-    const dateB = b.type === "collection" ? b.updatedAt : b.lastModifiedAt || b.createdAt;
-    return new Date(dateB).getTime() - new Date(dateA).getTime();
-  });
+    const searchedCollections = searchTerm
+      ? data.collections.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase()))
+      : data.collections;
 
+    const searchedContent = searchTerm
+      ? data.content.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase()))
+      : data.content;
+
+    return {
+      processedCollections: sortItems(searchedCollections.map(c => ({...c, type: 'collection' as const}))) as HomePageCollection[],
+      processedContent: sortItems(searchedContent.map(c => ({...c, type: 'content' as const}))) as HomePageContent[],
+    };
+  }, [data, searchTerm, sortTerm]);
+
+  // Event Handlers
   const handleCollectionClick = (collectionId: string) => {
-    const clickedCollection = collections.find((c) => c._id === collectionId);
+    const clickedCollection = data?.collections.find((c) => c._id === collectionId);
     if (clickedCollection) {
       setCurrentParentId(collectionId);
       setBreadcrumbs((prev) => [...prev, { id: collectionId, title: clickedCollection.title }]);
+      setSearchTerm("");
     }
   };
 
   const handleBreadcrumbClick = (crumbId: string | null, index: number) => {
     setCurrentParentId(crumbId);
     setBreadcrumbs((prev) => prev.slice(0, index + 1));
+    setSearchTerm("");
   };
 
-  const openEditModal = (item: DriveItem) => {
-    setSelectedItem(item);
-    setIsEditModalOpen(true);
+  const handleLetterClick = (letter: string) => {
+    const allVisibleItems = [
+        ...(filterTerm === 'all' || filterTerm === 'collection' ? processedCollections : []),
+        ...(filterTerm === 'all' || filterTerm === 'content' ? processedContent : []),
+    ];
+
+    const firstMatch = allVisibleItems.find(item => {
+      const firstChar = item.title.charAt(0).toUpperCase();
+      if (letter === '#') { return !/^[A-Z]$/.test(firstChar); }
+      return firstChar === letter;
+    });
+
+    if (firstMatch) {
+      const element = document.getElementById(`item-${firstMatch._id}`);
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   };
 
-  const openDeleteModal = (item: DriveItem) => {
-    setSelectedItem(item);
-    setIsDeleteModalOpen(true);
-  };
-  
-  // --- REFACTOR: Modal success and delete confirmation now use React Query's tools ---
-  const refreshData = () => {
-    queryClient.invalidateQueries({ queryKey: ["driveItems", currentParentId] });
-  };
-  
-  const handleTrashConfirm = (item: DriveItem) => {
-    deleteMutation.mutate(item);
-  };
+  const openEditModal = (item: DriveItem) => { setSelectedItem(item); setIsEditModalOpen(true); };
+  const openDeleteModal = (item: DriveItem) => { setSelectedItem(item); setIsDeleteModalOpen(true); };
+  const refreshData = () => { queryClient.invalidateQueries({ queryKey: ["driveItems", currentParentId] }); };
 
   const ItemActions = ({ item }: { item: DriveItem }) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={(e) => e.stopPropagation()}
-          className="h-8 w-8 rounded-full data-[state=open]:bg-muted"
-        >
+        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} className="h-8 w-8 rounded-full data-[state=open]:bg-muted">
           <MoreVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-        <DropdownMenuItem onSelect={() => openEditModal(item)} className="gap-2">
-          <Edit className="h-4 w-4" /> Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => openDeleteModal(item)}
-          className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
-        >
-          <Trash2 className="h-4 w-4" /> Move to Trash
-        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => openEditModal(item)} className="gap-2"><Edit className="h-4 w-4" /> Edit</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => openDeleteModal(item)} className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"><Trash2 className="h-4 w-4" /> Move to Trash</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 
-  const ItemGrid = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 p-4 sm:p-6">
-      {combinedItems.map((item, index) =>
-        item.type === "collection" ? (
-          <CollectionCard
-            key={item._id}
-            item={item}
-            index={index}
-            onItemClick={handleCollectionClick}
-            actionNode={<ItemActions item={item} />}
-          />
-        ) : (
-          <ContentCard key={item._id} item={item} index={index} actionNode={<ItemActions item={item} />} />
-        )
-      )}
-    </div>
-  );
-
-  const ItemList = () => (
-    <div className="p-4 sm:p-6 space-y-1.5">
-      {combinedItems.map((item, index) =>
-        item.type === "collection" ? (
-          <CollectionCardList
-            key={item._id}
-            item={item}
-            index={index}
-            onItemClick={handleCollectionClick}
-            actionNode={<ItemActions item={item} />}
-          />
-        ) : (
-          <ContentCardList key={item._id} item={item} index={index} actionNode={<ItemActions item={item} />} />
-        )
-      )}
-    </div>
-  );
-  
-  // --- REFACTOR: Updated loading and error states using `useQuery` return values ---
-  if (status === "loading" || (isLoading && breadcrumbs.length === 1)) {
+  // Initial full-page loading state
+  if (status === "loading" || (isLoading && !data)) {
     return (
-      <div className="flex justify-center items-center h-full">
+      <div className="flex justify-center items-center h-screen bg-background">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <>
+    <div className="flex flex-col h-screen bg-background">
       <DriveHeader
         breadcrumbs={breadcrumbs}
         onBreadcrumbClick={handleBreadcrumbClick}
         onNewCollection={() => setIsCollectionModalOpen(true)}
         onNewContent={() => setIsContentModalOpen(true)}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        filterTerm={filterTerm}
+        onFilterChange={setFilterTerm}
+        sortTerm={sortTerm}
+        onSortChange={setSortTerm}
       />
-      <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
-        {isFetching && (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        )}
-        {!isFetching && isError && (
-          <div className="text-center py-16 text-destructive">
-            <ErrorFallback error={error as Error} onRetry={refreshData} />
-          </div>
-        )}
-        {!isFetching && !isError && combinedItems.length === 0 && (
-          <div className="text-center py-20 text-muted-foreground flex flex-col items-center">
-            <Folder className="h-20 w-20 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">This folder is empty</p>
-          </div>
-        )}
-        {!isFetching && !isError && combinedItems.length > 0 && (viewMode === "grid" ? <ItemGrid /> : <ItemList />)}
+      
+      <div className="flex flex-1 overflow-hidden relative">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8">
+          {isError ? (
+            <div className="pt-10"><ErrorFallback error={error} onRetry={() => refetch()} /></div>
+          ) : (
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatCard title="Total Collections" value={data?.collections.length || 0} icon={Folder} iconBgColor="bg-blue-100 dark:bg-blue-900/40" />
+                <StatCard title="Total Content" value={data?.content.length || 0} icon={FileText} iconBgColor="bg-green-100 dark:bg-green-900/40" />
+              </div>
+
+              {isLoading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
+
+              {/* Collections Section */}
+              {!isLoading && (filterTerm === 'all' || filterTerm === 'collection') && processedCollections.length > 0 && (
+                <section>
+                  <h2 className="text-xl font-semibold mb-4 text-foreground">Collections</h2>
+                  {viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                      {processedCollections.map((item, index) => (
+                         <div key={item._id} id={`item-${item._id}`}>
+                          <CollectionCard item={item} index={index} onItemClick={handleCollectionClick} actionNode={<ItemActions item={item} />} />
+                         </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {processedCollections.map((item, index) => (
+                        <div key={item._id} id={`item-${item._id}`}>
+                          <CollectionCardList item={item} index={index} onItemClick={handleCollectionClick} actionNode={<ItemActions item={item} />} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* Content Section */}
+              {!isLoading && (filterTerm === 'all' || filterTerm === 'content') && processedContent.length > 0 && (
+                 <section>
+                  <h2 className="text-xl font-semibold mb-4 text-foreground">Content</h2>
+                  {viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                      {processedContent.map((item, index) => (
+                         <div key={item._id} id={`item-${item._id}`}>
+                          <ContentCard item={item} index={index} actionNode={<ItemActions item={item} />} />
+                         </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {processedContent.map((item, index) => (
+                        <div key={item._id} id={`item-${item._id}`}>
+                          <ContentCardList item={item} index={index} actionNode={<ItemActions item={item} />} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* Enhanced Empty State */}
+              {!isLoading && processedCollections.length === 0 && processedContent.length === 0 && (
+                <div className="text-center py-20 text-muted-foreground flex flex-col items-center">
+                  <FolderOpen className="h-24 w-24 mx-auto mb-4 opacity-30" />
+                  <p className="text-xl font-medium">
+                    {searchTerm || filterTerm !== 'all' ? 'No matching items found' : 'This folder is empty'}
+                  </p>
+                  <p className="text-sm mt-1">
+                    {searchTerm || filterTerm !== 'all' ? 'Try adjusting your search or filters.' : 'Create a new collection or content to get started.'}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </main>
+        
+        {!isLoading && (processedCollections.length > 0 || processedContent.length > 0) && <AlphabetNav onLetterClick={handleLetterClick} />}
       </div>
       
-      {/* Modals now use `refreshData` which invalidates the query on success */}
-      <CollectionModal
-        open={isCollectionModalOpen}
-        onOpenChange={setIsCollectionModalOpen}
-        onSuccess={refreshData}
-        parentId={currentParentId}
-      />
-      <ContentModal
-        open={isContentModalOpen}
-        onOpenChange={setIsContentModalOpen}
-        onSuccess={refreshData}
-        parentId={currentParentId}
-      />
-      <EditItemModal
-        open={isEditModalOpen}
-        onOpenChange={setIsEditModalOpen}
-        onSuccess={refreshData}
-        item={selectedItem}
-      />
-      <DeleteItemModal
-        open={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
-        onConfirm={handleTrashConfirm}
-        item={selectedItem}
-      />
-    </>
+      {/* Modals remain the same */}
+      <CollectionModal open={isCollectionModalOpen} onOpenChange={setIsCollectionModalOpen} onSuccess={refreshData} parentId={currentParentId} />
+      <ContentModal open={isContentModalOpen} onOpenChange={setIsContentModalOpen} onSuccess={refreshData} parentId={currentParentId} />
+      <EditItemModal open={isEditModalOpen} onOpenChange={setIsEditModalOpen} onSuccess={refreshData} item={selectedItem} />
+      <DeleteItemModal open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen} onSuccess={refreshData} item={selectedItem} />
+    </div>
   );
 }

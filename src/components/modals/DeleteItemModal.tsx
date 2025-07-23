@@ -32,8 +32,6 @@ interface DeleteItemModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item: DriveItem | null;
-  // RENAMED: from onConfirm to onSuccess for clarity. 
-  // This function will be called after a successful deletion, e.g., to invalidate queries.
   onSuccess: () => void;
 }
 

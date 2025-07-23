@@ -3,13 +3,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import connectDB from '@/lib/mongodb';
-import Book, { IBook } from '@/models/Book';
+// --- REFACTOR: Import Collection model instead of Book ---
+import Collection, { ICollection } from '@/models/Collection';
 import Content, { IContent } from '@/models/Content';
-import { IMedia } from '@/models/Media'; // Import the Media type for population
+import { IMedia } from '@/models/Media';
 import mongoose, { Model } from 'mongoose';
 
 // --- GET Trashed Items ---
-export async function GET() { // Removed unused 'req' parameter
+export async function GET() {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -22,8 +23,8 @@ export async function GET() { // Removed unused 'req' parameter
         const findQuery = { createdBy: userId, isTrash: true };
         const populateThumbnail = { path: 'thumbnail', select: 'path' };
 
-        // Fetch trashed books and content, populating the thumbnail path
-        const trashedBooksPromise = Book.find(findQuery)
+        // --- REFACTOR: Fetch trashed collections instead of books ---
+        const trashedCollectionsPromise = Collection.find(findQuery)
             .populate<{ thumbnail: IMedia | null }>(populateThumbnail)
             .select('_id title thumbnail updatedAt createdAt parentId')
             .sort({ updatedAt: -1 })
@@ -31,20 +32,20 @@ export async function GET() { // Removed unused 'req' parameter
 
         const trashedContentPromise = Content.find(findQuery)
             .populate<{ thumbnail: IMedia | null }>(populateThumbnail)
-            .select('_id title thumbnail lastModifiedAt createdAt parentId') // FIX: Use lastModifiedAt for Content
-            .sort({ lastModifiedAt: -1 }) // FIX: Sort by lastModifiedAt
+            .select('_id title thumbnail lastModifiedAt createdAt parentId')
+            .sort({ lastModifiedAt: -1 })
             .lean();
 
-        const [trashedBooks, trashedContent] = await Promise.all([trashedBooksPromise, trashedContentPromise]);
+        const [trashedCollections, trashedContent] = await Promise.all([trashedCollectionsPromise, trashedContentPromise]);
 
         // Combine and map to a consistent format for the frontend
         const allTrashedItems = [
-            ...trashedBooks.map(item => ({
+            // --- REFACTOR: Map collections and set type to 'collection' ---
+            ...trashedCollections.map(item => ({
                 _id: item._id.toString(),
-                type: 'book' as const,
+                type: 'collection' as const,
                 title: item.title,
-                // FIX: Use the populated path from the thumbnail object
-                thumbnail: item.thumbnail ? item.thumbnail.path : '', 
+                thumbnail: item.thumbnail ? item.thumbnail.path : null, // Use null for consistency
                 updatedAt: item.updatedAt.toISOString(),
                 createdAt: item.createdAt.toISOString(),
                 parentId: item.parentId ? item.parentId.toString() : null,
@@ -53,16 +54,14 @@ export async function GET() { // Removed unused 'req' parameter
                 _id: item._id.toString(),
                 type: 'content' as const,
                 title: item.title,
-                // FIX: Use the populated path from the thumbnail object
-                thumbnail: item.thumbnail ? item.thumbnail.path : '', 
+                thumbnail: item.thumbnail ? item.thumbnail.path : null, // Use null for consistency
                 createdAt: item.createdAt.toISOString(),
-                // FIX: Map Content's lastModifiedAt to updatedAt for frontend consistency
                 updatedAt: (item.lastModifiedAt || item.createdAt).toISOString(),
                 parentId: item.parentId ? item.parentId.toString() : null,
             }))
         ];
 
-        // Sort combined list by the mapped 'updatedAt' field (which reflects trashing time)
+        // Sort combined list by the mapped 'updatedAt' field
         allTrashedItems.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
         return NextResponse.json({ items: allTrashedItems }, { status: 200 });
@@ -86,12 +85,13 @@ export async function PUT(req: NextRequest) {
     try {
         const { id, type } = await req.json();
 
-        if (!id || !type || !['book', 'content'].includes(type)) {
+        // --- REFACTOR: Validate 'collection' type instead of 'book' ---
+        if (!id || !type || !['collection', 'content'].includes(type)) {
             return NextResponse.json({ error: 'Missing or invalid parameters (id, type)' }, { status: 400 });
         }
-
-        const ModelToUse: Model<IBook> | Model<IContent> = type === 'book' ? Book : Content;
-        // NOTE: new mongoose.Types.ObjectId(string) is the correct modern usage.
+        
+        // --- REFACTOR: Use Collection model for 'collection' type ---
+        const ModelToUse: Model<ICollection> | Model<IContent> = type === 'collection' ? Collection : Content;
         const objectId = new mongoose.Types.ObjectId(id);
 
         const itemToRestore = await (ModelToUse as Model<any>).findOne({
@@ -104,8 +104,8 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ error: `${type} not found in trash or access denied` }, { status: 404 });
         }
         
-        // FIX: Use the correct field name for the update based on type
-        const updatePayload = type === 'book' 
+        // --- REFACTOR: Correctly check for 'collection' type for update payload ---
+        const updatePayload = type === 'collection' 
             ? { isTrash: false, updatedAt: new Date() } 
             : { isTrash: false, lastModifiedAt: new Date() };
 
@@ -141,12 +141,14 @@ export async function DELETE(req: NextRequest) {
         const url = new URL(req.url);
         const id = url.searchParams.get('id');
         const type = url.searchParams.get('type');
-
-        if (!id || !type || !['book', 'content'].includes(type)) {
+        
+        // --- REFACTOR: Validate 'collection' type ---
+        if (!id || !type || !['collection', 'content'].includes(type)) {
             return NextResponse.json({ error: 'Missing or invalid query parameters (id, type)' }, { status: 400 });
         }
-
-        const ModelToUse: Model<IBook> | Model<IContent> = type === 'book' ? Book : Content;
+        
+        // --- REFACTOR: Use Collection model for 'collection' type ---
+        const ModelToUse: Model<ICollection> | Model<IContent> = type === 'collection' ? Collection : Content;
         const objectId = new mongoose.Types.ObjectId(id);
 
         const itemToDelete = await (ModelToUse as Model<any>).findOne({
@@ -164,20 +166,22 @@ export async function DELETE(req: NextRequest) {
         if (deleteResult.deletedCount === 0) {
             return NextResponse.json({ error: `Failed to permanently delete ${type}` }, { status: 500 });
         }
-
-        if (type === 'book') {
-            console.log(`Permanently deleting contents of book ${id}`);
-             const [deletedBooksResult, deletedContentResult] = await Promise.all([
-                Book.deleteMany({ parentId: objectId, createdBy: userId }),
+        
+        // --- REFACTOR: Update recursive deletion logic for collections ---
+        if (type === 'collection') {
+            console.log(`Permanently deleting contents of collection ${id}`);
+             const [deletedCollectionsResult, deletedContentResult] = await Promise.all([
+                Collection.deleteMany({ parentId: objectId, createdBy: userId }),
                 Content.deleteMany({ parentId: objectId, createdBy: userId })
              ]);
-             console.log(`Permanently deleted ${deletedBooksResult.deletedCount} sub-books and ${deletedContentResult.deletedCount} contents.`);
+             console.log(`Permanently deleted ${deletedCollectionsResult.deletedCount} sub-collections and ${deletedContentResult.deletedCount} contents.`);
         }
 
         console.log(`${type} ${id} permanently deleted from trash`);
         return NextResponse.json({ message: `${type} permanently deleted` }, { status: 200 });
 
-    } catch (error: any) {
+    } catch (error: any)
+    {
         console.error('Error permanently deleting item from trash:', error);
         if (error instanceof mongoose.Error.CastError) {
             return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
