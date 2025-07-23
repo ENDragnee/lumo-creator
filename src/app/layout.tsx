@@ -2,7 +2,7 @@
 import './globals.css';
 import { ReactNode } from 'react';
 import 'katex/dist/katex.min.css';
-import { Providers } from './providers'; // Import the new client component
+import { Providers } from '@/components/providers/providers'; // Import the new client component
 
 // Define your metadata here
 export const metadata = {

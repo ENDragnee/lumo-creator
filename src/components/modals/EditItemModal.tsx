@@ -10,15 +10,16 @@ import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
 import { Edit as EditIcon, Image as ImageIcon, Loader2, Save, Tag, AlertTriangle } from "lucide-react";
 
+// --- REFACTOR: Changed type from 'book' to 'collection' ---
 type EditModalItem = {
   _id: string;
-  type: "book" | "content";
+  type: "collection" | "content";
   title: string;
   thumbnail?: string | null;
   description?: string;
   tags?: string[];
   genre?: string;
-}
+};
 
 interface EditItemModalProps {
   open: boolean;
@@ -54,10 +55,14 @@ export function EditItemModal({ open, onOpenChange, item, onSuccess }: EditItemM
     if (item && open) {
       setTitle(item.title);
       setTags(item.tags?.join(", ") || "");
-      if (item.type === 'book') {
+      // --- REFACTOR: Check for 'collection' type ---
+      if (item.type === 'collection') {
         setDescription(item.description || "");
         setGenre(item.genre || "");
+        // Note: The UI doesn't currently support changing a collection's thumbnail,
+        // but it could be added here if needed.
       } else {
+        // This is for 'content' type
         setThumbnailPreview(item.thumbnail || null);
       }
     } else {
@@ -89,7 +94,7 @@ export function EditItemModal({ open, onOpenChange, item, onSuccess }: EditItemM
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!item || !title) return;
+    if (!item || !title.trim()) return;
 
     setProcessing(true);
     setError(null);
@@ -106,17 +111,18 @@ export function EditItemModal({ open, onOpenChange, item, onSuccess }: EditItemM
         newThumbnailId = mediaData.data._id;
       }
 
-      const endpoint = item.type === 'book' ? `/api/books/${item._id}` : `/api/content/${item._id}`;
+      // --- REFACTOR: Use correct endpoint for 'collection' ---
+      const endpoint = item.type === 'collection' ? `/api/collections/${item._id}` : `/api/content/${item._id}`;
       const dataToSave: any = { title };
       const tagArray = tags.split(",").map(t => t.trim()).filter(Boolean);
+      dataToSave.tags = tagArray;
 
+      // Apply type-specific fields
       if (item.type === 'content') {
-        dataToSave.tags = tagArray;
         if (newThumbnailId) dataToSave.thumbnail = newThumbnailId;
-      } else {
+      } else { // This is for 'collection'
         dataToSave.description = description;
         dataToSave.genre = genre;
-        dataToSave.tags = tagArray;
       }
       
       const updateRes = await fetch(endpoint, {
@@ -148,7 +154,8 @@ export function EditItemModal({ open, onOpenChange, item, onSuccess }: EditItemM
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="text-2xl font-bold text-foreground flex items-center gap-3">
             <EditIcon className="h-7 w-7 text-green-500" />
-            Edit {item.type === 'book' ? 'Book' : 'Content'}
+            {/* --- REFACTOR: Update UI text --- */}
+            Edit {item.type === 'collection' ? 'Collection' : 'Content'}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground pt-1 truncate">
             Making changes to "{item.title}".
@@ -165,11 +172,11 @@ export function EditItemModal({ open, onOpenChange, item, onSuccess }: EditItemM
               <div className="space-y-2">
                 <Label className="font-medium text-sm">Thumbnail</Label>
                 <div className="flex items-end gap-4">
-                  {thumbnailPreview && (
+                  {thumbnailPreview ? (
                     <div className="relative w-40 h-[90px] rounded-md border bg-muted overflow-hidden">
                        <Image src={thumbnailPreview} alt="Current thumbnail" layout="fill" className="object-cover" />
                     </div>
-                  )}
+                  ) : <div className="w-40 h-[90px] rounded-md border bg-muted flex items-center justify-center text-muted-foreground text-sm">No Thumbnail</div>}
                   <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
                     <ImageIcon className="mr-2 h-4 w-4" />
                     Change Image
@@ -178,16 +185,17 @@ export function EditItemModal({ open, onOpenChange, item, onSuccess }: EditItemM
                 </div>
               </div>
             )}
-
-            {item.type === 'book' && (
+            
+            {/* --- REFACTOR: Update conditional render --- */}
+            {item.type === 'collection' && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-description" className="font-medium text-sm">Description</Label>
+                  <Label htmlFor="edit-description" className="font-medium text-sm">Description (Optional)</Label>
                   <Textarea id="edit-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="A brief summary..."/>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-genre" className="font-medium text-sm">Genre (Optional)</Label>
-                  <Input id="edit-genre" value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="e.g., Fantasy, Sci-Fi"/>
+                  <Input id="edit-genre" value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="e.g., Learning, Sci-Fi"/>
                 </div>
               </>
             )}
@@ -212,7 +220,7 @@ export function EditItemModal({ open, onOpenChange, item, onSuccess }: EditItemM
             </div>
             <div className="flex gap-2 justify-end w-full sm:w-auto">
               <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)} disabled={processing}>Cancel</Button>
-              <Button type="submit" disabled={processing || !title} className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-500 dark:hover:bg-green-600">
+              <Button type="submit" disabled={processing || !title.trim()} className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-500 dark:hover:bg-green-600">
                 {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 {processing ? "Saving..." : "Save Changes"}
               </Button>

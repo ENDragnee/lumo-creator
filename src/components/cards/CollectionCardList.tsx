@@ -4,21 +4,21 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Folder, FileText } from 'lucide-react';
 
-interface IBook {
+interface ICollection {
   _id: string;
   title: string;
   updatedAt: string | Date;
   contentCount?: number;
 }
 
-interface BookCardListProps {
-  item: IBook;
+interface CollectionCardListProps {
+  item: ICollection;
   index: number;
   onItemClick: (id: string) => void;
   actionNode?: React.ReactNode; // New prop for action button
 }
 
-export function BookCardList({ item, index, onItemClick, actionNode }: BookCardListProps) {
+export function CollectionCardList({ item, index, onItemClick, actionNode }: CollectionCardListProps) {
   return (
     <motion.div
       initial={{ opacity: 0, x: -10 }}

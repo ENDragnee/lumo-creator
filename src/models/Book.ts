@@ -22,6 +22,7 @@ export interface IBook extends Document {
     shares?: number;
     completions?: number;
   };
+  prerequisites?: Types.ObjectId[];
   institutionId?: Types.ObjectId; // For B2B model
 }
 
@@ -50,6 +51,11 @@ const BookSchema = new mongoose.Schema<IBook>({
     saves: { type: Number, default: 0 },
     shares: { type: Number, default: 0 },
     completions: { type: Number, default: 0 }
+  },
+  prerequisites: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Book',
+    default: null
   },
   institutionId: { // This links to your new Institution model
     type: mongoose.Schema.Types.ObjectId,

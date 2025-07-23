@@ -4,8 +4,9 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Folder, FileText } from "lucide-react";
+import { Collection } from "mongoose";
 
-interface BookCardProps {
+interface CollectionCardProps {
   item: {
     _id: string;
     title: string;
@@ -17,7 +18,7 @@ interface BookCardProps {
   actionNode?: React.ReactNode; // New prop for action button
 }
 
-export function BookCard({ item, index, onItemClick, actionNode }: BookCardProps) {
+export function CollectionCard({ item, index, onItemClick, actionNode }: CollectionCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

@@ -1,3 +1,4 @@
+// @/components/layout/DriveHeader.tsx
 "use client";
 
 import React from "react";
@@ -18,10 +19,12 @@ interface DriveHeaderProps {
   breadcrumbs: Breadcrumb[];
   onBreadcrumbClick: (crumbId: string | null, index: number) => void;
   onNewContent: () => void;
-  onNewBook: () => void;
+  // --- REFACTOR: Renamed prop ---
+  onNewCollection: () => void;
 }
 
-export function DriveHeader({ breadcrumbs, onBreadcrumbClick, onNewContent, onNewBook }: DriveHeaderProps) {
+// --- REFACTOR: Updated component signature ---
+export function DriveHeader({ breadcrumbs, onBreadcrumbClick, onNewContent, onNewCollection }: DriveHeaderProps) {
   const dispatch = useAppDispatch();
   const viewMode = useAppSelector((state: RootState) => state.view.viewMode);
 
@@ -76,8 +79,9 @@ export function DriveHeader({ breadcrumbs, onBreadcrumbClick, onNewContent, onNe
             <DropdownMenuItem onSelect={onNewContent} className="gap-2 cursor-pointer">
               <FileText className="h-4 w-4 text-primary" /> New Content
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onNewBook} className="gap-2 cursor-pointer">
-              <Folder className="h-4 w-4 text-blue-500" /> New Book
+            {/* --- REFACTOR: Updated text and handler --- */}
+            <DropdownMenuItem onSelect={onNewCollection} className="gap-2 cursor-pointer">
+              <Folder className="h-4 w-4 text-blue-500" /> New Collection
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

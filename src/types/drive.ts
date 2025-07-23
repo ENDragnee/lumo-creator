@@ -1,22 +1,26 @@
 // @/types/drive.ts
 
 // This interface covers all properties needed by the Home page, Edit modal, and Delete modal for Books.
-export interface HomePageBook {
+export type HomePageCollection = {
   _id: string;
-  type: 'book';
+  type: 'collection';
   title: string;
+  isDraft: boolean;
+  updatedAt: string; // or Date
+  createdAt: string; // or Date
   description?: string;
-  tags?: string[];
   genre?: string;
-  updatedAt: string;
-  contentCount?: number;
-}
+  thumbnail?: string ;
+  contentCount: number;
+  collectionCount: number;
+};
 
 // This interface covers all properties needed for Content items.
 export interface HomePageContent {
   _id: string;
   type: 'content';
   title: string;
+  isDraft: boolean;
   thumbnail: string;
   tags?: string[];
   lastModifiedAt?: string;
@@ -24,4 +28,4 @@ export interface HomePageContent {
 }
 
 // This is the single source of truth for what a "DriveItem" is.
-export type DriveItem = HomePageBook | HomePageContent;
+export type DriveItem = HomePageCollection | HomePageContent;

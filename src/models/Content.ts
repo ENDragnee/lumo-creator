@@ -1,105 +1,93 @@
 // models/Content.ts
-import mongoose, { Document, Model, Types } from 'mongoose';
+import mongoose, { Document, Model, Schema, Types } from 'mongoose';
+
 export type ContentType = 'static' | 'dynamic';
 
 export interface IContent extends Document {
   _id: string;
   title: string;
-  views: number;
   thumbnail: Types.ObjectId;
   contentType: ContentType;
-  data: string;
+  data: any; 
   createdAt: Date;
   lastModifiedAt?: Date;
   createdBy: Types.ObjectId;
+  parentId: Types.ObjectId | null; 
   tags: string[];
   difficulty?: "easy" | "medium" | "hard";
   description?: string;
   estimatedTime?: number;
   userEngagement: {
-    rating?: number;
-    views?: number;
-    saves?: number;
-    shares?: number;
-    completions?: number;
+    rating: number;
+    views: number;
+    saves: number;
+    shares: number;
+    completions: number;
   };
-  parentId: Types.ObjectId | null;
+  prerequisites?: Types.ObjectId[];
   isDraft: boolean;
   isTrash: boolean;
-  version: number; // The versioning field
-  institutionId?: Types.ObjectId; // For B2B model
+  version: number; 
+  institutionId?: Types.ObjectId; 
 }
-const defaultData = `'{\"ROOT\":{\"type\":{\"resolvedName\":\"RenderCanvas\"},\"isCanvas\":true,\"props\":{\"gap\":8,\"padding\":16},\"displayName\":\"Canvas\",\"custom\":{},\"hidden\":false,\"nodes\":[],\"linkedNodes\":{}}}'
-`
+
+const defaultData = {
+  ROOT: {
+    type: { resolvedName: "RenderCanvas" },
+    isCanvas: true,
+    props: { gap: 8, padding: 16 },
+    displayName: "Canvas",
+    custom: {},
+    hidden: false,
+    nodes: [],
+    linkedNodes: {},
+  }
+};
+
 const ContentSchema = new mongoose.Schema<IContent>({
   title: { type: String, required: true },
-  views: { type: Number, default: 0 },
-  thumbnail: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: "Media",
-    required: true 
-  },
-  contentType: {
-    type: String,
-    enum: ['static', 'dynamic'],
+  thumbnail: { type: mongoose.Schema.Types.ObjectId, ref: "Media", required: true },
+  contentType: { type: String, enum: ['static', 'dynamic'], required: true, default: 'dynamic' },
+  data: { 
+    type: Schema.Types.Mixed,
     required: true,
-    default: 'dynamic' // Default to 'static' for your current needs
+    default: () => defaultData,
   },
-  data: {
-    type: String,
-    required: true,
-    default: defaultData
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  lastModifiedAt: {
-    type: Date,
-    default: Date.now
-  },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true
-  },
+  createdAt: { type: Date, default: Date.now },
+  lastModifiedAt: { type: Date, default: Date.now },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   parentId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Book', // Points to the parent Book document
-    default: null // null means it's in the root directory for the user
+    ref: 'Collection', 
+    default: null,
+    index: true // Good to index parentId
   },
-  tags: {
-    type: [String],
-    default: []
-  },
-  difficulty: {
-    type: String,
-    enum: ["easy", "medium", "hard"],
-    default: "easy"
-  },
+  tags: { type: [String], default: [] },
+  difficulty: { type: String, enum: ["easy", "medium", "hard"], default: "easy" },
   description: { type: String },
   estimatedTime: { type: Number, default: 0 },
-  userEngagement: {
+  userEngagement: { // Consolidated views here
     rating: { type: Number, default: 0 },
     views: { type: Number, default: 0 },
     saves: { type: Number, default: 0 },
     shares: { type: Number, default: 0 },
     completions: { type: Number, default: 0 }
   },
+  prerequisites: [{ // An array of prerequisites
+    type: Schema.Types.ObjectId,
+    ref: 'Content',
+  }],
   isDraft: { type: Boolean, default: true },
   isTrash: { type: Boolean, default: false },
-  version: {
-    type: Number,
-    default: 1
-  },
-  institutionId: { // This links to your new Institution model
+  version: { type: Number, default: 1 },
+  institutionId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Institution',
-    required: false // Optional, for content not tied to an institution
+    required: false
   },
 });
 
 const Content: Model<IContent> = 
-  mongoose.models.Content || 
-  mongoose.model('Content', ContentSchema);
+  mongoose.models.Content || mongoose.model('Content', ContentSchema);
 
 export default Content;

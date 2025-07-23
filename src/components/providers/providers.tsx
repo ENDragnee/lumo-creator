@@ -5,6 +5,7 @@ import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { ReactNode } from "react";
 import { ReduxProvider } from "@/app/store/ReduxProvider";
+import QueryProvider from "./QueryProvider";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -13,6 +14,7 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <SessionProvider>
+    <QueryProvider>
       <ThemeProvider
         attribute="class"
         defaultTheme="system"
@@ -23,6 +25,7 @@ export function Providers({ children }: ProvidersProps) {
         {children}
       </ReduxProvider>
       </ThemeProvider>
+    </QueryProvider>
     </SessionProvider>
   );
 }
