@@ -5,6 +5,7 @@ export interface IMediaData {
   tag?: string;
   uploadedBy: string; // ObjectId is serialized to a string
   mediaType: 'image' | 'video' | 'thumbnail';
+  mediaSize: number;
   filename: string;
   path: string;
   createdAt: string; // Date is serialized to an ISO string
@@ -15,6 +16,7 @@ export interface IMedia extends Document {
   tag?: string;
   uploadedBy: Types.ObjectId;
   mediaType: 'image' | 'video' | 'thumbnail';
+  mediaSize: number;
   filename: string;
   path: string;
   createdAt: Date;
@@ -34,6 +36,10 @@ const MediaSchema = new mongoose.Schema<IMedia>({
     type: String,
     enum: ['image', 'video', 'thumbnail'],
     required: true,
+  },
+  mediaSize: {
+    type: Number,
+    required: true
   },
   filename: {
     type: String,

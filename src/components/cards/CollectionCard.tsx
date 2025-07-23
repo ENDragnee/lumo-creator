@@ -4,7 +4,6 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Folder, FileText } from "lucide-react";
-import { Collection } from "mongoose";
 
 interface CollectionCardProps {
   item: {

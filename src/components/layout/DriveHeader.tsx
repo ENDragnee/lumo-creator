@@ -21,7 +21,6 @@ import {
 import { useAppDispatch, useAppSelector } from "@/app/store/hooks";
 import { setViewMode } from "@/app/store/slices/viewSlice";
 import { RootState } from "@/app/store/store";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 interface Breadcrumb {
   id: string | null;
@@ -113,7 +112,6 @@ export function DriveHeader({
           <Button variant={viewMode === "grid" ? "secondary" : "ghost"} size="icon" onClick={() => dispatch(setViewMode("grid"))}> <LayoutGrid className="h-5 w-5" /></Button>
           <Button variant={viewMode === "list" ? "secondary" : "ghost"} size="icon" onClick={() => dispatch(setViewMode("list"))}> <List className="h-5 w-5" /></Button>
         </div>
-        <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild><Button className="gap-2"><Plus className="h-5 w-5" /> <span className="hidden sm:inline">New</span></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end">

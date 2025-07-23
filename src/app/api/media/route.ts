@@ -1,4 +1,3 @@
-// @/app/api/media/route.ts
 import { NextResponse, NextRequest } from "next/server";
 import fs, { mkdir } from "fs/promises";
 import path from "path";
@@ -8,9 +7,10 @@ import { authOptions } from "@/lib/auth";
 import Media from "@/models/Media";
 import mongoose from "mongoose";
 
-const MAX_IMAGES_PER_USER = 20;
+// 20 GB in bytes (20 * 1024 * 1024 * 1024)
+const MAX_STORAGE_PER_USER = 21474836480; 
 
-// --- GET All Media with Filtering ---
+// --- GET All Media with Filtering, Searching, and Pagination ---
 export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -19,28 +19,58 @@ export async function GET(request: NextRequest) {
     const userId = new mongoose.Types.ObjectId(session.user.id);
 
     const { searchParams } = new URL(request.url);
-    const tag = searchParams.get('tag');
-    const limit = searchParams.get('limit');
+    const searchQuery = searchParams.get('search') || '';
+    
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '12');
+    const skip = (page - 1) * limit;
 
-    // Build the query object
-    const query: { uploadedBy: mongoose.Types.ObjectId; tag?: { $regex: string; $options: 'i' } } = {
+    const query: { uploadedBy: mongoose.Types.ObjectId; $or?: any[] } = {
         uploadedBy: userId
     };
 
-    if (tag) {
-        // Use regex for partial, case-insensitive tag matching
-        query.tag = { $regex: tag, $options: 'i' };
+    if (searchQuery) {
+        const regex = { $regex: searchQuery, $options: 'i' };
+        query.$or = [
+            { filename: regex },
+            { tag: regex }
+        ];
     }
 
     try {
-        let mediaQuery = Media.find(query).sort({ createdAt: -1 });
+        // --- UPDATED: Run three queries in parallel for full stats ---
+        const [mediaItems, totalItems, storageAggregation] = await Promise.all([
+            // Query for the paginated data
+            Media.find(query)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            // Query for the total count of documents (for pagination)
+            Media.countDocuments({ uploadedBy: userId }), // Total count for stats
+            // --- NEW: Query for the total storage used by the user ---
+            Media.aggregate([
+                { $match: { uploadedBy: userId } },
+                { $group: { _id: null, totalSize: { $sum: "$mediaSize" } } }
+            ])
+        ]);
 
-        if (limit && !isNaN(parseInt(limit))) {
-            mediaQuery = mediaQuery.limit(parseInt(limit));
-        }
+        const totalPages = Math.ceil(totalItems / limit);
+        const totalStorageUsed = storageAggregation[0]?.totalSize || 0;
 
-        const mediaItems = await mediaQuery.exec();
-        return NextResponse.json({ success: true, data: mediaItems });
+        return NextResponse.json({ 
+            success: true, 
+            data: {
+                media: mediaItems,
+                pagination: {
+                    currentPage: page,
+                    totalPages,
+                    totalItems,
+                    limit,
+                    totalStorageUsed, // <-- Send total storage to the client
+                }
+            } 
+        });
 
     } catch (error) {
         console.error("Error fetching media:", error);
@@ -48,7 +78,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// --- POST (Upload) New Media with Limit Enforcement ---
+// --- POST (Upload) New Media with Storage Quota Enforcement ---
 export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -58,45 +88,41 @@ export async function POST(request: NextRequest) {
 
     const data = await request.formData();
     const file: File | null = data.get("file") as unknown as File;
-    const tag: string | null = data.get("tag") as string; // Get the tag from form data
+    const tag: string | null = data.get("tag") as string;
 
     if (!file) {
         return NextResponse.json({ success: false, message: "No file provided" }, { status: 400 });
     }
 
-    // --- ENFORCE 20 IMAGE LIMIT ---
+    // --- NEW: STORAGE QUOTA ENFORCEMENT ---
     try {
-        const imageCount = await Media.countDocuments({ uploadedBy: userId, mediaType: 'image' });
+        // Use a more efficient aggregation pipeline to sum the sizes
+        const storageUsageResult = await Media.aggregate([
+            { $match: { uploadedBy: userId } },
+            { $group: { _id: null, totalSize: { $sum: "$mediaSize" } } }
+        ]);
 
-        if (imageCount >= MAX_IMAGES_PER_USER) {
-            // Find the oldest image for this user
-            const oldestImage = await Media.findOne({ uploadedBy: userId, mediaType: 'image' }).sort({ createdAt: 1 });
+        const currentUsage = storageUsageResult.length > 0 ? storageUsageResult[0].totalSize : 0;
+        const incomingFileSize = file.size;
 
-            if (oldestImage) {
-                // 1. Delete the physical file
-                const filePathOnServer = path.join(process.cwd(), "public", oldestImage.path);
-                try {
-                    await fs.unlink(filePathOnServer);
-                } catch (unlinkError: any) {
-                    // Log the error but continue, as the DB record is more important to remove
-                    console.warn(`Could not delete old file from disk: ${filePathOnServer}`, unlinkError.message);
-                }
-                
-                // 2. Delete the database record
-                await Media.findByIdAndDelete(oldestImage._id);
-            }
+        if (currentUsage + incomingFileSize > MAX_STORAGE_PER_USER) {
+            return NextResponse.json({ 
+                success: false, 
+                message: "Storage quota exceeded. Cannot upload new file." 
+            }, { status: 413 }); // 413 Payload Too Large is a fitting status code
         }
-    } catch (error) {
-        console.error("Error enforcing media limit:", error);
-        return NextResponse.json({ success: false, message: "Server error during media limit enforcement." }, { status: 500 });
-    }
-    // ----------------------------
 
-    // The rest of the upload logic
+    } catch (error) {
+        console.error("Error checking storage quota:", error);
+        return NextResponse.json({ success: false, message: "Server error during storage quota check." }, { status: 500 });
+    }
+    // -------------------------------------
+
     const contentType = file.type;
-    let mediaType: 'image' | 'video';
+    let mediaType: 'image' | 'video' | 'thumbnail';
     let fileExtension: string;
     
+    // For now, only images are supported. You can extend this logic for video.
     if (contentType.startsWith("image/")) {
         mediaType = 'image';
         fileExtension = '.webp';
@@ -116,18 +142,26 @@ export async function POST(request: NextRequest) {
     const publicUrl = `/LumoCreators/${session.user.id}/images/${filename}`;
 
     try {
-        await sharp(buffer)
+        // Process the image with sharp
+        const processedImageBuffer = await sharp(buffer)
             .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
             .webp({ quality: 80 })
-            .toFile(filepath);
+            .toBuffer();
+
+        // Write the processed buffer to the file
+        await fs.writeFile(filepath, processedImageBuffer);
+
+        // Get the size of the *final, processed* file for accurate storage calculation
+        const finalMediaSize = processedImageBuffer.length;
 
         const newMedia = await Media.create({
             _id: uniqueId,
             uploadedBy: userId,
             mediaType,
+            mediaSize: finalMediaSize, // <-- SAVE THE FILE SIZE
             filename,
             path: publicUrl,
-            tag: tag || undefined, // Save the tag, or undefined if not provided
+            tag: tag || undefined,
         });
 
         return NextResponse.json({ success: true, data: newMedia }, { status: 201 });
