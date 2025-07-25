@@ -1,37 +1,54 @@
+//@/app/home/manage/page.tsx
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAppDispatch, useAppSelector } from '@/app/store/hooks';
+import { RootState } from '@/app/store/store';
+import { setManagerView, ManagerViewType } from '@/app/store/slices/managerViewSlice';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Link as LinkIcon, List } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Loader2, Link as LinkIcon, ListOrdered, Rows, Projector } from "lucide-react";
 import { ErrorFallback } from '@/components/error-fallback';
 import { VisualEditor } from '@/components/manage/VisualEditor';
 import { ListView } from '@/components/manage/ListView';
+import { OrderManager } from '@/components/manage/OrderManager';
+import { OrderListView } from '@/components/manage/OrderListView';
 import { toast } from "sonner";
 
-// Type definition for the data fetched by our API
+// Type definitions for fetched data
 export interface IContentGraphItem {
   _id: string;
   title: string;
   prerequisites?: string[];
   thumbnail: string | null;
 }
+export interface ICollectionOrderItem {
+  _id: string;
+  title: string;
+  type: 'collection' | 'content';
+}
 
 // API Fetching Functions
 const fetchCollections = async () => {
-  const res = await fetch('/api/collections?parentId=null'); // Fetch top-level collections
+  const res = await fetch('/api/collections?parentId=null');
   if (!res.ok) throw new Error('Failed to fetch collections');
-  const data = await res.json();
-  return data.data;
+  return (await res.json()).data;
 };
 
 const fetchContentGraph = async (collectionId: string) => {
   if (!collectionId) return [];
   const res = await fetch(`/api/collections/${collectionId}/content-graph`);
   if (!res.ok) throw new Error('Failed to fetch content graph');
-  const data = await res.json();
-  return data.data as IContentGraphItem[];
+  return (await res.json()).data as IContentGraphItem[];
+};
+
+const fetchCollectionDetails = async (collectionId: string) => {
+  if (!collectionId) return null;
+  const res = await fetch(`/api/collections/${collectionId}`);
+  if (!res.ok) throw new Error('Failed to fetch collection details');
+  return (await res.json()).data;
 };
 
 const updatePrerequisites = async ({ contentId, prerequisites }: { contentId: string, prerequisites: string[] }) => {
@@ -40,45 +57,97 @@ const updatePrerequisites = async ({ contentId, prerequisites }: { contentId: st
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prerequisites }),
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || 'Failed to update prerequisites');
-  }
+  if (!res.ok) throw new Error((await res.json()).message || 'Failed to update prerequisites');
+  return res.json();
+};
+
+const updateOrder = async ({ collectionId, childCollections, childContent }: { collectionId: string, childCollections: string[], childContent: string[] }) => {
+  const res = await fetch(`/api/collections/${collectionId}/order`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ childCollections, childContent }),
+  });
+  if (!res.ok) throw new Error((await res.json()).message || 'Failed to update order');
   return res.json();
 };
 
 export default function ManageContentPage() {
   const [selectedCollectionId, setSelectedCollectionId] = useState<string>('');
+  const [activeMode, setActiveMode] = useState<'prerequisites' | 'order'>('prerequisites');
   const queryClient = useQueryClient();
 
-  // Query to fetch the list of collections for the dropdown
-  const { data: collections, isLoading: isLoadingCollections } = useQuery({
-    queryKey: ['collectionsList'],
-    queryFn: fetchCollections,
-  });
+  const dispatch = useAppDispatch();
+  const activeView = useAppSelector((state: RootState) => state.managerView.viewType);
 
-  // Query to fetch the content graph for the selected collection
-  const { data: contentItems, isLoading: isLoadingContent, isError, error, refetch } = useQuery({
+  // Data fetching queries
+  const { data: collections, isLoading: isLoadingCollections } = useQuery({ queryKey: ['collectionsList'], queryFn: fetchCollections });
+  const { data: contentGraphItems, isLoading: isLoadingGraph, isError: isGraphError, error: graphError, refetch: refetchGraph } = useQuery({
     queryKey: ['contentGraph', selectedCollectionId],
     queryFn: () => fetchContentGraph(selectedCollectionId),
-    enabled: !!selectedCollectionId, // Only run this query if a collection is selected
+    enabled: !!selectedCollectionId && activeMode === 'prerequisites',
   });
-
-  // Mutation for updating prerequisites
-  const mutation = useMutation({
+  const { data: collectionDetails, isLoading: isLoadingDetails, isError: isDetailsError, error: detailsError, refetch: refetchDetails } = useQuery({
+    queryKey: ['collectionDetails', selectedCollectionId],
+    queryFn: () => fetchCollectionDetails(selectedCollectionId),
+    enabled: !!selectedCollectionId && activeMode === 'order',
+  });
+  
+  // Data mutation hooks
+  const prereqMutation = useMutation({
     mutationFn: updatePrerequisites,
     onSuccess: () => {
-      toast.success('Prerequisites updated successfully!');
-      // When an update is successful, refetch the graph data to keep the UI in sync
+      toast.success('Prerequisites updated!');
       queryClient.invalidateQueries({ queryKey: ['contentGraph', selectedCollectionId] });
     },
-    onError: (err: Error) => {
-      toast.error(err.message);
-    }
+    onError: (err: Error) => toast.error(err.message),
+  });
+  const orderMutation = useMutation({
+    mutationFn: updateOrder,
+    onSuccess: () => {
+      toast.success('Order updated!');
+      queryClient.invalidateQueries({ queryKey: ['collectionDetails', selectedCollectionId] });
+    },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const handlePrerequisitesChange = (contentId: string, prerequisites: string[]) => {
-    mutation.mutate({ contentId, prerequisites });
+    prereqMutation.mutate({ contentId, prerequisites });
+  };
+  const handleOrderChange = (newOrder: { childCollections: string[], childContent: string[] }) => {
+    if (orderMutation.isPending) return;
+    orderMutation.mutate({ collectionId: selectedCollectionId, ...newOrder });
+  };
+  
+  const isLoading = isLoadingCollections || (activeMode === 'prerequisites' && isLoadingGraph) || (activeMode === 'order' && isLoadingDetails);
+  const isError = (activeMode === 'prerequisites' && isGraphError) || (activeMode === 'order' && isDetailsError);
+  const error = graphError || detailsError;
+  const refetch = activeMode === 'prerequisites' ? refetchGraph : refetchDetails;
+
+  const handleViewChange = (value: ManagerViewType) => {
+    if (value) dispatch(setManagerView(value));
+  };
+
+  const renderContent = () => {
+    if (isLoading) {
+      return <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    }
+    if (isError) {
+      return <ErrorFallback error={error} onRetry={refetch} />;
+    }
+    if (activeMode === 'prerequisites') {
+      return activeView === 'visual'
+        ? <VisualEditor contentItems={contentGraphItems || []} onPrerequisitesChange={handlePrerequisitesChange} />
+        : <ListView contentItems={contentGraphItems || []} onPrerequisitesChange={handlePrerequisitesChange} />;
+    }
+    if (activeMode === 'order') {
+      const collections = (collectionDetails?.childCollections || []).map((c: any) => ({...c, type: 'collection'}));
+      const content = (collectionDetails?.childContent || []).map((c: any) => ({...c, type: 'content'}));
+      
+      return activeView === 'visual'
+        ? <OrderManager initialCollections={collections} initialContent={content} onOrderChange={handleOrderChange} />
+        : <OrderListView collections={collections} content={content} />;
+    }
+    return null;
   };
 
   return (
@@ -86,49 +155,49 @@ export default function ManageContentPage() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Content Manager</h1>
-          <p className="text-muted-foreground">Visually organize the learning path for your content.</p>
+          <p className="text-muted-foreground">Organize your content's prerequisites and sequence.</p>
         </div>
         <div>
           <label className="text-sm font-medium mb-2 block">Select a Collection</label>
           <Select onValueChange={setSelectedCollectionId} value={selectedCollectionId}>
-            <SelectTrigger className="w-full md:w-[280px]">
-              <SelectValue placeholder="Choose a collection to manage..." />
-            </SelectTrigger>
+            <SelectTrigger className="w-full md:w-[280px]"><SelectValue placeholder="Choose a collection..." /></SelectTrigger>
             <SelectContent>
-              {isLoadingCollections ? (
-                <div className="p-4 text-center">Loading...</div>
-              ) : (
-                collections?.map((col: any) => (
-                  <SelectItem key={col._id} value={col._id}>{col.title}</SelectItem>
-                ))
-              )}
+              {isLoadingCollections ? <div className="p-4 text-center">Loading...</div> : 
+                collections?.map((col: any) => <SelectItem key={col._id} value={col._id}>{col.title}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       </div>
       
       {selectedCollectionId ? (
-        isLoadingContent ? (
-          <div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin" /></div>
-        ) : isError ? (
-          <ErrorFallback error={error} onRetry={refetch} />
-        ) : (
-          <Tabs defaultValue="visual" className="w-full">
-            <TabsList className="grid w-full md:w-[400px] grid-cols-2">
-              <TabsTrigger value="visual"><LinkIcon className="h-4 w-4 mr-2"/>Visual Editor</TabsTrigger>
-              <TabsTrigger value="list"><List className="h-4 w-4 mr-2"/>List View</TabsTrigger>
-            </TabsList>
-            <TabsContent value="visual" className="pt-4">
-              <VisualEditor contentItems={contentItems || []} onPrerequisitesChange={handlePrerequisitesChange} />
-            </TabsContent>
-            <TabsContent value="list" className="pt-4">
-              <ListView contentItems={contentItems || []} onPrerequisitesChange={handlePrerequisitesChange} />
-            </TabsContent>
-          </Tabs>
-        )
+        <>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <Tabs value={activeMode} onValueChange={(value) => setActiveMode(value as any)} className="w-full md:w-auto">
+              <TabsList className="grid w-full md:w-[400px] grid-cols-2">
+                <TabsTrigger value="prerequisites"><LinkIcon className="h-4 w-4 mr-2"/>Prerequisites</TabsTrigger>
+                <TabsTrigger value="order"><ListOrdered className="h-4 w-4 mr-2"/>Order</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
+            <ToggleGroup type="single" value={activeView} onValueChange={handleViewChange} aria-label="View Type">
+              <ToggleGroupItem value="visual" aria-label="Visual view">
+                <Projector className="h-4 w-4 mr-2" />
+                Visual
+              </ToggleGroupItem>
+              <ToggleGroupItem value="list" aria-label="List view">
+                <Rows className="h-4 w-4 mr-2" />
+                List View
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
+          <div className="pt-4">
+            {renderContent()}
+          </div>
+        </>
       ) : (
         <div className="flex flex-col items-center justify-center h-96 border-2 border-dashed rounded-lg">
-          <p className="text-lg text-muted-foreground">Please select a collection to begin managing content.</p>
+          <p className="text-lg text-muted-foreground">Please select a collection to begin.</p>
         </div>
       )}
     </div>

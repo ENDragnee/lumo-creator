@@ -1,7 +1,7 @@
 // /models/InstitutionMember.ts
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 
-export type InstitutionRole = 'owner' | 'admin' | 'member';
+export type InstitutionRole = 'owner' | 'admin' | 'member' | 'creator' | 'teacher';
 export type MembershipStatus = 'active' | 'pending' | 'revoked';
 
 export interface IInstitutionMember extends Document {

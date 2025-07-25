@@ -12,6 +12,7 @@ export interface IContent extends Document {
   createdAt: Date;
   lastModifiedAt?: Date;
   createdBy: Types.ObjectId;
+  institutionId?: Types.ObjectId; 
   parentId: Types.ObjectId | null; 
   tags: string[];
   difficulty?: "easy" | "medium" | "hard";
@@ -28,7 +29,6 @@ export interface IContent extends Document {
   isDraft: boolean;
   isTrash: boolean;
   version: number; 
-  institutionId?: Types.ObjectId; 
 }
 
 const defaultData = {

@@ -6,18 +6,16 @@ export interface ICollection extends Document {
   _id: string;
   title: string;
   description?: string;
-  thumbnail?: Types.ObjectId; // Made optional as in your original schema
+  thumbnail?: Types.ObjectId; 
   parentId: Types.ObjectId | null;
-  
-  // Explicit ordering of children
   childCollections: Types.ObjectId[];
   childContent: Types.ObjectId[];
-
   isDraft: boolean;
   isTrash: boolean;
   createdAt: Date;
   updatedAt: Date;
   createdBy: Types.ObjectId;
+  institutionId?: Types.ObjectId; 
   tags: string[];
   genre?: string;
   publishedAt?: Date;
@@ -30,7 +28,6 @@ export interface ICollection extends Document {
     favorites: number; // Moved favorites inside
   };
   prerequisites?: Types.ObjectId[];
-  institutionId?: Types.ObjectId;
 }
 
 const CollectionSchema = new mongoose.Schema<ICollection>({

@@ -1,9 +1,12 @@
+//@/app/store/store.ts
 import { configureStore } from '@reduxjs/toolkit';
 import editorReducer from './slices/editorSlice';
 import mediaReducer from './slices/mediaSlice';
 import viewReducer from './slices/viewSlice';
 import toolbarReducer from './slices/toolbarSlice'; 
 import managerToolReducer from './slices/managerToolSlice';
+import managerViewReducer from './slices/managerViewSlice'; 
+
 export const store = configureStore({
   reducer: {
     editor: editorReducer,
@@ -11,6 +14,7 @@ export const store = configureStore({
     view: viewReducer, // Add the view reducer here
     toolbar: toolbarReducer,
     managerTool: managerToolReducer,
+    managerView: managerViewReducer,
   },
 });
 
