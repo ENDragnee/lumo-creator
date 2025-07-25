@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Folder, Loader2, Edit, Trash2, MoreVertical, FileText, FolderOpen } from "lucide-react";
@@ -32,17 +32,22 @@ interface Breadcrumb {
   title: string;
 }
 
-// Helper function to fetch drive data
+// --- UPDATED: Helper function to fetch drive data ---
 const fetchDriveItems = async (parentId: string | null): Promise<{ collections: HomePageCollection[]; content: HomePageContent[] }> => {
   if (parentId) {
+    // This endpoint fetches a single collection and its children
     const res = await fetch(`/api/collections/${parentId}`);
     if (!res.ok) throw new Error("Failed to fetch collection contents.");
-    const { data } = await res.json();
+    const response = await res.json();
+    
+    // --- FIX: Correctly destructure the response from the robust API ---
+    // The API now sends back childCollections and childContent at the top level of the data object.
     return {
-      collections: data.childCollections || [],
-      content: data.childContent || [],
+      collections: response.data.childCollections || [],
+      content: response.data.childContent || [],
     };
   } else {
+    // This logic for the root directory remains the same, fetching collections and content separately.
     const [collectionRes, contentRes] = await Promise.all([
       fetch(`/api/collections?parentId=null`),
       fetch(`/api/content?parentId=null`),
@@ -61,12 +66,10 @@ export default function HomePage() {
   const { status } = useSession();
   const queryClient = useQueryClient();
 
-  // State for Search, Filter, and Sort
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTerm, setFilterTerm] = useState("all");
   const [sortTerm, setSortTerm] = useState("updatedAt-desc");
 
-  // UI State management
   const [currentParentId, setCurrentParentId] = useState<string | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([{ id: null, title: "My Home" }]);
   const viewMode = useAppSelector((state: RootState) => state.view.viewMode);
@@ -76,7 +79,6 @@ export default function HomePage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DriveItem | null>(null);
 
-  // Data fetching hook
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["driveItems", currentParentId],
     queryFn: () => fetchDriveItems(currentParentId),
@@ -84,12 +86,11 @@ export default function HomePage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Client-side processing of fetched data for performance
   const { processedCollections, processedContent } = useMemo(() => {
     if (!data) return { processedCollections: [], processedContent: [] };
 
-    const sortItems = (items: DriveItem[]) => {
-      return items.sort((a, b) => {
+    const sortItems = <T extends DriveItem>(items: T[]): T[] => {
+      return [...items].sort((a, b) => {
         switch (sortTerm) {
           case 'title-asc':
             return a.title.localeCompare(b.title);
@@ -115,56 +116,50 @@ export default function HomePage() {
       : data.content;
 
     return {
-      processedCollections: sortItems(searchedCollections.map(c => ({...c, type: 'collection' as const}))) as HomePageCollection[],
-      processedContent: sortItems(searchedContent.map(c => ({...c, type: 'content' as const}))) as HomePageContent[],
+      processedCollections: sortItems(searchedCollections.map(c => ({...c, type: 'collection' as const}))),
+      processedContent: sortItems(searchedContent.map(c => ({...c, type: 'content' as const}))),
     };
   }, [data, searchTerm, sortTerm]);
 
-  // Event Handlers
-  const handleCollectionClick = (collectionId: string) => {
+  // Event Handlers are memoized for performance
+  const handleCollectionClick = useCallback((collectionId: string) => {
     const clickedCollection = data?.collections.find((c) => c._id === collectionId);
     if (clickedCollection) {
       setCurrentParentId(collectionId);
       setBreadcrumbs((prev) => [...prev, { id: collectionId, title: clickedCollection.title }]);
       setSearchTerm("");
     }
-  };
+  }, [data?.collections]);
 
-  const handleBreadcrumbClick = (crumbId: string | null, index: number) => {
+  const handleBreadcrumbClick = useCallback((crumbId: string | null, index: number) => {
     setCurrentParentId(crumbId);
     setBreadcrumbs((prev) => prev.slice(0, index + 1));
     setSearchTerm("");
-  };
+  }, []);
 
-  const handleLetterClick = (letter: string) => {
+  const handleLetterClick = useCallback((letter: string) => {
     const allVisibleItems = [
         ...(filterTerm === 'all' || filterTerm === 'collection' ? processedCollections : []),
         ...(filterTerm === 'all' || filterTerm === 'content' ? processedContent : []),
     ];
-
     const firstMatch = allVisibleItems.find(item => {
       const firstChar = item.title.charAt(0).toUpperCase();
       if (letter === '#') { return !/^[A-Z]$/.test(firstChar); }
       return firstChar === letter;
     });
-
     if (firstMatch) {
       const element = document.getElementById(`item-${firstMatch._id}`);
       element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  };
+  }, [filterTerm, processedCollections, processedContent]);
 
-  const openEditModal = (item: DriveItem) => { setSelectedItem(item); setIsEditModalOpen(true); };
-  const openDeleteModal = (item: DriveItem) => { setSelectedItem(item); setIsDeleteModalOpen(true); };
-  const refreshData = () => { queryClient.invalidateQueries({ queryKey: ["driveItems", currentParentId] }); };
+  const openEditModal = useCallback((item: DriveItem) => { setSelectedItem(item); setIsEditModalOpen(true); }, []);
+  const openDeleteModal = useCallback((item: DriveItem) => { setSelectedItem(item); setIsDeleteModalOpen(true); }, []);
+  const refreshData = useCallback(() => { queryClient.invalidateQueries({ queryKey: ["driveItems", currentParentId] }); }, [queryClient, currentParentId]);
 
   const ItemActions = ({ item }: { item: DriveItem }) => (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} className="h-8 w-8 rounded-full data-[state=open]:bg-muted">
-          <MoreVertical className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} className="h-8 w-8 rounded-full data-[state=open]:bg-muted"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
         <DropdownMenuItem onSelect={() => openEditModal(item)} className="gap-2"><Edit className="h-4 w-4" /> Edit</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => openDeleteModal(item)} className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"><Trash2 className="h-4 w-4" /> Move to Trash</DropdownMenuItem>
@@ -172,7 +167,6 @@ export default function HomePage() {
     </DropdownMenu>
   );
 
-  // Initial full-page loading state
   if (status === "loading" || (isLoading && !data)) {
     return (
       <div className="flex justify-center items-center h-screen bg-background">
@@ -209,7 +203,6 @@ export default function HomePage() {
 
               {isLoading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
 
-              {/* Collections Section */}
               {!isLoading && (filterTerm === 'all' || filterTerm === 'collection') && processedCollections.length > 0 && (
                 <section>
                   <h2 className="text-xl font-semibold mb-4 text-foreground">Collections</h2>
@@ -233,7 +226,6 @@ export default function HomePage() {
                 </section>
               )}
 
-              {/* Content Section */}
               {!isLoading && (filterTerm === 'all' || filterTerm === 'content') && processedContent.length > 0 && (
                  <section>
                   <h2 className="text-xl font-semibold mb-4 text-foreground">Content</h2>
@@ -257,7 +249,6 @@ export default function HomePage() {
                 </section>
               )}
 
-              {/* Enhanced Empty State */}
               {!isLoading && processedCollections.length === 0 && processedContent.length === 0 && (
                 <div className="text-center py-20 text-muted-foreground flex flex-col items-center">
                   <FolderOpen className="h-24 w-24 mx-auto mb-4 opacity-30" />
@@ -276,7 +267,6 @@ export default function HomePage() {
         {!isLoading && (processedCollections.length > 0 || processedContent.length > 0) && <AlphabetNav onLetterClick={handleLetterClick} />}
       </div>
       
-      {/* Modals remain the same */}
       <CollectionModal open={isCollectionModalOpen} onOpenChange={setIsCollectionModalOpen} onSuccess={refreshData} parentId={currentParentId} />
       <ContentModal open={isContentModalOpen} onOpenChange={setIsContentModalOpen} onSuccess={refreshData} parentId={currentParentId} />
       <EditItemModal open={isEditModalOpen} onOpenChange={setIsEditModalOpen} onSuccess={refreshData} item={selectedItem} />

@@ -87,6 +87,8 @@
     "react-resizable-panels": "^2.1.7",
     "react-responsive": "^10.0.1",
     "react-rnd": "^10.4.14",
+    "react-select": "^5.10.2",
+    "reactflow": "^11.11.4",
     "recharts": "^2.15.1",
     "rehype-katex": "^7.0.1",
     "rehype-raw": "^7.0.0",

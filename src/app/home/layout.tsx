@@ -13,6 +13,7 @@ const navigation = [
   { name: "Home", href: "/home", icon: Home },
   { name: "Trash", href: "/home/trash", icon: Trash2 },
   { name: "Media", href: "/home/media", icon: Image},
+  { name: "Manage", href: "/home/manage", icon: Settings},
   // You can easily add more links here in the future
   // { name: "Settings", href: "/home/settings", icon: Settings },
 ];

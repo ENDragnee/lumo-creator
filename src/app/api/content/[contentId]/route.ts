@@ -1,12 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import Content from "@/models/Content";
+import Content from "@/models/Content"; // Assuming this is your updated model
 import mongoose from "mongoose";
 import connectDB from "@/lib/mongodb";
 
 type ContentRouteParams = {
-  params: Promise<{ 
+  params: Promise<{ // The 'await' in your original code was unnecessary here
     contentId: string;
   }>;
 };
@@ -34,21 +34,18 @@ export async function GET(
     createdBy: new mongoose.Types.ObjectId(userId),
   })
     .populate<{ thumbnail: { path: string } }>("thumbnail", "path")
-    .lean(); // .lean() is important for performance and to get a plain JS object
+    .lean();
 
   if (!content) {
-    return NextResponse.json(
-      { success: false, message: "Content not found or you do not have permission." },
-      { status: 404 }
-    );
+    return NextResponse.json({ success: false, message: "Content not found or permission denied." }, { status: 404 });
   }
 
-  // UPDATED: Return the data field as a JSON object directly.
-  // The model's default ensures 'data' is an object even if it's null/undefined in the DB.
+  // --- FIX: Return the `data` field as a native JSON object ---
+  // Mongoose will provide it as an object because the schema type is Mixed.
   const transformedContent = {
     ...content,
-    thumbnail: content.thumbnail?.path || "/default-thumbnail.png",
-    data: content.data, // No stringification needed.
+    thumbnail: content.thumbnail?.path || null,
+    data: content.data, // No parsing or stringification needed
   };
 
   return NextResponse.json({ success: true, data: transformedContent });
@@ -73,11 +70,10 @@ export async function PUT(
     return NextResponse.json({ success: false, message: "Invalid Content ID" }, { status: 400 });
   }
 
-  // Prevent users from updating protected fields
   const { createdBy, isTrash, _id, version, ...updateData } = body;
   
-  // The frontend now sends `data` as a JSON object, which `updateData` will contain.
-  // The `Mixed` type in the Mongoose schema will store the object correctly.
+  // --- FIX: The `data` field in `updateData` is now a JSON object. ---
+  // Mongoose's `Mixed` schema type will handle storing this object correctly.
   const updatePayload = {
     $set: { ...updateData, lastModifiedAt: new Date() },
     $inc: { version: 1 },
@@ -86,23 +82,19 @@ export async function PUT(
   const updatedContentDoc = await Content.findOneAndUpdate(
     { _id: contentId, createdBy: new mongoose.Types.ObjectId(userId) },
     updatePayload,
-    { new: true }
+    { new: true } // Return the updated document
   )
     .populate<{ thumbnail: { path: string } }>("thumbnail", "path")
     .lean();
 
   if (!updatedContentDoc) {
-    return NextResponse.json(
-      { success: false, message: "Content not found or update failed." },
-      { status: 404 }
-    );
+    return NextResponse.json({ success: false, message: "Content not found or update failed." }, { status: 404 });
   }
   
-  // UPDATED: Return the data field as a JSON object directly.
   const transformedUpdatedContent = {
     ...updatedContentDoc,
-    thumbnail: updatedContentDoc.thumbnail?.path || "/default-thumbnail.png",
-    data: updatedContentDoc.data,
+    thumbnail: updatedContentDoc.thumbnail?.path || null,
+    data: updatedContentDoc.data, // Return the object directly
   };
 
   return NextResponse.json({ success: true, data: transformedUpdatedContent });
@@ -132,10 +124,7 @@ export async function DELETE(
   );
 
   if (result.matchedCount === 0) {
-    return NextResponse.json(
-      { success: false, message: "Content not found or you lack permission." },
-      { status: 404 }
-    );
+    return NextResponse.json({ success: false, message: "Content not found or permission denied." }, { status: 404 });
   }
 
   return NextResponse.json({ success: true, message: "Content moved to trash." });

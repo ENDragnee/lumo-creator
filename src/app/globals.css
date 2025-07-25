@@ -168,3 +168,8 @@ h3 { @apply text-lg font-bold; }
 .craft-markdown-display code { background-color: hsl(var(--muted)); padding: 0.2em 0.4em; border-radius: 3px; font-size: 0.9em; font-family: monospace; color: hsl(var(--accent-foreground)); }
 .craft-markdown-display pre { background-color: hsl(var(--muted)); padding: 0.8em; border-radius: var(--radius); overflow-x: auto; margin-bottom: 0.8em; }
 .craft-markdown-display pre code { background-color: transparent; padding: 0; font-size: inherit; border-radius: 0; display: block; }
+
+.delete-cursor .react-flow__edge-path,
+.delete-cursor .react-flow__node {
+  cursor: crosshair !important;
+}
