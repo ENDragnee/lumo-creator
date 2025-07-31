@@ -11,39 +11,43 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Loader2, Link as LinkIcon, ListOrdered, Rows, Projector } from "lucide-react";
 import { ErrorFallback } from '@/components/error-fallback';
-import { VisualEditor } from '@/components/manage/VisualEditor';
-import { ListView } from '@/components/manage/ListView';
+import { PrerequisiteGraphEditor } from '@/components/manage/PrerequisiteGraphEditor';
+import { PrerequisiteListEditor } from '@/components/manage/PrerequisiteListEditor';
 import { OrderManager } from '@/components/manage/OrderManager';
 import { OrderListView } from '@/components/manage/OrderListView';
 import { toast } from "sonner";
 
-// Type definitions for fetched data
-export interface IContentGraphItem {
+// --- UPDATED: A unified type for all items in the manager ---
+export interface IManageItem {
   _id: string;
   title: string;
   prerequisites?: string[];
   thumbnail: string | null;
+  type: 'collection' | 'content'; // Differentiates the item type
 }
+// This type remains for the Order components
 export interface ICollectionOrderItem {
   _id: string;
   title: string;
   type: 'collection' | 'content';
 }
 
-// API Fetching Functions
+// --- API Fetching Functions ---
 const fetchCollections = async () => {
   const res = await fetch('/api/collections?parentId=null');
   if (!res.ok) throw new Error('Failed to fetch collections');
   return (await res.json()).data;
 };
 
-const fetchContentGraph = async (collectionId: string) => {
+// Renamed and updated to fetch a combined dependency graph
+const fetchDependencyGraph = async (collectionId: string) => {
   if (!collectionId) return [];
-  const res = await fetch(`/api/collections/${collectionId}/content-graph`);
-  if (!res.ok) throw new Error('Failed to fetch content graph');
-  return (await res.json()).data as IContentGraphItem[];
+  const res = await fetch(`/api/collections/${collectionId}/dependency-graph`);
+  if (!res.ok) throw new Error('Failed to fetch dependency graph');
+  return (await res.json()).data as IManageItem[];
 };
 
+// Fetches detailed data for the ordering tab
 const fetchCollectionDetails = async (collectionId: string) => {
   if (!collectionId) return null;
   const res = await fetch(`/api/collections/${collectionId}`);
@@ -51,8 +55,13 @@ const fetchCollectionDetails = async (collectionId: string) => {
   return (await res.json()).data;
 };
 
-const updatePrerequisites = async ({ contentId, prerequisites }: { contentId: string, prerequisites: string[] }) => {
-  const res = await fetch(`/api/content/${contentId}/prerequisites`, {
+// Updated mutation function to handle both collections and content
+const updatePrerequisites = async ({ id, type, prerequisites }: { id: string, type: 'collection' | 'content', prerequisites: string[] }) => {
+  const endpoint = type === 'collection' 
+    ? `/api/collections/${id}/prerequisites` 
+    : `/api/content/${id}/prerequisites`;
+  
+  const res = await fetch(endpoint, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prerequisites }),
@@ -61,6 +70,7 @@ const updatePrerequisites = async ({ contentId, prerequisites }: { contentId: st
   return res.json();
 };
 
+// Mutation function for updating order (no changes needed)
 const updateOrder = async ({ collectionId, childCollections, childContent }: { collectionId: string, childCollections: string[], childContent: string[] }) => {
   const res = await fetch(`/api/collections/${collectionId}/order`, {
     method: 'PUT',
@@ -75,17 +85,19 @@ export default function ManageContentPage() {
   const [selectedCollectionId, setSelectedCollectionId] = useState<string>('');
   const [activeMode, setActiveMode] = useState<'prerequisites' | 'order'>('prerequisites');
   const queryClient = useQueryClient();
-
+  
   const dispatch = useAppDispatch();
   const activeView = useAppSelector((state: RootState) => state.managerView.viewType);
 
   // Data fetching queries
   const { data: collections, isLoading: isLoadingCollections } = useQuery({ queryKey: ['collectionsList'], queryFn: fetchCollections });
-  const { data: contentGraphItems, isLoading: isLoadingGraph, isError: isGraphError, error: graphError, refetch: refetchGraph } = useQuery({
-    queryKey: ['contentGraph', selectedCollectionId],
-    queryFn: () => fetchContentGraph(selectedCollectionId),
+  
+  const { data: dependencyItems, isLoading: isLoadingGraph, isError: isGraphError, error: graphError, refetch: refetchGraph } = useQuery({
+    queryKey: ['dependencyGraph', selectedCollectionId],
+    queryFn: () => fetchDependencyGraph(selectedCollectionId),
     enabled: !!selectedCollectionId && activeMode === 'prerequisites',
   });
+
   const { data: collectionDetails, isLoading: isLoadingDetails, isError: isDetailsError, error: detailsError, refetch: refetchDetails } = useQuery({
     queryKey: ['collectionDetails', selectedCollectionId],
     queryFn: () => fetchCollectionDetails(selectedCollectionId),
@@ -97,10 +109,11 @@ export default function ManageContentPage() {
     mutationFn: updatePrerequisites,
     onSuccess: () => {
       toast.success('Prerequisites updated!');
-      queryClient.invalidateQueries({ queryKey: ['contentGraph', selectedCollectionId] });
+      queryClient.invalidateQueries({ queryKey: ['dependencyGraph', selectedCollectionId] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
+  
   const orderMutation = useMutation({
     mutationFn: updateOrder,
     onSuccess: () => {
@@ -110,9 +123,10 @@ export default function ManageContentPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const handlePrerequisitesChange = (contentId: string, prerequisites: string[]) => {
-    prereqMutation.mutate({ contentId, prerequisites });
+  const handlePrerequisitesChange = (id: string, type: 'collection' | 'content', prerequisites: string[]) => {
+    prereqMutation.mutate({ id, type, prerequisites });
   };
+  
   const handleOrderChange = (newOrder: { childCollections: string[], childContent: string[] }) => {
     if (orderMutation.isPending) return;
     orderMutation.mutate({ collectionId: selectedCollectionId, ...newOrder });
@@ -134,11 +148,13 @@ export default function ManageContentPage() {
     if (isError) {
       return <ErrorFallback error={error} onRetry={refetch} />;
     }
+    
     if (activeMode === 'prerequisites') {
       return activeView === 'visual'
-        ? <VisualEditor contentItems={contentGraphItems || []} onPrerequisitesChange={handlePrerequisitesChange} />
-        : <ListView contentItems={contentGraphItems || []} onPrerequisitesChange={handlePrerequisitesChange} />;
+        ? <PrerequisiteGraphEditor items={dependencyItems || []} onPrerequisitesChange={handlePrerequisitesChange} />
+        : <PrerequisiteListEditor items={dependencyItems || []} onPrerequisitesChange={handlePrerequisitesChange} />;
     }
+    
     if (activeMode === 'order') {
       const collections = (collectionDetails?.childCollections || []).map((c: any) => ({...c, type: 'collection'}));
       const content = (collectionDetails?.childContent || []).map((c: any) => ({...c, type: 'content'}));
@@ -147,6 +163,7 @@ export default function ManageContentPage() {
         ? <OrderManager initialCollections={collections} initialContent={content} onOrderChange={handleOrderChange} />
         : <OrderListView collections={collections} content={content} />;
     }
+    
     return null;
   };
 

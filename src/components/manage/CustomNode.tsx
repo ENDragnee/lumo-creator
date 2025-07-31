@@ -1,31 +1,40 @@
 "use client";
 
-import { memo } from 'react';
-import { Handle, Position } from 'reactflow';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { FileText } from 'lucide-react';
+import React, { memo } from 'react';
+import { Handle, Position, NodeProps } from 'reactflow';
+import Image from 'next/image';
+import { Folder, FileText } from 'lucide-react';
 
-const CustomNode = ({ data }: { data: { label: string; thumbnail: string | null } }) => {
+// Define the shape of the data prop for clarity
+interface CustomNodeData {
+  label: string;
+  thumbnail: string | null;
+  type: 'collection' | 'content';
+}
+
+function CustomNode({ data }: NodeProps<CustomNodeData>) {
   return (
-    <>
-      {/* Handle for incoming connections (target) */}
-      <Handle type="target" position={Position.Left} className="!bg-primary" />
-      <Card className="w-64 shadow-lg border-border hover:border-primary transition-colors">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <Avatar className="rounded-md">
-                <AvatarImage src={data.thumbnail || ''} alt={data.label} />
-                <AvatarFallback className="rounded-md bg-muted"><FileText /></AvatarFallback>
-            </Avatar>
-            <CardTitle className="text-base leading-tight">{data.label}</CardTitle>
+    <div className="w-64 bg-background border-2 border-border rounded-lg shadow-md overflow-hidden">
+      <Handle type="target" position={Position.Top} className="!bg-primary" />
+      <div className="relative h-24 bg-muted">
+        {data.thumbnail ? (
+          <Image src={data.thumbnail} alt={data.label} layout="fill" className="object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            {/* --- NEW: Display icon based on type --- */}
+            {data.type === 'collection' 
+              ? <Folder className="h-10 w-10 text-muted-foreground" /> 
+              : <FileText className="h-10 w-10 text-muted-foreground" />
+            }
           </div>
-        </CardHeader>
-      </Card>
-      {/* Handle for outgoing connections (source) */}
-      <Handle type="source" position={Position.Right} className="!bg-primary" />
-    </>
+        )}
+      </div>
+      <div className="p-3">
+        <p className="font-semibold text-sm text-foreground truncate">{data.label}</p>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!bg-primary" />
+    </div>
   );
-};
+}
 
 export default memo(CustomNode);
