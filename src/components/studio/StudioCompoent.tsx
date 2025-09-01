@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useCallback, useRef, memo } from "react";
+import React, { useEffect, useCallback, useRef, memo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Editor, Frame, Element, useEditor, SerializedNodes } from "@craftjs/core";
 import { useQuery, useMutation, useQueryClient, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import axios, { AxiosError } from 'axios';
 import { RenderCanvas } from "@/components/editor-components/RenderCanvas";
 import { Navbar } from "@/components/navigation/Navbar";
 import { Toolbar } from "@/components/Toolbar";
@@ -14,13 +15,13 @@ import { editorResolver } from "@/types/resolver";
 import { RootState, AppDispatch } from "@/app/store/store";
 import { toggleTreeSidebar } from "@/app/store/slices/editorSlice";
 import { FontProvider } from "@/contexts/FontProvider";
-import { Loader2, AlertTriangle } from "lucide-react"; // For better feedback
+import { Loader2, ServerCrash } from "lucide-react";
 
 // --- API Interfaces ---
 interface ContentItem {
     _id: string;
     title: string;
-    data?: SerializedNodes; // Data is now the specific Craft.js object type
+    data?: SerializedNodes | object; // Can be the full state or just nodes
     thumbnail: string;
     version: number;
     createdAt: string;
@@ -52,28 +53,29 @@ const MemoizedCanvas = memo(({ children }: { children?: React.ReactNode }) => (
 ));
 MemoizedCanvas.displayName = 'MemoizedCanvas';
 
-// --- React Query API Functions ---
+// --- React Query API Functions using Axios ---
 const fetchContent = async (contentId: string): Promise<ContentApiResponse> => {
-    const res = await fetch(`/api/content/${contentId}`);
-    if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || `Failed to fetch content`);
+    try {
+        const { data } = await axios.get<ContentApiResponse>(`/api/content/${contentId}`);
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data?.message || 'Failed to fetch content');
+        }
+        throw new Error('An unexpected error occurred');
     }
-    return res.json();
 };
 
-// --- FIX: `updateContent` now expects a JavaScript object for data ---
-const updateContent = async ({ contentId, data }: { contentId: string; data: SerializedNodes }) => {
-    const res = await fetch(`/api/content/${contentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data }), // Send the JS object in the body
-    });
-    if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || `Failed to update content`);
+const updateContent = async ({ contentId, data }: { contentId: string; data: SerializedNodes }): Promise<ContentApiResponse> => {
+    try {
+        const response = await axios.put<ContentApiResponse>(`/api/content/${contentId}`, { data });
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data?.message || 'Failed to update content');
+        }
+        throw new Error('An unexpected error occurred');
     }
-    return res.json();
 };
 
 // --- Main Editor Logic Component ---
@@ -94,16 +96,16 @@ function EditorCore({ contentId }: StudioComponentProps) {
     const updateMutation = useMutation({
         mutationFn: updateContent,
         onSuccess: (updatedData) => {
+            // Optimistically update the cache with the server's response
             queryClient.setQueryData(['content', contentId], updatedData);
             console.log("Save successful.");
         },
         onError: (err) => {
-            console.error("Error saving content:", err);
-            // Optionally: Show a toast notification to the user
+            console.error("Error saving content:", err.message);
+            // TODO: Implement user-facing error notification (e.g., a toast)
         },
     });
     
-    // --- FIX: `saveContent` now receives a JavaScript object directly ---
     const saveContent = (dataObject: SerializedNodes) => {
         if (!contentId || updateMutation.isPending) return;
         updateMutation.mutate({ contentId, data: dataObject });
@@ -124,7 +126,13 @@ function EditorCore({ contentId }: StudioComponentProps) {
     }
     
     if (isError) {
-       return <div className="flex flex-col justify-center items-center h-screen text-destructive"><AlertTriangle className="h-12 w-12 mb-4" /> <h2 className="text-xl font-semibold">Error Loading Content</h2><p>{error.message}</p></div>;
+       return (
+        <div className="flex flex-col justify-center items-center h-screen text-destructive p-4 text-center">
+            <ServerCrash className="h-16 w-16 mb-4" /> 
+            <h2 className="text-2xl font-semibold mb-2">Error Loading Content</h2>
+            <p className="max-w-md">{error.message}</p>
+        </div>
+       );
     }
 
     const initialContentData = contentResponse?.success ? contentResponse.data?.data : null;
@@ -168,17 +176,39 @@ function EditorCore({ contentId }: StudioComponentProps) {
 
 // --- Helper Components for Editor ---
 
+// *** THIS IS THE CORE FIX ***
+// This helper function strips out non-node properties from the full editor state
+// so that `deserialize` only receives what it expects.
+const extractNodesFromState = (state: any): SerializedNodes => {
+    if (!state || typeof state !== 'object') {
+        return {};
+    }
+    const internalKeys = new Set(['connectors', 'actions', 'query', 'store', 'inContext', 'history']);
+    const nodes: SerializedNodes = {};
+    for (const key in state) {
+        if (!internalKeys.has(key)) {
+            nodes[key] = state[key];
+        }
+    }
+    return nodes;
+};
+
 function EditorInitializer({ initialContent, deserializedRef }: {
     initialContent: any | null;
-    deserializedRef: React.MutableRefObject<boolean>;
+    deserializedRef: React.RefObject<boolean>;
 }) {
     const { actions } = useEditor();
     
     useEffect(() => {
         if (initialContent && typeof initialContent === 'object' && !deserializedRef.current) {
-            // --- FIX: `deserialize` expects an object, not a string ---
-            actions.deserialize(initialContent);
-            deserializedRef.current = true;
+            // --- FIX: Extract only the nodes from the full state object before deserializing ---
+            const nodesOnly = extractNodesFromState(initialContent);
+            
+            // Ensure there's actually something to deserialize
+            if (Object.keys(nodesOnly).length > 0) {
+                actions.deserialize(nodesOnly);
+                deserializedRef.current = true;
+            }
         }
     }, [initialContent, actions, deserializedRef]);
     
@@ -187,24 +217,25 @@ function EditorInitializer({ initialContent, deserializedRef }: {
 
 function EditorAutoSaveHandler({ debouncedSave, deserializedRef }: {
     debouncedSave: (data: SerializedNodes) => void,
-    deserializedRef: React.MutableRefObject<boolean>
+    deserializedRef: React.RefObject<boolean>
 }) {
-    // --- FIX: `query.getSerializedNodes()` provides the object directly ---
     const nodes = useEditor((state, query) => query.getSerializedNodes());
     const { enabled } = useEditor(state => ({ enabled: state.options.enabled }));
     
-    const prevNodes = useRef<SerializedNodes | null>(null);
+    // Use a ref to store the previous state as a string for comparison
+    const prevNodesJson = useRef<string | null>(null);
 
     useEffect(() => {
-        // Simple string comparison is not reliable for deep object changes.
-        // For production, consider a deep-comparison library like `fast-deep-equal`.
-        // For now, JSON.stringify is a decent way to check for changes.
-        const hasChanged = JSON.stringify(nodes) !== JSON.stringify(prevNodes.current);
+        if (!enabled || !deserializedRef.current) {
+            return;
+        }
 
-        if (enabled && deserializedRef.current && hasChanged) {
+        const currentNodesJson = JSON.stringify(nodes);
+        
+        // Only save if the nodes have actually changed
+        if (currentNodesJson !== prevNodesJson.current) {
             debouncedSave(nodes);
-      
-            prevNodes.current = nodes;
+            prevNodesJson.current = currentNodesJson; // Update the ref to the new state
         }
     }, [nodes, enabled, debouncedSave, deserializedRef]);
 
@@ -212,7 +243,13 @@ function EditorAutoSaveHandler({ debouncedSave, deserializedRef }: {
 }
 
 // --- Main Exported Component with QueryClientProvider ---
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            retry: 1, // Retry failed queries once
+        },
+    },
+});
 
 export function StudioComponent({ contentId }: StudioComponentProps) {
     return (
