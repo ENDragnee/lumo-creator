@@ -1,8 +1,10 @@
+// RENAME this file to src/app/home/[[...slug]]/page.tsx
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, use } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { Folder, Loader2, Edit, Trash2, MoreVertical, FileText, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,28 +28,54 @@ import { RootState } from "@/app/store/store";
 import { ErrorFallback } from "@/components/error-fallback";
 import { StatCard } from "@/components/layout/StatCard";
 import { AlphabetNav } from "@/components/layout/AlphabetNav";
+import { interval } from "date-fns";
+import { string } from "slate";
 
 interface Breadcrumb {
   id: string | null;
   title: string;
 }
 
-// --- UPDATED: Helper function to fetch drive data ---
-const fetchDriveItems = async (parentId: string | null): Promise<{ collections: HomePageCollection[]; content: HomePageContent[] }> => {
-  if (parentId) {
-    // This endpoint fetches a single collection and its children
-    const res = await fetch(`/api/collections/${parentId}`);
+interface DriveData {
+  collections: HomePageCollection[];
+  content: HomePageContent[];
+  breadcrumbs: Breadcrumb[];
+}
+
+// --- UPDATED: Unified helper function to fetch drive data and breadcrumbs ---
+// This function handles both the root directory (collectionId is null) and specific collections.
+// NOTE: For breadcrumbs to work, this assumes your API at `/api/collections/:id` has been enhanced.
+// The API should return the collection's data, its children, AND its ancestor path.
+// Example API response for `GET /api/collections/some-id`:
+// {
+//   "success": true,
+//   "data": {
+//     "_id": "some-id", "title": "My Collection", "childCollections": [...], "childContent": [...],
+//     "path": [{ "_id": "parent-id", "title": "Parent" }, ...] // Path from parent up to the root
+//   }
+// }
+const fetchDriveData = async (collectionId: string | null): Promise<DriveData> => {
+  if (collectionId) {
+    // Logic for fetching a specific collection
+    const res = await fetch(`/api/collections/${collectionId}`);
     if (!res.ok) throw new Error("Failed to fetch collection contents.");
     const response = await res.json();
+    const currentCollection = response.data;
+
+    // Construct breadcrumbs from the API response
+    const homeCrumb: Breadcrumb = { id: null, title: "My Home" };
+    const ancestorCrumbs: Breadcrumb[] = (currentCollection.path || [])
+      .map((p: { _id: string; title: string }) => ({ id: p._id, title: p.title }))
+      .reverse(); // Reverse to get Home > Parent > Child order
+    const currentCrumb: Breadcrumb = { id: currentCollection._id, title: currentCollection.title };
     
-    // --- FIX: Correctly destructure the response from the robust API ---
-    // The API now sends back childCollections and childContent at the top level of the data object.
     return {
-      collections: response.data.childCollections || [],
-      content: response.data.childContent || [],
+      collections: currentCollection.childCollections || [],
+      content: currentCollection.childContent || [],
+      breadcrumbs: [homeCrumb, ...ancestorCrumbs, currentCrumb],
     };
   } else {
-    // This logic for the root directory remains the same, fetching collections and content separately.
+    // Logic for fetching the root directory
     const [collectionRes, contentRes] = await Promise.all([
       fetch(`/api/collections?parentId=null`),
       fetch(`/api/content?parentId=null`),
@@ -58,20 +86,27 @@ const fetchDriveItems = async (parentId: string | null): Promise<{ collections: 
     return {
       collections: collectionData.data || [],
       content: contentData.data || [],
+      breadcrumbs: [{ id: null, title: "My Home" }],
     };
   }
 };
 
-export default function HomePage() {
+interface RouteParam {
+  params: Promise<{ slug?: string[]}>;
+}
+export default function DrivePage({ params }: RouteParam) {
   const { status } = useSession();
   const queryClient = useQueryClient();
+  const router = useRouter();
+
+  // Determine the current collection ID from the URL slug.
+  // For `/home`, slug is undefined -> currentId is null.
+  // For `/home/[collectionId]`, slug is ['collectionId'] -> currentId is 'collectionId'.
+  const currentCollectionId = use(params).slug?.[0] || null;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTerm, setFilterTerm] = useState("all");
   const [sortTerm, setSortTerm] = useState("updatedAt-desc");
-
-  const [currentParentId, setCurrentParentId] = useState<string | null>(null);
-  const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([{ id: null, title: "My Home" }]);
   const viewMode = useAppSelector((state: RootState) => state.view.viewMode);
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isContentModalOpen, setIsContentModalOpen] = useState(false);
@@ -80,15 +115,15 @@ export default function HomePage() {
   const [selectedItem, setSelectedItem] = useState<DriveItem | null>(null);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["driveItems", currentParentId],
-    queryFn: () => fetchDriveItems(currentParentId),
+    queryKey: ["driveItems", currentCollectionId],
+    queryFn: () => fetchDriveData(currentCollectionId),
     enabled: status === "authenticated",
     staleTime: 5 * 60 * 1000,
   });
 
   const { processedCollections, processedContent } = useMemo(() => {
+    // No changes needed in this memoized calculation
     if (!data) return { processedCollections: [], processedContent: [] };
-
     const sortItems = <T extends DriveItem>(items: T[]): T[] => {
       return [...items].sort((a, b) => {
         switch (sortTerm) {
@@ -106,36 +141,32 @@ export default function HomePage() {
         }
       });
     };
-
     const searchedCollections = searchTerm
       ? data.collections.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase()))
       : data.collections;
-
     const searchedContent = searchTerm
       ? data.content.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase()))
       : data.content;
-
     return {
       processedCollections: sortItems(searchedCollections.map(c => ({...c, type: 'collection' as const}))),
       processedContent: sortItems(searchedContent.map(c => ({...c, type: 'content' as const}))),
     };
   }, [data, searchTerm, sortTerm]);
 
-  // Event Handlers are memoized for performance
+  // --- UPDATED: Navigation Handlers now use Next.js Router ---
   const handleCollectionClick = useCallback((collectionId: string) => {
-    const clickedCollection = data?.collections.find((c) => c._id === collectionId);
-    if (clickedCollection) {
-      setCurrentParentId(collectionId);
-      setBreadcrumbs((prev) => [...prev, { id: collectionId, title: clickedCollection.title }]);
-      setSearchTerm("");
-    }
-  }, [data?.collections]);
+    router.push(`/home/${collectionId}`);
+    setSearchTerm(""); // Clear search on navigation
+  }, [router]);
 
-  const handleBreadcrumbClick = useCallback((crumbId: string | null, index: number) => {
-    setCurrentParentId(crumbId);
-    setBreadcrumbs((prev) => prev.slice(0, index + 1));
+  const handleBreadcrumbClick = useCallback((crumbId: string | null) => {
     setSearchTerm("");
-  }, []);
+    if (crumbId === null) {
+      router.push('/home');
+    } else {
+      router.push(`/home/${crumbId}`);
+    }
+  }, [router]);
 
   const handleLetterClick = useCallback((letter: string) => {
     const allVisibleItems = [
@@ -155,7 +186,7 @@ export default function HomePage() {
 
   const openEditModal = useCallback((item: DriveItem) => { setSelectedItem(item); setIsEditModalOpen(true); }, []);
   const openDeleteModal = useCallback((item: DriveItem) => { setSelectedItem(item); setIsDeleteModalOpen(true); }, []);
-  const refreshData = useCallback(() => { queryClient.invalidateQueries({ queryKey: ["driveItems", currentParentId] }); }, [queryClient, currentParentId]);
+  const refreshData = useCallback(() => { queryClient.invalidateQueries({ queryKey: ["driveItems", currentCollectionId] }); }, [queryClient, currentCollectionId]);
 
   const ItemActions = ({ item }: { item: DriveItem }) => (
     <DropdownMenu>
@@ -166,6 +197,10 @@ export default function HomePage() {
       </DropdownMenuContent>
     </DropdownMenu>
   );
+
+  const breadcrumbs = data?.breadcrumbs || (currentCollectionId 
+    ? [{ id: null, title: "My Home" }, { id: currentCollectionId, title: "Loading..." }]
+    : [{ id: null, title: "My Home" }]);
 
   if (status === "loading" || (isLoading && !data)) {
     return (
@@ -179,7 +214,7 @@ export default function HomePage() {
     <div className="flex flex-col h-screen bg-background">
       <DriveHeader
         breadcrumbs={breadcrumbs}
-        onBreadcrumbClick={handleBreadcrumbClick}
+        onBreadcrumbClick={(crumbId, _index) => handleBreadcrumbClick(crumbId)}
         onNewCollection={() => setIsCollectionModalOpen(true)}
         onNewContent={() => setIsContentModalOpen(true)}
         searchTerm={searchTerm}
@@ -203,7 +238,8 @@ export default function HomePage() {
 
               {isLoading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
 
-              {!isLoading && (filterTerm === 'all' || filterTerm === 'collection') && processedCollections.length > 0 && (
+              {/* Collections Section */}
+              {!isLoading && (filterTerm === 'all' || filterTerm === 'collection') && data?.collections && data.collections.length > 0 && (
                 <section>
                   <h2 className="text-xl font-semibold mb-4 text-foreground">Collections</h2>
                   {viewMode === 'grid' ? (
@@ -226,7 +262,8 @@ export default function HomePage() {
                 </section>
               )}
 
-              {!isLoading && (filterTerm === 'all' || filterTerm === 'content') && processedContent.length > 0 && (
+              {/* Content Section */}
+              {!isLoading && (filterTerm === 'all' || filterTerm === 'content') && data?.content && data.content.length > 0 && (
                  <section>
                   <h2 className="text-xl font-semibold mb-4 text-foreground">Content</h2>
                   {viewMode === 'grid' ? (
@@ -249,6 +286,7 @@ export default function HomePage() {
                 </section>
               )}
 
+              {/* Empty State */}
               {!isLoading && processedCollections.length === 0 && processedContent.length === 0 && (
                 <div className="text-center py-20 text-muted-foreground flex flex-col items-center">
                   <FolderOpen className="h-24 w-24 mx-auto mb-4 opacity-30" />
@@ -267,8 +305,8 @@ export default function HomePage() {
         {!isLoading && (processedCollections.length > 0 || processedContent.length > 0) && <AlphabetNav onLetterClick={handleLetterClick} />}
       </div>
       
-      <CollectionModal open={isCollectionModalOpen} onOpenChange={setIsCollectionModalOpen} onSuccess={refreshData} parentId={currentParentId} />
-      <ContentModal open={isContentModalOpen} onOpenChange={setIsContentModalOpen} onSuccess={refreshData} parentId={currentParentId} />
+      <CollectionModal open={isCollectionModalOpen} onOpenChange={setIsCollectionModalOpen} onSuccess={refreshData} parentId={currentCollectionId} />
+      <ContentModal open={isContentModalOpen} onOpenChange={setIsContentModalOpen} onSuccess={refreshData} parentId={currentCollectionId} />
       <EditItemModal open={isEditModalOpen} onOpenChange={setIsEditModalOpen} onSuccess={refreshData} item={selectedItem} />
       <DeleteItemModal open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen} onSuccess={refreshData} item={selectedItem} />
     </div>

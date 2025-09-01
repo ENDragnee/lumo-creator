@@ -2,18 +2,18 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import Collection from "@/models/Collection";
+import Collection, { ICollection } from "@/models/Collection"; // <-- Import ICollection type
 import Content from "@/models/Content";
 import mongoose from "mongoose";
 import connectDB from "@/lib/mongodb";
 
 type CollectionProp = {
-  params: Promise<{
+  params: Promise<{ // Note: The params are not a Promise here
     collectionId: string;
   }>;
 };
 
-// --- GET a single Collection by ID with its ordered children ---
+// --- UPDATED: GET a single Collection with its children AND ancestor path ---
 export async function GET(request: NextRequest, { params }: CollectionProp) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -23,34 +23,89 @@ export async function GET(request: NextRequest, { params }: CollectionProp) {
   const userId = new mongoose.Types.ObjectId(session.user.id);
   const { collectionId } = await params;
 
-  // Find the collection and populate its children
-  const collection = await Collection.findOne({
-    _id: collectionId,
-    createdBy: userId,
-  })
-    // Populate the ordered children arrays. This is the key to getting the sequence!
-    .populate<{ thumbnail: { path: string } }>("thumbnail", "path")
-    .populate({
-      path: 'childContent',
-      model: Content, // Explicitly specify the model for population
-      populate: { path: 'thumbnail', select: 'path' } // Also populate thumbnail of content
-    })
-    .populate({
-      path: 'childCollections',
-      model: Collection, // Populate nested collections
-      populate: { path: 'thumbnail', select: 'path' }
-    })
-    .lean();
+  if (!mongoose.Types.ObjectId.isValid(collectionId)) {
+    return NextResponse.json({ success: false, message: "Invalid Collection ID." }, { status: 400 });
+  }
 
-  if (!collection) {
+  // Use an aggregation pipeline to efficiently fetch the collection and its entire ancestor path.
+  const aggregationPipeline = [
+    // Stage 1: Match the requested collection
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(collectionId),
+        createdBy: userId,
+        isTrash: false, // Ensure we don't fetch trashed items
+      }
+    },
+    // Stage 2: Use $graphLookup to recursively find all ancestors
+    {
+      $graphLookup: {
+        from: 'collections', // The collection to search in
+        startWith: '$parentId', // Start the search from the parentId of the matched doc
+        connectFromField: 'parentId', // Field in the current doc to follow
+        connectToField: '_id', // Field in the 'from' collection to connect to
+        as: 'path' // Name of the new array field containing the ancestors
+      }
+    }
+  ];
+
+  const results = await Collection.aggregate(aggregationPipeline);
+
+  if (results.length === 0) {
     return NextResponse.json({ success: false, message: "Collection not found." }, { status: 404 });
   }
+
+  // The aggregation result is a plain object; we still need to populate its children
+  let collectionData = results[0];
+
+  // Manually populate the children. This is cleaner than complex nested $lookups.
+  await Collection.populate(collectionData, [
+    { path: 'thumbnail', select: 'path' },
+    {
+      path: 'childContent',
+      model: Content,
+      match: { isTrash: false }, // Only populate non-trashed content
+      populate: { path: 'thumbnail', select: 'path' }
+    },
+    {
+      path: 'childCollections',
+      model: Collection,
+      match: { isTrash: false }, // Only populate non-trashed collections
+      populate: { path: 'thumbnail', select: 'path' }
+    }
+  ]);
   
-  // The populated data is already in the correct format and order
-  return NextResponse.json({ success: true, data: collection });
+  // The 'path' from $graphLookup is an unordered array of all ancestors.
+  // We need to manually order it from the immediate parent up to the root.
+  const ancestors: ICollection[] = collectionData.path;
+  const pathMap = new Map(ancestors.map(p => [p._id.toString(), p]));
+  const orderedPath = [];
+  let currentParentId = collectionData.parentId;
+
+  while (currentParentId) {
+    const parentDoc = pathMap.get(currentParentId.toString());
+    if (parentDoc) {
+      // We only need the ID and title for the breadcrumb
+      orderedPath.push({
+        _id: parentDoc._id,
+        title: parentDoc.title,
+      });
+      currentParentId = parentDoc.parentId;
+    } else {
+      // This can happen if a parent is deleted or inaccessible; break the loop.
+      break;
+    }
+  }
+
+  // Replace the large, unordered path with our slim, ordered path.
+  // The front-end expects this to be [parent, grandparent, ...], which it will reverse.
+  collectionData.path = orderedPath;
+
+  return NextResponse.json({ success: true, data: collectionData });
 }
 
-// --- PUT (Update) a Collection ---
+
+// --- PUT (Update) a Collection --- (NO CHANGES NEEDED)
 export async function PUT(request: NextRequest, { params }: CollectionProp) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -61,7 +116,6 @@ export async function PUT(request: NextRequest, { params }: CollectionProp) {
   const { collectionId } = await params;
   const body = await request.json();
 
-  // Exclude fields that shouldn't be updated directly
   const { createdBy, isTrash, parentId, childCollections, childContent, ...updateData } = body;
   updateData.updatedAt = new Date();
 
@@ -69,10 +123,6 @@ export async function PUT(request: NextRequest, { params }: CollectionProp) {
     delete updateData.thumbnail;
   }
   
-  // Note: Handling parentId changes is a complex operation (moving a folder)
-  // and would require a separate, more detailed transaction logic.
-  // This PUT handler focuses on updating metadata like title, description, etc.
-
   const updatedCollectionDoc = await Collection.findOneAndUpdate(
     { _id: collectionId, createdBy: userId },
     { $set: updateData },
@@ -93,7 +143,7 @@ export async function PUT(request: NextRequest, { params }: CollectionProp) {
   return NextResponse.json({ success: true, data: transformedCollection });
 }
 
-// --- DELETE (Soft Delete) a Collection and its contents ---
+// --- DELETE (Soft Delete) a Collection and its contents --- (NO CHANGES NEEDED)
 export async function DELETE(request: NextRequest, { params }: CollectionProp) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -107,17 +157,15 @@ export async function DELETE(request: NextRequest, { params }: CollectionProp) {
   
   try {
     await dbSession.withTransaction(async () => {
-      // 1. Find the collection to get its parentId before deleting
       const collectionToDelete = await Collection.findOne(
         { _id: collectionId, createdBy: userId },
-        { parentId: 1 } // Only fetch the parentId
+        { parentId: 1 }
       ).session(dbSession);
 
       if (!collectionToDelete) {
         throw new Error("Collection not found or you lack permission.");
       }
 
-      // 2. If it has a parent, remove this collection from the parent's childCollections array
       if (collectionToDelete.parentId) {
         await Collection.updateOne(
           { _id: collectionToDelete.parentId, createdBy: userId },
@@ -126,21 +174,18 @@ export async function DELETE(request: NextRequest, { params }: CollectionProp) {
         );
       }
 
-      // 3. Mark the collection itself as trashed
       await Collection.updateOne(
         { _id: collectionId, createdBy: userId },
         { $set: { isTrash: true, updatedAt: new Date() } },
         { session: dbSession }
       );
       
-      // 4. Recursively mark all child content as trashed
       await Content.updateMany(
         { parentId: collectionId, createdBy: userId },
         { $set: { isTrash: true, lastModifiedAt: new Date() } },
         { session: dbSession }
       );
       
-      // 5. Recursively mark all child collections as trashed
       await Collection.updateMany(
         { parentId: collectionId, createdBy: userId },
         { $set: { isTrash: true, updatedAt: new Date() } },
