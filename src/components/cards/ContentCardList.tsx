@@ -9,11 +9,16 @@ import Link from 'next/link';
 
 const PLACEHOLDER_SVG_PATH = '/icons/default-content.png';
 
+interface Thumbnail {
+  _id: string;
+  path: string;
+}
+
 interface ContentCardListProps {
   item: {
     _id: string;
     title: string;
-    thumbnail: string;
+    thumbnail: string | Thumbnail;
     tags?: string[];
     lastAccessedAt?: string | Date;
     createdBy?: {
@@ -46,7 +51,7 @@ export function ContentCardList({ item, index, actionNode }: ContentCardListProp
       >
         <div className="relative h-16 w-28 flex-shrink-0 overflow-hidden rounded-md bg-gray-200 dark:bg-gray-700">
           <Image
-            src={item.thumbnail}
+            src={typeof item.thumbnail === 'object'? item.thumbnail?.path: item.thumbnail}
             alt={item.title}
             layout="fill"
             objectFit="cover"
