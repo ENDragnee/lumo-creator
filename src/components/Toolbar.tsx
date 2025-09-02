@@ -106,7 +106,7 @@ export function Toolbar() {
     ], },
     { name: "Interactive", icon: <MousePointerClick className="h-5 w-5" />, 
       tools: [ 
-        { name: "MCQ Quiz", icon: <HelpCircle className="h-5 w-5" />, component: <QuizComponent />, tool: "quiz" as ToolType },
+        { name: "Challenges", icon: <HelpCircle className="h-5 w-5" />, component: <QuizComponent />, tool: "challenges" as ToolType },
         { name: "Flashcard", icon: <FlipVertical className="h-5 w-5" />, component: <FlashcardComponent />, tool: "flashcard" as ToolType },
         { name: "Simulation", icon: <Monitor className="h-5 w-5" />, component: <SimulationComponent src="" />, tool: "simulation" as ToolType }, 
     ], },

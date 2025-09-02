@@ -13,12 +13,12 @@ import { TableRowComponent } from '@/components/editor-components/TableRowCompon
 import { TableCellComponent } from '@/components/editor-components/TableCellComponent';
 import { FlashcardComponent } from '@/components/editor-components/FlashcardComponent';
 import { CalloutComponent } from '@/components/editor-components/CalloutComponent';
-import { TFQuizComponent } from '@/components/editor-components/TFQuizComponent';
 import { TrueFalseQuestionComponent } from '@/components/editor-components/TrueFalseQuestionComponent';
 import { AccordionComponent } from '@/components/editor-components/AccordionComponent';
 import { CarouselComponent } from '@/components/editor-components/CarouselComponent';
 import { CarouselSlideComponent } from '@/components/editor-components/CarouselSlideComponent';
 import { MultipleChoiceQuestionComponent } from '@/components/editor-components/MultipleChoiceQuestionComponent';
+import { ShortAnswerQuestionComponent } from "@/components/editor-components/ShortAnswerQuestionComponent";
 
 export const editorResolver = {
   RenderCanvas: RenderCanvas,
@@ -36,11 +36,10 @@ export const editorResolver = {
   TableCell: TableCellComponent,
   Flashcard: FlashcardComponent,
   Callout: CalloutComponent,
-  TFQuiz: TFQuizComponent, 
-  TrueFalseQuestion: TrueFalseQuestionComponent,
   Accordion: AccordionComponent,
   CarouselComponent: CarouselComponent,
   CarouselSlideComponent: CarouselSlideComponent,
+  TrueFalseQuestion: TrueFalseQuestionComponent,
+  ShortAnswerQuestion: ShortAnswerQuestionComponent,
   MultipleChoiceQuestionComponent: MultipleChoiceQuestionComponent,
-
 };

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEditor, useNode, UserComponent } from '@craftjs/core';
 import { MultipleChoiceQuestionSettings } from './settings/MultipleChoiceQuestionSettings';
 import { Button as UiButton } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react"; // Import the icon
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -32,7 +32,7 @@ export interface MultipleChoiceQuestionProps {
 type CraftableMultipleChoiceQuestionComponent = UserComponent<MultipleChoiceQuestionProps>;
 
 export const MultipleChoiceQuestionComponent: CraftableMultipleChoiceQuestionComponent = ({
-  title = "Question 1 of 1",
+  title = "Question Title",
   prompt = "This is the question prompt. You can edit it in the settings.",
   instruction = "Select the correct answer(s), then submit.",
   allowMultipleAnswers = true,
@@ -53,8 +53,20 @@ export const MultipleChoiceQuestionComponent: CraftableMultipleChoiceQuestionCom
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [submission, setSubmission] = useState<{ state: 'idle' | 'submitted'; isCorrect?: boolean }>( { state: 'idle' } );
 
+  const handleReset = () => {
+      setSelectedIndices(new Set());
+      setSubmission({ state: 'idle' });
+  }
+
+  // Effect to reset component state if key props change in the editor.
+  // This prevents invalid states, e.g., having multiple items selected
+  // after switching `allowMultipleAnswers` to false.
+  useEffect(() => {
+    handleReset();
+  }, [allowMultipleAnswers, options]);
+
   const handleSelectionChange = (index: number) => {
-    if (submission.state === 'submitted') return;
+    if (submission.state === 'submitted' || editorEnabled) return;
 
     setSelectedIndices(prev => {
       const newSelection = new Set(prev);
@@ -81,11 +93,6 @@ export const MultipleChoiceQuestionComponent: CraftableMultipleChoiceQuestionCom
 
     setSubmission({ state: 'submitted', isCorrect });
   };
-  
-  const handleReset = () => {
-      setSelectedIndices(new Set());
-      setSubmission({ state: 'idle' });
-  }
 
   const getOptionState = (index: number, option: QuestionOption) => {
     if (submission.state !== 'submitted') return selectedIndices.has(index) ? 'selected' : 'default';
@@ -96,11 +103,23 @@ export const MultipleChoiceQuestionComponent: CraftableMultipleChoiceQuestionCom
   }
 
   return (
-    <div ref={(ref: HTMLDivElement | null) => { if (ref) connect(drag(ref)); }} className="relative w-full p-4">
+    <div ref={(ref: HTMLDivElement | null) => { if (ref) connect(drag(ref)); }} className="relative w-full p-4 my-2 border rounded-lg bg-card">
+      {/* ADDED: Delete button for editor mode */}
+      {selected && editorEnabled && (
+        <UiButton
+          variant="destructive"
+          size="icon"
+          className="absolute top-2 right-2 z-10 h-6 w-6"
+          onClick={() => editorActions.delete(id)}
+        >
+          <Trash2 className="h-3 w-3" />
+        </UiButton>
+      )}
+
       <div className="space-y-4">
-        <ReactMarkdown className="text-2xl font-bold">{title}</ReactMarkdown>
-        <ReactMarkdown className="prose prose-sm sm:prose-base max-w-none">{prompt}</ReactMarkdown>
-        <p className="text-sm font-semibold">{instruction}</p>
+        <ReactMarkdown className="text-xl font-bold">{title}</ReactMarkdown>
+        <ReactMarkdown className="prose prose-sm sm:prose max-w-none prose-p:my-2">{prompt}</ReactMarkdown>
+        <p className="text-sm text-muted-foreground">{instruction}</p>
 
         <div className="space-y-3">
           {options.map((option, index) => {
@@ -109,42 +128,41 @@ export const MultipleChoiceQuestionComponent: CraftableMultipleChoiceQuestionCom
                 <Label 
                     key={index} 
                     onClick={() => handleSelectionChange(index)}
-                    className={cn("flex items-center gap-4 p-4 rounded-lg border-2 transition-all cursor-pointer", {
-                      "border-primary bg-primary/10": optionState === 'selected',
-                      "border-green-500 bg-green-500/10": optionState === 'correct',
-                      "border-red-500 bg-red-500/10": optionState === 'incorrect',
-                      "border-border bg-muted/50 hover:bg-muted/80": optionState === 'default',
-                    })}
+                    className={cn(
+                        "flex items-start sm:items-center gap-4 p-4 rounded-lg border-2 transition-all",
+                        editorEnabled ? "cursor-default" : "cursor-pointer",
+                        {
+                            "border-primary bg-primary/10": optionState === 'selected',
+                            "border-green-500 bg-green-500/10 text-green-800": optionState === 'correct',
+                            "border-red-500 bg-red-500/10 text-red-800": optionState === 'incorrect',
+                            "border-border bg-background hover:bg-muted": optionState === 'default',
+                        }
+                    )}
                 >
-                    <Checkbox checked={selectedIndices.has(index)} className="h-5 w-5" />
+                    <Checkbox checked={selectedIndices.has(index)} className="h-5 w-5 mt-0.5 sm:mt-0" />
                     <span>{option.text}</span>
                 </Label>
             )
           })}
         </div>
 
-        {submission.state === 'submitted' ? (
-             <div className="p-4 rounded-lg text-center space-y-4" style={{ backgroundColor: submission.isCorrect ? 'rgba(74, 222, 128, 0.1)' : 'rgba(239, 68, 68, 0.1)'}}>
+        {submission.state === 'submitted' && !editorEnabled ? (
+             <div className={cn("p-4 rounded-lg text-center space-y-2", 
+                submission.isCorrect ? 'bg-green-500/10' : 'bg-red-500/10'
+             )}>
                 <p>{submission.isCorrect ? feedbackCorrect : feedbackIncorrect}</p>
-                <UiButton onClick={handleReset} variant="outline">Try Again</UiButton>
+                <UiButton onClick={handleReset} variant="link">Try Again</UiButton>
              </div>
         ) : (
-             <UiButton onClick={handleSubmit} disabled={editorEnabled}>{buttonText}</UiButton>
+             <UiButton onClick={handleSubmit} disabled={editorEnabled || selectedIndices.size === 0}>{buttonText}</UiButton>
         )}
       </div>
-
-       {selected && editorEnabled && (
-        <UiButton variant="destructive" size="icon" className="absolute top-0 right-0 z-10 h-6 w-6" onClick={() => editorActions.delete(id)}>
-          <Trash2 className="h-3 w-3" />
-        </UiButton>
-      )}
     </div>
   );
 };
 
 MultipleChoiceQuestionComponent.craft = {
   displayName: "Multiple Choice Question",
-  isCanvas: false,
   props: {
     title: "Question 1 of 2",
     prompt: "You run a local bakery in a small town and are considering taking your business online. How can going digital benefit your business?",

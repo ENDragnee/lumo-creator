@@ -11,7 +11,7 @@ export type ToolType =
   | 'container'
   | 'tab'
   | 'carousel'
-  | 'quiz'
+  | 'challenges'
   | 'flashcard'
   | 'callout'
   | null;
