@@ -28,8 +28,6 @@ import { RootState } from "@/app/store/store";
 import { ErrorFallback } from "@/components/error-fallback";
 import { StatCard } from "@/components/layout/StatCard";
 import { AlphabetNav } from "@/components/layout/AlphabetNav";
-import { interval } from "date-fns";
-import { string } from "slate";
 
 interface Breadcrumb {
   id: string | null;
@@ -42,18 +40,6 @@ interface DriveData {
   breadcrumbs: Breadcrumb[];
 }
 
-// --- UPDATED: Unified helper function to fetch drive data and breadcrumbs ---
-// This function handles both the root directory (collectionId is null) and specific collections.
-// NOTE: For breadcrumbs to work, this assumes your API at `/api/collections/:id` has been enhanced.
-// The API should return the collection's data, its children, AND its ancestor path.
-// Example API response for `GET /api/collections/some-id`:
-// {
-//   "success": true,
-//   "data": {
-//     "_id": "some-id", "title": "My Collection", "childCollections": [...], "childContent": [...],
-//     "path": [{ "_id": "parent-id", "title": "Parent" }, ...] // Path from parent up to the root
-//   }
-// }
 const fetchDriveData = async (collectionId: string | null): Promise<DriveData> => {
   if (collectionId) {
     // Logic for fetching a specific collection

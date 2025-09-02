@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import Content from "@/models/Content";
 import mongoose from "mongoose";
 import connectDB from "@/lib/mongodb";
+import Collection from "@/models/Collection";
 
 // --- GET all Content for the authenticated user (for Drive/List view) ---
 export async function GET(request: Request) {
@@ -71,6 +72,20 @@ export async function POST(request: Request) {
   });
 
   await newContent.save();
+
+  if (parentId) {
+    // The `$push` operator must be the top-level key.
+    const updateParentCollection = Collection.findByIdAndUpdate(
+      parentId,
+      { 
+        $push: { childContent: newContent._id } 
+      },
+      { new: true } // Optional: but good practice
+    );
+
+    // This will now execute without a CastError.
+    await updateParentCollection;
+  }
 
   // Re-fetch to populate the thumbnail for the response
   const populatedNewContent = await Content.findById(newContent._id)

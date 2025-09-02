@@ -12,11 +12,16 @@ import { PenIcon, Book } from 'lucide-react';
 
 const PLACEHOLDER_SVG_PATH = '/icons/default-content.png';
 
+interface Thumbnail {
+  _id: string;
+  path: string;
+}
+
 interface ContentCardProps {
   item: {
     _id: string;
     title: string;
-    thumbnail: string;
+    thumbnail: string | Thumbnail;
     tags?: string[];
     isDraft: boolean;
     lastModifiedAt?: string | Date;
@@ -55,7 +60,7 @@ export function ContentCard({ item, index, actionNode }: ContentCardProps) {
       >
         <div className="relative aspect-video w-full overflow-hidden rounded-t-lg bg-gray-200 dark:bg-gray-700 flex-shrink-0">
           <Image
-            src={item.thumbnail}
+            src={typeof item.thumbnail === 'object'? item.thumbnail?.path: item.thumbnail}
             alt={item.title}
             layout="fill"
             objectFit="cover"
