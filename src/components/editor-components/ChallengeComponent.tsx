@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useCallback, ReactNode, ReactElement, JSXElementConstructor } from 'react';
+import React, { useEffect, useRef, useCallback, ReactNode } from 'react';
 import { useEditor, useNode, Element } from '@craftjs/core';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
@@ -8,8 +8,10 @@ import { useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Loader2, HelpCircle, AlertTriangle, CloudUpload } from 'lucide-react';
 import { ChallengeType, IChallenge } from '@/models/Challenge';
+// IMPORT the new component
+import { ChallengeContentCanvas } from './ChallengeContentCanvas';
 
-// --- Debounce Hook (add to a utils file if not already present) ---
+// --- Debounce Hook ---
 function useDebounce(callback: (...args: any[]) => void, delay: number) {
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     return useCallback((...args: any[]) => {
@@ -17,7 +19,6 @@ function useDebounce(callback: (...args: any[]) => void, delay: number) {
         timeoutRef.current = setTimeout(() => callback(...args), delay);
     }, [callback, delay]);
 }
-
 
 // --- API Call Functions ---
 const createChallengeInDB = async (payload: { contentId: string, challengeType: ChallengeType }): Promise<IChallenge> => {
@@ -38,10 +39,9 @@ const deleteChallengeFromDB = async (challengeId: string): Promise<{ success: bo
     return data;
 };
 
-
 // --- Component Props ---
 export interface ChallengeComponentProps {
-    children?: ReactNode; // Added children to props
+    children?: ReactNode;
     challengeType: ChallengeType;
     challengeId?: string;
     padding?: number;
@@ -53,16 +53,15 @@ export const ChallengeComponent = ({ children, challengeType, challengeId, paddi
     const { connectors: { connect, drag } } = useNode();
     const params = useParams();
     const contentId = params.contentId as string;
+    
     const isInitialMount = useRef(true);
+    const creationAttempted = useRef(false);
 
-    // Use a ref to hold the challengeId to prevent stale closures in cleanup effects
     const challengeIdRef = useRef(challengeId);
     useEffect(() => {
         challengeIdRef.current = challengeId;
     }, [challengeId]);
 
-
-    // --- Mutations ---
     const createMutation = useMutation({
         mutationFn: createChallengeInDB,
         onSuccess: (data) => {
@@ -71,7 +70,7 @@ export const ChallengeComponent = ({ children, challengeType, challengeId, paddi
             });
             console.log(`Challenge CREATED with ID: ${data._id}`);
         },
-        onError: (error) => console.error("Failed to create challenge:", error),
+        onError: (error) => console.error("Failed to create challenge:", error.message),
     });
 
     const updateMutation = useMutation({
@@ -90,36 +89,36 @@ export const ChallengeComponent = ({ children, challengeType, challengeId, paddi
 
     // --- Effects for Lifecycle Management ---
 
-    // EFFECT 1: Create Challenge on initial drop
+    // Creation Effect
     useEffect(() => {
-        if (!challengeId && contentId) {
+        if (challengeId) return;
+        if (contentId && !creationAttempted.current) {
+            creationAttempted.current = true;
             createMutation.mutate({ contentId, challengeType });
         }
-    }, []); // Runs only once on mount
+    }, [contentId, challengeId, challengeType, createMutation]);
 
-    // EFFECT 2: Update Challenge when props change (debounced)
+
+    // Update effect
     useEffect(() => {
         if (isInitialMount.current) {
             isInitialMount.current = false;
             return;
         }
-
         if (challengeId && challengeType) {
             debouncedUpdate({ challengeId, challengeType });
         }
     }, [challengeType, debouncedUpdate, challengeId]);
 
 
-    // EFFECT 3: Delete Challenge when component is removed from canvas
+    // Delete effect
     useEffect(() => {
         return () => {
-            // This cleanup function runs when the component unmounts
             if (challengeIdRef.current) {
                 deleteMutation.mutate(challengeIdRef.current);
             }
         };
-    }, []); // Empty array ensures this only sets up on mount and cleans up on unmount
-
+    }, []);
 
     const isLoading = createMutation.isPending;
     const isUpdating = updateMutation.isPending;
@@ -144,16 +143,10 @@ export const ChallengeComponent = ({ children, challengeType, challengeId, paddi
                 {hasId && !isLoading && !isUpdating && <><HelpCircle className="h-4 w-4 text-primary"/>{challengeType}</>}
             </div>
 
-            {/* FIX 1: Pass children to the Element */}
-            {children ? (
-                <Element id="challenge-content" is={ChallengeContentCanvas} canvas>
-                    {children} 
-                </Element>
-            ) : (
-                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                    <p>Drag question components here</p>
-                </div>
-            )}
+            {/* UPDATED: Use the imported ChallengeContentCanvas via the 'is' prop */}
+            <Element id="challenge-content" is={ChallengeContentCanvas} canvas>
+                {children} 
+            </Element>
             
             {challengeId && (
                 <p className="absolute bottom-1 left-2 text-[10px] text-muted-foreground/50 select-none">ID: {challengeId}</p>
@@ -162,27 +155,13 @@ export const ChallengeComponent = ({ children, challengeType, challengeId, paddi
     );
 };
 
-
-// FIX 2: Correctly define the inner canvas component to accept children and use a ref callback.
-const ChallengeContentCanvas = ({ children }: { children?: ReactNode }) => {
-    const { connectors: { connect } } = useNode();
-    return (
-        <div 
-            ref={(ref: HTMLDivElement | null) => { if (ref) connect(ref); }} 
-            className="min-h-[50px]"
-        >
-            {children}
-        </div>
-    );
-}
-
-ChallengeContentCanvas.craft = { displayName: "Challenge Canvas" }
+// REMOVED the inline definition of ChallengeContentCanvas from here.
 
 ChallengeComponent.craft = {
     displayName: "Challenge Area",
     props: {
         challengeType: 'quiz' as ChallengeType,
-        challengeId: undefined, // Start with undefined
+        challengeId: undefined,
         padding: 16
     },
     isCanvas: true, 

@@ -39,7 +39,7 @@ const Container = ({ children, padding = 20 }: ContainerProps) => (
 );
 
 import { SliderComponent } from "@/components/editor-components/SliderComponent";
-import { QuizComponent } from "@/components/editor-components/QuizComponent";
+import { ChallengeComponent } from "./editor-components/ChallengeComponent";
 import { TextComponent } from "@/components/editor-components/TextComponent";
 import { ImageComponent } from "@/components/editor-components/ImageComponent";
 import { VideoComponent } from "@/components/editor-components/VideoComponent";
@@ -106,7 +106,7 @@ export function Toolbar() {
     ], },
     { name: "Interactive", icon: <MousePointerClick className="h-5 w-5" />, 
       tools: [ 
-        { name: "Challenges", icon: <HelpCircle className="h-5 w-5" />, component: <QuizComponent />, tool: "challenges" as ToolType },
+        { name: "Challenges", icon: <HelpCircle className="h-5 w-5" />, component: <ChallengeComponent challengeType="quiz" />, tool: "challenges" as ToolType },
         { name: "Flashcard", icon: <FlipVertical className="h-5 w-5" />, component: <FlashcardComponent />, tool: "flashcard" as ToolType },
         { name: "Simulation", icon: <Monitor className="h-5 w-5" />, component: <SimulationComponent src="" />, tool: "simulation" as ToolType }, 
     ], },

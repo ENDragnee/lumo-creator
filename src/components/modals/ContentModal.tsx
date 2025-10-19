@@ -67,7 +67,7 @@ const createContentWithThumbnail = async (payload: CreateContentPayload): Promis
     const err = await contentRes.json();
     throw new Error(err.message || "Failed to create content item.");
   }
-  
+
   const result: ContentResponse = await contentRes.json();
   if (!result.data?._id) {
     throw new Error("API did not return a new content ID.");
@@ -138,12 +138,12 @@ export const ContentModal: React.FC<ContentModalProps> = ({ open, onOpenChange, 
       reader.readAsDataURL(file);
     }
   };
-  
+
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
-    if(file) {
+    if (file) {
       const syntheticEvent = { target: { files: [file] } } as unknown as ChangeEvent<HTMLInputElement>;
       handleFileChange(syntheticEvent);
     }
@@ -183,7 +183,7 @@ export const ContentModal: React.FC<ContentModalProps> = ({ open, onOpenChange, 
 
             <div className="space-y-2">
               <Label htmlFor="file-upload" className="font-medium text-sm">Thumbnail</Label>
-              <div 
+              <div
                 className={`relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg transition-colors ${mutation.isPending ? 'cursor-not-allowed bg-muted/20' : 'cursor-pointer bg-muted/50 hover:bg-muted'}`}
                 onDragOver={mutation.isPending ? undefined : handleDragOver}
                 onDrop={mutation.isPending ? undefined : handleDrop}
@@ -193,9 +193,9 @@ export const ContentModal: React.FC<ContentModalProps> = ({ open, onOpenChange, 
                   <>
                     <Image src={thumbnailPreview} alt="Thumbnail Preview" layout="fill" className="object-cover rounded-lg" />
                     {!mutation.isPending && (
-                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-lg">
-                         <p className="text-white font-semibold">Click or drag to change</p>
-                       </div>
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-lg">
+                        <p className="text-white font-semibold">Click or drag to change</p>
+                      </div>
                     )}
                   </>
                 ) : (
@@ -219,13 +219,13 @@ export const ContentModal: React.FC<ContentModalProps> = ({ open, onOpenChange, 
               </div>
             </div>
           </div>
-          
+
           <DialogFooter className="p-6 mt-2 border-t flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-4">
             <div className="w-full sm:w-auto sm:max-w-xs">
               {errorMessage && (
                 <div className="flex items-center gap-2 text-sm text-destructive font-medium p-2 rounded-md bg-destructive/10">
-                   <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                   <p>{errorMessage}</p>
+                  <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                  <p>{errorMessage}</p>
                 </div>
               )}
             </div>

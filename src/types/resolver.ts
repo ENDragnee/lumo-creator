@@ -19,6 +19,8 @@ import { CarouselComponent } from '@/components/editor-components/CarouselCompon
 import { CarouselSlideComponent } from '@/components/editor-components/CarouselSlideComponent';
 import { MultipleChoiceQuestionComponent } from '@/components/editor-components/MultipleChoiceQuestionComponent';
 import { ShortAnswerQuestionComponent } from "@/components/editor-components/ShortAnswerQuestionComponent";
+import { ChallengeComponent } from "@/components/editor-components/ChallengeComponent";
+import { ChallengeContentCanvas } from "@/components/editor-components/ChallengeContentCanvas";
 
 export const editorResolver = {
   RenderCanvas: RenderCanvas,
@@ -39,6 +41,8 @@ export const editorResolver = {
   Accordion: AccordionComponent,
   CarouselComponent: CarouselComponent,
   CarouselSlideComponent: CarouselSlideComponent,
+  ChallengeComponent: ChallengeComponent,
+  ChallengeContentCanvas: ChallengeContentCanvas,
   TrueFalseQuestion: TrueFalseQuestionComponent,
   ShortAnswerQuestion: ShortAnswerQuestionComponent,
   MultipleChoiceQuestionComponent: MultipleChoiceQuestionComponent,

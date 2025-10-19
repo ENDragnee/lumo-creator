@@ -23,12 +23,11 @@ export async function POST(req: Request) {
         const userId = new Types.ObjectId(session.user.id);
 
         const newChallenge = new Challenge({
-            userId,
+            createdBy: userId,
             contentId: new Types.ObjectId(contentId),
             challengeType,
             status: 'not-started',
             quizData: [], 
-            createdBy: userId, // The user who designed/created this challenge instance
         });
 
         await newChallenge.save();
